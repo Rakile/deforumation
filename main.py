@@ -259,5 +259,5 @@ class Mywin(wx.Frame):
 
 if __name__ == '__main__':
     app = wx.App()
-    Mywin(None, 'Button demo')
+    Mywin(None, 'Deforumation @ Rakile 2022')
     app.MainLoop()
