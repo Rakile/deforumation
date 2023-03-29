@@ -1,10 +1,12 @@
 import wx
 import os
-deforumSettingsPath="E:\\prompt.txt"
-deforumSettingsLockFilePath = "E:\\prompt.txt.locked"
+deforumSettingsPath="C:\\temp\\prompt.txt"
+deforumSettingsLockFilePath = "C:\\temp\\prompt.txt.locked"
 Prompt_Positive = ""
 Prompt_Negative = ""
 Strength_Scheduler = 0.65
+CFG_Scale = 7
+FOV_Scale = 70
 Translation_X = 0.0
 Translation_Y = 0.0
 Translation_Z = 0.0
@@ -13,6 +15,8 @@ Rotation_3D_Y = 0.0
 Rotation_3D_Z = 0.0
 tbrY = 420
 trbX = 50
+is_fov_locked = False
+is_reverse_fov_locked = False
 
 def lock():
     try:
@@ -114,38 +118,67 @@ class Mywin(wx.Frame):
         self.ZOOM_X_Text3 = wx.StaticText(panel, label="O", pos=(170+trbX, tbrY+80))
         self.ZOOM_X_Text4 = wx.StaticText(panel, label="M", pos=(169+trbX, tbrY+100))
 
+        #FOV SLIDER
+        self.fov_slider = wx.Slider(panel, id=wx.ID_ANY, value=70, minValue=20, maxValue=120, pos = (190+trbX, tbrY-5), size = (40, 150), style = wx.SL_VERTICAL | wx.SL_AUTOTICKS | wx.SL_LABELS | wx.SL_INVERSE )
+        self.fov_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
+        self.fov_slider.SetTickFreq(1)
+        self.fov_slider.SetLabel("FOV")
+        self.FOV_Text = wx.StaticText(panel, label="F", pos=(250+trbX, tbrY+40))
+        self.FOV_Text2 = wx.StaticText(panel, label="O", pos=(249+trbX, tbrY+60))
+        self.FOV_Text3 = wx.StaticText(panel, label="V", pos=(250+trbX, tbrY+80))
+
+        #LOCK FOV TO ZOOM BUTTON
+        bmp = wx.Bitmap(".\\images\\lock_off.bmp", wx.BITMAP_TYPE_BMP)
+        self.fov_lock_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(172+trbX, tbrY-5), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.fov_lock_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.fov_lock_button.SetLabel("LOCK FOV")
+
+        #REVERSE FOV TO ZOOM BUTTON
+        bmp = wx.Bitmap(".\\images\\reverse_fov_off.bmp", wx.BITMAP_TYPE_BMP)
+        self.fov_reverse_lock_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(172+trbX, tbrY+120), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.fov_reverse_lock_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.fov_reverse_lock_button.SetLabel("REVERSE FOV")
+
         #STRENGTH SCHEDULE SLIDER
         self.strength_schedule_slider = wx.Slider(panel, id=wx.ID_ANY, value=65, minValue=1, maxValue=100, pos = (trbX-25, tbrY-50), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.strength_schedule_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.strength_schedule_slider.SetTickFreq(1)
         self.strength_schedule_slider.SetLabel("STRENGTH SCHEDULE")
-        self.ZOOM_X_Text = wx.StaticText(panel, label="Strength Value - (slider value is divided by 100)", pos=(trbX-35, tbrY-70))
+        self.strength_schedule_Text = wx.StaticText(panel, label="Strength Value - (slider value is divided by 100)", pos=(trbX-25, tbrY-70))
+
+        #CFG SCHEDULE SLIDER
+        self.cfg_schedule_slider = wx.Slider(panel, id=wx.ID_ANY, value=7, minValue=1, maxValue=30, pos = (trbX+325, tbrY-50), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.cfg_schedule_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
+        self.cfg_schedule_slider.SetTickFreq(1)
+        self.cfg_schedule_slider.SetLabel("CFG SCALE")
+        self.CFG_scale_Text = wx.StaticText(panel, label="CFG Scale", pos=(trbX+325, tbrY-70))
+
 
         #LOOK LEFT BUTTTON
         bmp = wx.Bitmap(".\\images\\look_left.bmp", wx.BITMAP_TYPE_BMP)
-        self.rotation_3d_x_left_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_x_left_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+80, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_x_left_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_x_left_button.SetLabel("LOOK_LEFT")
 
         #SET ROTATION VALUE X
-        self.rotation_3d_x_Value_Text = wx.StaticText(panel, label=str(Rotation_3D_X), pos=(240+trbX-30, 55+tbrY+5))
+        self.rotation_3d_x_Value_Text = wx.StaticText(panel, label=str(Rotation_3D_X), pos=(240+trbX-30+80, 55+tbrY+5))
         font = self.rotation_3d_x_Value_Text.GetFont()
         font.PointSize += 1
         font = font.Bold()
         self.rotation_3d_x_Value_Text.SetFont(font)
 
         #ROTATE STEPS INPUT
-        self.rotate_step_input_box = wx.TextCtrl(panel, size=(40,20), pos=(240+trbX-15, 30+tbrY))
+        self.rotate_step_input_box = wx.TextCtrl(panel, size=(40,20), pos=(240+trbX-15+80, 30+tbrY))
         self.rotate_step_input_box.SetLabel("1.0")
 
         #LOOK UPP BUTTTON
         bmp = wx.Bitmap(".\\images\\look_upp.bmp", wx.BITMAP_TYPE_BMP)
-        self.rotation_3d_y_up_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30, 55+tbrY-30), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_y_up_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30+80, 55+tbrY-30), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_y_up_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_y_up_button.SetLabel("LOOK_UP")
 
         #SET ROTATION VALUE Y
-        self.rotation_3d_y_Value_Text = wx.StaticText(panel, label=str(Rotation_3D_Y), pos=(240+trbX+35, 55+tbrY-48))
+        self.rotation_3d_y_Value_Text = wx.StaticText(panel, label=str(Rotation_3D_Y), pos=(240+trbX+35+80, 55+tbrY-48))
         font = self.rotation_3d_y_Value_Text.GetFont()
         font.PointSize += 1
         font = font.Bold()
@@ -153,37 +186,37 @@ class Mywin(wx.Frame):
 
         #LOOK RIGHT BUTTTON
         bmp = wx.Bitmap(".\\images\\look_right.bmp", wx.BITMAP_TYPE_BMP)
-        self.rotation_3d_x_right_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+57, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_x_right_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+57+80, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_x_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_x_right_button.SetLabel("LOOK_RIGHT")
 
         #LOOK UPP BUTTTON
         bmp = wx.Bitmap(".\\images\\look_down.bmp", wx.BITMAP_TYPE_BMP)
-        self.rotation_3d_y_down_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30, 55+tbrY+30), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_y_down_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30+80, 55+tbrY+30), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_y_down_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_y_down_button.SetLabel("LOOK_DOWN")
 
         #ROTATE LEFT BUTTTON
         bmp = wx.Bitmap(".\\images\\rotate_left.bmp", wx.BITMAP_TYPE_BMP)
-        self.rotation_3d_z_right_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(300+trbX+57, 50+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_z_right_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(300+trbX+57+80, 50+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_z_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_z_right_button.SetLabel("ROTATE_LEFT")
 
         #ROTATE RIGHT BUTTTON
         bmp = wx.Bitmap(".\\images\\rotate_right.bmp", wx.BITMAP_TYPE_BMP)
-        self.rotation_3d_z_right_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(380+trbX+57, 50+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_z_right_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(380+trbX+57+80, 50+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_z_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_z_right_button.SetLabel("ROTATE_RIGHT")
 
         #SET ROTATION VALUE Z
-        self.rotation_Z_Value_Text = wx.StaticText(panel, label=str(Rotation_3D_Z), pos=(360+trbX+46, 60+tbrY))
+        self.rotation_Z_Value_Text = wx.StaticText(panel, label=str(Rotation_3D_Z), pos=(360+trbX+46+80, 60+tbrY))
         font = self.rotation_Z_Value_Text.GetFont()
         font.PointSize += 1
         font = font.Bold()
         self.rotation_Z_Value_Text.SetFont(font)
 
         #TILT STEPS INPUT
-        self.tilt_step_input_box = wx.TextCtrl(panel, size=(40,20), pos=(360+trbX+38, 30+tbrY))
+        self.tilt_step_input_box = wx.TextCtrl(panel, size=(40,20), pos=(360+trbX+38+80, 30+tbrY))
         self.tilt_step_input_box.SetLabel("1.0")
 
         self.Centre()
@@ -198,6 +231,10 @@ class Mywin(wx.Frame):
         global Rotation_3D_Y
         global Rotation_3D_Z
         global Strength_Scheduler
+        global CFG_Scale
+        global FOV_Scale
+        global is_fov_locked
+        global is_reverse_fov_locked
         btn = event.GetEventObject().GetLabel()
         print("Label of pressed button = ", btn)
         if btn == "PAN_LEFT":
@@ -210,6 +247,13 @@ class Mywin(wx.Frame):
             Translation_Y = Translation_Y - float(self.pan_step_input_box.GetValue())
         elif btn == "ZOOM":
             Translation_Z = self.zoom_slider.GetValue()
+            if is_fov_locked:
+                if is_reverse_fov_locked:
+                    FOV_Scale = 70+(Translation_Z * -5)
+                else:
+                    FOV_Scale = 70 + (Translation_Z * 5)
+                self.fov_slider.SetValue(FOV_Scale)
+
         elif btn == "STRENGTH SCHEDULE":
             Strength_Scheduler = float(self.strength_schedule_slider.GetValue())*0.01
         elif btn == "LOOK_LEFT":
@@ -224,8 +268,36 @@ class Mywin(wx.Frame):
             Rotation_3D_Z = Rotation_3D_Z + float(self.tilt_step_input_box.GetValue())
         elif btn == "ROTATE_RIGHT":
             Rotation_3D_Z = Rotation_3D_Z - float(self.tilt_step_input_box.GetValue())
-
-
+        elif btn == "CFG SCALE":
+            CFG_Scale = float(self.cfg_schedule_slider.GetValue())
+        elif btn == "FOV":
+            FOV_Scale = float(self.fov_slider.GetValue())
+        elif btn == "LOCK FOV":
+            if is_fov_locked:
+                is_fov_locked = False
+                self.fov_lock_button.SetBitmap(wx.Bitmap(".\\images\\lock_off.bmp"))
+            else:
+                is_fov_locked = True
+                self.fov_lock_button.SetBitmap(wx.Bitmap(".\\images\\lock_on.bmp"))
+                if is_reverse_fov_locked:
+                    FOV_Scale = float(70+(Translation_Z*-5))
+                    self.fov_slider.SetValue(int(FOV_Scale))
+                else:
+                    FOV_Scale = float(70+(Translation_Z*5))
+                    self.fov_slider.SetValue(int(FOV_Scale))
+        elif btn == "REVERSE FOV":
+            if is_reverse_fov_locked:
+                is_reverse_fov_locked = False
+                self.fov_reverse_lock_button.SetBitmap(wx.Bitmap(".\\images\\reverse_fov_off.bmp"))
+                if is_fov_locked:
+                    FOV_Scale = float(70+(Translation_Z*5))
+                    self.fov_slider.SetValue(int(FOV_Scale))
+            else:
+                is_reverse_fov_locked = True
+                self.fov_reverse_lock_button.SetBitmap(wx.Bitmap(".\\images\\reverse_fov_on.bmp"))
+                if is_fov_locked:
+                    FOV_Scale = float(70+(Translation_Z*-5))
+                    self.fov_slider.SetValue(int(FOV_Scale))
 
         self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
         self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
@@ -243,6 +315,8 @@ class Mywin(wx.Frame):
             deforumFile.write(str('%.2f' % Rotation_3D_X)+"\n")
             deforumFile.write(str('%.2f' % Rotation_3D_Y)+"\n")
             deforumFile.write(str('%.2f' % Rotation_3D_Z)+"\n")
+            deforumFile.write(str('%.2f' % CFG_Scale)+"\n")
+            deforumFile.write(str('%.2f' % FOV_Scale)+"\n")
             deforumFile.close()
             unlock()
 
@@ -259,5 +333,5 @@ class Mywin(wx.Frame):
 
 if __name__ == '__main__':
     app = wx.App()
-    Mywin(None, 'Deforumation @ Rakile 2022')
+    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023')
     app.MainLoop()
