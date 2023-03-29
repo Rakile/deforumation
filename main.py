@@ -1,5 +1,6 @@
 import wx
 import os
+import time
 deforumSettingsPath="C:\\temp\\prompt.txt"
 deforumSettingsLockFilePath = "C:\\temp\\prompt.txt.locked"
 Prompt_Positive = ""
@@ -13,10 +14,11 @@ Translation_Z = 0.0
 Rotation_3D_X = 0.0
 Rotation_3D_Y = 0.0
 Rotation_3D_Z = 0.0
-tbrY = 420
+tbrY = 460
 trbX = 50
 is_fov_locked = False
 is_reverse_fov_locked = False
+is_paused_rendering = False
 
 def lock():
     try:
@@ -48,7 +50,9 @@ class Mywin(wx.Frame):
         sizer.Add(self.positivePromtText, 0, wx.ALL | wx.EXPAND, 5)
         self.positive_prompt_input_ctrl = wx.TextCtrl(panel,style=wx.TE_MULTILINE, size=(-1,100))
         sizer.Add(self.positive_prompt_input_ctrl, 0, wx.ALL | wx.EXPAND, 5)
-
+        if os.path.isfile(deforumSettingsPath):
+            promptfileRead = open(deforumSettingsPath, 'r')
+            self.positive_prompt_input_ctrl.SetValue(promptfileRead.readline())
         #Negative Prompt
         self.negativePromtText = wx.StaticText(panel, label="Negative prompt:")
         font = self.negativePromtText.GetFont()
@@ -56,17 +60,24 @@ class Mywin(wx.Frame):
         font = font.Bold()
         self.negativePromtText.SetFont(font)
         sizer.Add(self.negativePromtText, 0, wx.ALL | wx.EXPAND, 5)
-
         self.negative_prompt_input_ctrl = wx.TextCtrl(panel,style=wx.TE_MULTILINE, size=(-1,100))
         sizer.Add(self.negative_prompt_input_ctrl, 0, wx.ALL | wx.EXPAND, 5)
+        if os.path.isfile(deforumSettingsPath):
+            self.negative_prompt_input_ctrl.SetValue(promptfileRead.readline())
+            promptfileRead.close()
 
         #SAVE PROMPTS BUTTON
         self.update_prompts = wx.Button(panel, label="SAVE PROMPTS")
         sizer.Add(self.update_prompts, 0, wx.ALL | wx.EXPAND, 5)
         self.update_prompts.Bind(wx.EVT_BUTTON, self.OnClicked)
-
         panel.SetSizer(sizer)
-        hbox = wx.BoxSizer(wx.HORIZONTAL)
+
+        #PAUSE VIDEO RENDERING
+        self.pause_rendering = wx.Button(panel, label="PUSH TO PAUS RENDERING")
+        sizer.Add(self.pause_rendering, 0, wx.ALL | wx.EXPAND, 5)
+        self.pause_rendering.Bind(wx.EVT_BUTTON, self.OnClicked)
+        panel.SetSizer(sizer)
+
 
         #PAN STEPS INPUT
         self.pan_step_input_box = wx.TextCtrl(panel, size=(40,20), pos=(trbX-15, 30+tbrY))
@@ -119,7 +130,7 @@ class Mywin(wx.Frame):
         self.ZOOM_X_Text4 = wx.StaticText(panel, label="M", pos=(169+trbX, tbrY+100))
 
         #FOV SLIDER
-        self.fov_slider = wx.Slider(panel, id=wx.ID_ANY, value=70, minValue=20, maxValue=120, pos = (190+trbX, tbrY-5), size = (40, 150), style = wx.SL_VERTICAL | wx.SL_AUTOTICKS | wx.SL_LABELS | wx.SL_INVERSE )
+        self.fov_slider = wx.Slider(panel, id=wx.ID_ANY, value=70, minValue=20, maxValue=120, pos = (190+trbX, tbrY-5), size = (40, 150), style = wx.SL_VERTICAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.fov_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.fov_slider.SetTickFreq(1)
         self.fov_slider.SetLabel("FOV")
@@ -235,9 +246,20 @@ class Mywin(wx.Frame):
         global FOV_Scale
         global is_fov_locked
         global is_reverse_fov_locked
+        global is_paused_rendering
         btn = event.GetEventObject().GetLabel()
         print("Label of pressed button = ", btn)
-        if btn == "PAN_LEFT":
+        if btn == "PUSH TO PAUS RENDERING":
+            while not lock():
+                time.sleep(0.1)
+            self.pause_rendering.SetLabel("PUSH TO RESUME RENDERING")
+            is_paused_rendering = True
+            return
+        elif btn == "PUSH TO RESUME RENDERING":
+            self.pause_rendering.SetLabel("PUSH TO PAUS RENDERING")
+            is_paused_rendering = False
+            unlock()
+        elif btn == "PAN_LEFT":
             Translation_X = Translation_X - float(self.pan_step_input_box.GetValue())
         elif btn == "PAN_RIGHT":
             Translation_X = Translation_X + float(self.pan_step_input_box.GetValue())
@@ -304,20 +326,22 @@ class Mywin(wx.Frame):
         self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
         self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' %Rotation_3D_X))
         self.rotation_Z_Value_Text.SetLabel(str('%.2f' %Rotation_3D_Z))
-        if lock():
-            deforumFile = open(deforumSettingsPath, 'w')
-            deforumFile.write(self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
-            deforumFile.write(self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
-            deforumFile.write(str('%.2f' % Strength_Scheduler)+"\n")
-            deforumFile.write(str('%.2f' % Translation_X)+"\n")
-            deforumFile.write(str('%.2f' % Translation_Y)+"\n")
-            deforumFile.write(str('%.2f' % Translation_Z)+"\n")
-            deforumFile.write(str('%.2f' % Rotation_3D_X)+"\n")
-            deforumFile.write(str('%.2f' % Rotation_3D_Y)+"\n")
-            deforumFile.write(str('%.2f' % Rotation_3D_Z)+"\n")
-            deforumFile.write(str('%.2f' % CFG_Scale)+"\n")
-            deforumFile.write(str('%.2f' % FOV_Scale)+"\n")
-            deforumFile.close()
+        while not lock() and is_paused_rendering == False:
+            time.sleep(0.1)
+        deforumFile = open(deforumSettingsPath, 'w')
+        deforumFile.write(self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
+        deforumFile.write(self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
+        deforumFile.write(str('%.2f' % Strength_Scheduler)+"\n")
+        deforumFile.write(str('%.2f' % Translation_X)+"\n")
+        deforumFile.write(str('%.2f' % Translation_Y)+"\n")
+        deforumFile.write(str('%.2f' % Translation_Z)+"\n")
+        deforumFile.write(str('%.2f' % Rotation_3D_X)+"\n")
+        deforumFile.write(str('%.2f' % Rotation_3D_Y)+"\n")
+        deforumFile.write(str('%.2f' % Rotation_3D_Z)+"\n")
+        deforumFile.write(str('%.2f' % CFG_Scale)+"\n")
+        deforumFile.write(str('%.2f' % FOV_Scale)+"\n")
+        deforumFile.close()
+        if is_paused_rendering == False:
             unlock()
 
 
