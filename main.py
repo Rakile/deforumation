@@ -14,12 +14,12 @@ Translation_Z = 0.0
 Rotation_3D_X = 0.0
 Rotation_3D_Y = 0.0
 Rotation_3D_Z = 0.0
-tbrY = 460
+tbrY = 500
 trbX = 50
 is_fov_locked = False
 is_reverse_fov_locked = False
 is_paused_rendering = False
-
+STEP_Schedule = 25
 def lock():
     try:
         with open(deforumSettingsLockFilePath, 'x') as lockfile:
@@ -157,6 +157,14 @@ class Mywin(wx.Frame):
         self.strength_schedule_slider.SetLabel("STRENGTH SCHEDULE")
         self.strength_schedule_Text = wx.StaticText(panel, label="Strength Value - (slider value is divided by 100)", pos=(trbX-25, tbrY-70))
 
+        #SAMPLE STEP SLIDER
+        self.sample_schedule_slider = wx.Slider(panel, id=wx.ID_ANY, value=25, minValue=1, maxValue=200, pos = (trbX-25, tbrY-50-70), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.sample_schedule_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
+        self.sample_schedule_slider.SetTickFreq(1)
+        self.sample_schedule_slider.SetLabel("STEPS")
+        self.strength_schedule_Text = wx.StaticText(panel, label="Steps", pos=(trbX-25, tbrY-70-70))
+
+
         #CFG SCHEDULE SLIDER
         self.cfg_schedule_slider = wx.Slider(panel, id=wx.ID_ANY, value=7, minValue=1, maxValue=30, pos = (trbX+325, tbrY-50), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.cfg_schedule_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
@@ -247,6 +255,7 @@ class Mywin(wx.Frame):
         global is_fov_locked
         global is_reverse_fov_locked
         global is_paused_rendering
+        global STEP_Schedule
         btn = event.GetEventObject().GetLabel()
         print("Label of pressed button = ", btn)
         if btn == "PUSH TO PAUS RENDERING":
@@ -320,6 +329,8 @@ class Mywin(wx.Frame):
                 if is_fov_locked:
                     FOV_Scale = float(70+(Translation_Z*-5))
                     self.fov_slider.SetValue(int(FOV_Scale))
+        elif btn == "STEPS":
+            STEP_Schedule = int(self.sample_schedule_slider.GetValue())
 
         self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
         self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
@@ -340,6 +351,7 @@ class Mywin(wx.Frame):
         deforumFile.write(str('%.2f' % Rotation_3D_Z)+"\n")
         deforumFile.write(str('%.2f' % CFG_Scale)+"\n")
         deforumFile.write(str('%.2f' % FOV_Scale)+"\n")
+        deforumFile.write(str(STEP_Schedule)+"\n")
         deforumFile.close()
         if is_paused_rendering == False:
             unlock()
