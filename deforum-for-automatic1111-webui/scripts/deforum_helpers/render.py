@@ -262,8 +262,30 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         scheduled_noise_multiplier = None
         mask_seq = None
         noise_mask_seq = None
-        if anim_args.enable_steps_scheduling and keys.steps_schedule_series[frame_idx] is not None:
+
+        #FulHack
+        if os.path.isfile(prompt_path):
+            while not lock():
+                print("Waiting for lock file")
+            promptfileRead = open(prompt_path, 'r')
+            if promptfileRead:
+                args.prompt = promptfileRead.readline()
+                args.prompt = args.prompt + "--neg "+ promptfileRead.readline()
+                strength = float(promptfileRead.readline())
+                fulhack_translation_3d_x = float(promptfileRead.readline())
+                fulhack_translation_3d_y = float(promptfileRead.readline())
+                fulhack_translation_3d_z = float(promptfileRead.readline())
+                fulhack_rotation_3d_x = float(promptfileRead.readline())
+                fulhack_rotation_3d_y = float(promptfileRead.readline())
+                fulhack_rotation_3d_z = float(promptfileRead.readline())            
+                scale = float(promptfileRead.readline())
+                fov_deg = float(promptfileRead.readline())
+                args.steps = int(promptfileRead.readline())
+                promptfileRead.close()
+                unlock()
+        elif anim_args.enable_steps_scheduling and keys.steps_schedule_series[frame_idx] is not None:
             args.steps = int(keys.steps_schedule_series[frame_idx])
+
         if anim_args.enable_sampler_scheduling and keys.sampler_schedule_series[frame_idx] is not None:
             scheduled_sampler_name = keys.sampler_schedule_series[frame_idx].casefold()
         if anim_args.enable_clipskip_scheduling and keys.clipskip_schedule_series[frame_idx] is not None:
