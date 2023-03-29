@@ -1,5 +1,5 @@
 # deforumation
-A GUI to remotely steer the Deforum motions in real time.
+A GUI to remotely steer the Deforum motions, strengths, and prompts, in real time.
 
 ## Dependencies
 wxPython (pip install wxPython)
