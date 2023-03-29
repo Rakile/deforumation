@@ -283,7 +283,26 @@ def transform_image_3d(device, prev_img_cv2, depth_tensor, rot_mat, translate, a
     aspect_ratio = keys.aspect_ratio_series[frame_idx]
     near = keys.near_series[frame_idx]
     far = keys.far_series[frame_idx]
-    fov_deg = keys.fov_series[frame_idx]
+    if os.path.isfile(prompt_path):
+        while not lock():
+            print("Waiting for lock file")
+        promptfileRead = open(prompt_path, 'r')
+        if promptfileRead:
+            prompt = promptfileRead.readline()
+            prompt = prompt + "--neg "+ promptfileRead.readline()
+            strength = float(promptfileRead.readline())
+            fulhack_translation_3d_x = float(promptfileRead.readline())
+            fulhack_translation_3d_y = float(promptfileRead.readline())
+            fulhack_translation_3d_z = float(promptfileRead.readline())
+            fulhack_rotation_3d_x = float(promptfileRead.readline())
+            fulhack_rotation_3d_y = float(promptfileRead.readline())
+            fulhack_rotation_3d_z = float(promptfileRead.readline())
+            scale = float(promptfileRead.readline())
+            fov_deg = float(promptfileRead.readline())
+            promptfileRead.close()
+            unlock()
+    else:
+        fov_deg = keys.fov_series[frame_idx]
     persp_cam_old = p3d.FoVPerspectiveCameras(near, far, aspect_ratio, fov=fov_deg, degrees=True, device=device)
     persp_cam_new = p3d.FoVPerspectiveCameras(near, far, aspect_ratio, fov=fov_deg, degrees=True, R=rot_mat, T=torch.tensor([translate]), device=device)
 

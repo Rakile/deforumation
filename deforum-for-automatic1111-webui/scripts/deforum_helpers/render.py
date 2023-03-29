@@ -232,12 +232,18 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 args.prompt = promptfileRead.readline()
                 args.prompt = args.prompt + "--neg "+ promptfileRead.readline()
                 strength = float(promptfileRead.readline())
+                fulhack_translation_3d_x = float(promptfileRead.readline())
+                fulhack_translation_3d_y = float(promptfileRead.readline())
+                fulhack_translation_3d_z = float(promptfileRead.readline())
+                fulhack_rotation_3d_x = float(promptfileRead.readline())
+                fulhack_rotation_3d_y = float(promptfileRead.readline())
+                fulhack_rotation_3d_z = float(promptfileRead.readline())            
+                scale = float(promptfileRead.readline())
                 promptfileRead.close()
                 unlock()
         else:
             strength = keys.strength_schedule_series[frame_idx]        
-        #strength = keys.strength_schedule_series[frame_idx]
-        scale = keys.cfg_scale_schedule_series[frame_idx]
+            scale = keys.cfg_scale_schedule_series[frame_idx]
         contrast = keys.contrast_schedule_series[frame_idx]
         kernel = int(keys.kernel_schedule_series[frame_idx])
         sigma = keys.sigma_schedule_series[frame_idx]
