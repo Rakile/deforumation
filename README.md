@@ -9,8 +9,8 @@ The version of deforum needs to be "Deforum extension for auto1111 webui, v2.3b"
 As a big fan of deforum, I did this small "Hack" in order to remotely be able to change motion values while deforum is rendering.
 
 ## Getting started
-In order for deforumation to work, the files "animation.py" and "render.py" need to be replaced with the ones provided in "deforum-for-automatic1111-webui\scripts\deforum_helpers"
-Two files will be created in C:\Temp when the application is started, "prompt.txt" and "prompt.txt.locked", so be sure that you have a Temp folder on C:
+In order for deforumation to work, the files "animation.py" and "render.py" need to be replaced with the ones provided in "deforum-for-automatic1111-webui\scripts\deforum_helpers".
+Two files will be created in "C:\Temp" when the application is started, "prompt.txt" and "prompt.txt.locked", so be sure that you have a Temp folder on "C:\".
 These two files are used as the communication between Deforum and Deforumation.
 
 ## How it works
@@ -23,3 +23,4 @@ You may now play around with all the values (PANNING, ROTATING, TILTING, ZOOM, S
 
 ## Trouble shooting
 If the rendering shouldn't work (freezes), it might be because there is still a lock file that hasn't been released (C:\TEMP\prompt.txt.locked). This file is used in order for Deforum and Deforumation not to deadlock each-other. Just manually delete it if that should happen.
+Normally, you will see alot of "Waiting for lock file", in the command line interface that you started Automatic1111 from.
