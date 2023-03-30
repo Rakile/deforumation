@@ -2,8 +2,9 @@
 A GUI to remotely steer the Deforum motions, strengths, and prompts, in real time. It is also possible to rewind, forward and resume, in order to fix a bad outcome.
 
 ## Dependencies
-wxPython (pip install wxPython)
-The version of deforum needs to be "Deforum extension for auto1111 webui, v2.3b"
+wxPython (pip install wxPython).
+
+The version of deforum needs to be "Deforum extension for auto1111 webui, v2.3b".
 
 More precisely I changed the animation.py with sha1sum of (1aca4ae71fefabe2a8b17f977fc28f3157c14d56),
 and render.py with the sha1sum of (94121a91bf88d36c065cdaa07ea72c8c7a8b0aa2).
