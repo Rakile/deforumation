@@ -51,6 +51,11 @@ Positive Prompt: Beatifull (smiling:0.1), bear girl, focus on face
 
 Here we just increase the "(smiling:0.1)" value upwards. 
 
+## A tool for learning
+Deforumation is a perfect tool to learn how different parameters, like Steps, Strength Value and CFG scale, in combination affects the image generation during time. The best way (I have found, to get as a stable outcome as possible with all other settings you have in Deforum), is to know your values.
+
+One way to achieve this is to have No motion at all, and make every render not go into "Bananas"... Because the most effective values differ alot between samplers, checkpoints, SD VAE's and all other specific settings that you are currently having. Get a feel of what values, keep a balance with your current choices. Note them down, and play around ;P
+
 ## Trouble shooting
 If the rendering shouldn't work (freezes), it might be because there is still a lock file that hasn't been released (C:\TEMP\prompt.txt.locked). This file is used in order for Deforum and Deforumation not to deadlock each-other. Just manually delete it if that should happen.
 Normally, you will see alot of "Waiting for lock file", in the command line interface that you started Automatic1111 from.
