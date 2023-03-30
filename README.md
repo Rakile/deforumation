@@ -41,6 +41,8 @@ In order to use this functionality, you have to turn on "Resume from timestring"
 ![img](github_images/resume.PNG)
 The suggested method is to just start generating without this functionality turned on. Then Deforum will create a folder for you with a timestring. Interupt the generation, and use that time string in the "Resume timestring" field. Then turn on "Resume from timestring", and you should be good to go.
 
+When you know you did a misstake, start by pressing the "PUSH TO PAUS RENDERING"-button. Then click "Show current image"-button. This will give you the current image, and the current actual frame number. Use the arrows to rewind or forward... or you could just type in a frame number and press enter to jump to that frame... When you found the frame where you want to resume rendering from, press the "Set current image"-button, and then, to resume rendering, push the "PUSH TO RESUME RENDERING"-button. EASY!!!
+
 ![img](github_images/smile.gif)
 
 Here is an example of LIVE prompt changing for facial expression during rendering.
