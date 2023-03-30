@@ -118,7 +118,7 @@ class Mywin(wx.Frame):
         #self.img = wx.Image("E:\\Tools\\stable-diffusion-webui\\outputs\\img2img-images\\Deforum_20230330002842\\20230330002842_000000082.png", wx.BITMAP_TYPE_ANY)
         #self.imageCtrl = wx.StaticBitmap(panel, wx.ID_ANY, wx.BitmapFromImage(img))
         #self.bitmap = wx.StaticBitmap(panel, -1, self.img, pos=(trbX+700, tbrY-120))
-
+        self.bitmap = None
 
         #SAVE PROMPTS BUTTON
         self.update_prompts = wx.Button(panel, label="SAVE PROMPTS")
@@ -451,6 +451,8 @@ class Mywin(wx.Frame):
                     if maxBackTrack == 0:
                         break
                 if os.path.isfile(imagePath):
+                    if self.bitmap != None:
+                        self.bitmap.Destroy()
                     self.img = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
                     self.img = self.img.Scale(int(self.img.GetWidth() / 2), int(self.img.GetHeight() / 2), wx.IMAGE_QUALITY_HIGH)
                     self.bitmap = wx.StaticBitmap(self, -1, self.img, pos=(trbX + 700, tbrY - 120))
