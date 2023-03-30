@@ -40,7 +40,8 @@ The suggested method is to just start generating without this functionality turn
 ![img](github_images/smile.gif)
 
 Here is an example of LIVE prompt changing for facial expression during rendering.
-Beatifull (smiling:0.1), bear girl, focus on face
+
+PROMPT: Beatifull (smiling:0.1), bear girl, focus on face
 
 Here we just increase the "(smiling:0.1)" value upwards. 
 
