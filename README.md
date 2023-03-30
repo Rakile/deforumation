@@ -22,9 +22,7 @@ To apply any text changes, you then have to push the "SAVE PROMPTS" button (this
 You may also set any strength value or other values in beforehand.
 
 Now that this is done, push the "Generate" button in the Deforum extention.
-You may now play around with all the values (PANNING, ROTATING, TILTING, ZOOM, Strength Value and of course Prompts) as deforum keeps generating images and applying the new values.
-
-You can also pause the rendering, look at the current image, rewind or forward in your creation, and resume at any given point.
+You may now play around with all the values (Panning, Rotating, Tilting, Zoom, Strength Value, CFG value, Sample steps, and of course Prompts, positive and negative) as deforum keeps generating images and applying the new values.
 
 ![img](github_images/output.gif)
 
@@ -32,6 +30,11 @@ Easy to control exakt motions (above, doing a Panning left while at the same tim
 
 ![img](github_images/interface.png)
 
+## Pause, rewind, and rerender
+Deforumation allows you to rewind to a given frame, and gives you the ability to start generating from that given frame. This is good for when something in your creativity "goes bananas". Maybe that clown shouldn't have appeard all of a sudden ;P
+
+In order to use this functionality, you have to turn on Resume from timestring.
+![img](github_images/resume.png)
 ## Trouble shooting
 If the rendering shouldn't work (freezes), it might be because there is still a lock file that hasn't been released (C:\TEMP\prompt.txt.locked). This file is used in order for Deforum and Deforumation not to deadlock each-other. Just manually delete it if that should happen.
 Normally, you will see alot of "Waiting for lock file", in the command line interface that you started Automatic1111 from.
