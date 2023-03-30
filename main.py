@@ -3,6 +3,10 @@ import os
 import time
 deforumSettingsPath="C:\\temp\\prompt.txt"
 deforumSettingsLockFilePath = "C:\\temp\\prompt.txt.locked"
+frame_path = "C:\\temp\\currentFrame.txt"
+frame_lockfile_path = "C:\\temp\\currentFrame.txt.locked"
+USE_BUFFERED_DC = True
+
 Prompt_Positive = ""
 Prompt_Negative = ""
 Strength_Scheduler = 0.65
@@ -34,12 +38,33 @@ def lock():
         return False
 def unlock():
     os.remove(deforumSettingsLockFilePath)
+def lock_frame():
+    try:
+        with open(frame_lockfile_path, 'x') as lockfile:
+            # write the PID of the current process so you can debug
+            # later if a lockfile can be deleted after a program crash
+            lockfile.write(str(os.getpid()))
+            lockfile.close()
+            return True
+    except IOError:
+         # file already exists
+        #print("ALREADY LOCKED")
+        return False
+def unlock_frame():
+    os.remove(frame_lockfile_path)
 
 class Mywin(wx.Frame):
     def __init__(self, parent, title):
-        super(Mywin, self).__init__(parent, title=title, size=(700, 700))
+        super(Mywin, self).__init__(parent, title=title, size=(1400, 700))
         panel = wx.Panel(self)
         panel.SetBackgroundColour(wx.Colour(100, 100, 100))
+        #wx.EVT_PAINT(self, self.OnPaint)
+        #wx.EVT_SIZE(self, self.OnSize)
+        #Timer Event
+        #self.timer = wx.Timer(self)
+        #self.Bind(wx.EVT_TIMER, self.frameUpdater, self.timer)
+        #self.timer.Start(1000)
+
         #Positive Prompt
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.positivePromtText = wx.StaticText(panel, label="Positive prompt:")
@@ -66,17 +91,46 @@ class Mywin(wx.Frame):
             self.negative_prompt_input_ctrl.SetValue(promptfileRead.readline())
             promptfileRead.close()
 
+        panel.SetSizer(sizer)
+        #SHOW CURRENT IMAGE, BUTTON
+        self.show_current_image = wx.Button(panel, label="Show current image", pos=(trbX+992, tbrY-110))
+        self.show_current_image.Bind(wx.EVT_BUTTON, self.OnClicked)
+        #REWIND BUTTTON
+        bmp = wx.Bitmap(".\\images\\left_arrow.bmp", wx.BITMAP_TYPE_BMP)
+        self.rewind_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1000, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rewind_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.rewind_button.SetLabel("REWIND")
+        #SET CURRENT FRAME INPUT BOX
+        self.frame_step_input_box = wx.TextCtrl(panel, 2, size=(48,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+1032, tbrY-74))
+        self.frame_step_input_box.SetLabel("")
+        self.frame_step_input_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=2)
+        #FORWARD BUTTTON
+        bmp = wx.Bitmap(".\\images\\right_arrow.bmp", wx.BITMAP_TYPE_BMP)
+        self.forward_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1080, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.forward_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.forward_button.SetLabel("FORWARD")
+        #SET CURRENT IMAGE, BUTTON
+        self.set_current_image = wx.Button(panel, label="Set current image", pos=(trbX+998, tbrY-40))
+        self.set_current_image.Bind(wx.EVT_BUTTON, self.OnClicked)
+
+        #SHOW AN IMAGE
+        #self.img = wx.EmptyImage(240,240)
+        #self.img = wx.Image("E:\\Tools\\stable-diffusion-webui\\outputs\\img2img-images\\Deforum_20230330002842\\20230330002842_000000082.png", wx.BITMAP_TYPE_ANY)
+        #self.imageCtrl = wx.StaticBitmap(panel, wx.ID_ANY, wx.BitmapFromImage(img))
+        #self.bitmap = wx.StaticBitmap(panel, -1, self.img, pos=(trbX+700, tbrY-120))
+
+
         #SAVE PROMPTS BUTTON
         self.update_prompts = wx.Button(panel, label="SAVE PROMPTS")
         sizer.Add(self.update_prompts, 0, wx.ALL | wx.EXPAND, 5)
         self.update_prompts.Bind(wx.EVT_BUTTON, self.OnClicked)
-        panel.SetSizer(sizer)
+        #panel.SetSizer(sizer)
 
         #PAUSE VIDEO RENDERING
         self.pause_rendering = wx.Button(panel, label="PUSH TO PAUS RENDERING")
         sizer.Add(self.pause_rendering, 0, wx.ALL | wx.EXPAND, 5)
         self.pause_rendering.Bind(wx.EVT_BUTTON, self.OnClicked)
-        panel.SetSizer(sizer)
+        #panel.SetSizer(sizer)
 
 
         #PAN STEPS INPUT
@@ -242,6 +296,34 @@ class Mywin(wx.Frame):
         self.Show()
         self.Fit()
 
+    def frameUpdater(self, event):
+        if os.path.isfile(frame_path):
+            while not lock_frame():
+                print("Waiting for lock file")
+            framefileRead = open(frame_path, 'r')
+            shouldResume = int(framefileRead.readline())
+            current_frame = framefileRead.readline().strip().replace('\n', '')
+            current_frame = str(int(current_frame)-1)
+            outdir = framefileRead.readline().replace('/', '\\').replace('\n', '')
+            resume_timestring = framefileRead.readline()
+            framefileRead.close()
+            #arne = len(str(current_frame))
+            #fillings = 11 - len(str(current_frame))
+            current_frame = current_frame.zfill(9)
+            imagePath = outdir+"\\"+resume_timestring+"_"+current_frame+".png"
+            unlock_frame()
+            while not os.path.isfile(imagePath):
+                if(current_frame == 0):
+                    break
+                current_frame = str(int(current_frame) - 1)
+                current_frame = current_frame.zfill(9)
+                imagePath = outdir+"\\"+resume_timestring+"_"+current_frame+".png"
+            if os.path.isfile(imagePath):
+                self.img = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
+                self.img = self.img.Scale(int(self.img.GetWidth()/2), int(self.img.GetHeight()/2), wx.IMAGE_QUALITY_HIGH)
+                self.bitmap = wx.StaticBitmap(self, -1, self.img, pos=(trbX+700, tbrY-120))
+                self.Refresh()
+
     def OnClicked(self, event):
         global Translation_X
         global Translation_Y
@@ -331,7 +413,68 @@ class Mywin(wx.Frame):
                     self.fov_slider.SetValue(int(FOV_Scale))
         elif btn == "STEPS":
             STEP_Schedule = int(self.sample_schedule_slider.GetValue())
+        elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2:
+            if os.path.isfile(frame_path):
+                while not lock_frame():
+                    print("Waiting for lock file")
+                framefileRead = open(frame_path, 'r')
+                shouldResume = int(framefileRead.readline())
+                current_frame = framefileRead.readline().strip().replace('\n', '')
+                current_frame = str(int(current_frame) - 1)
+                outdir = framefileRead.readline().replace('/', '\\').replace('\n', '')
+                resume_timestring = framefileRead.readline()
+                framefileRead.close()
+                # arne = len(str(current_frame))
+                # fillings = 11 - len(str(current_frame))
+                if btn == "REWIND":
+                    current_frame = self.frame_step_input_box.GetValue()
+                    if int(current_frame) != 0:
+                        current_frame = str(int(current_frame)-1)
+                elif btn == "FORWARD":
+                    current_frame = self.frame_step_input_box.GetValue()
+                    if int(current_frame) != 0:
+                        current_frame = str(int(current_frame) + 1)
+                elif event.GetId() == 2:
+                    current_frame = self.frame_step_input_box.GetValue()
 
+                current_frame = current_frame.zfill(9)
+                imagePath = outdir + "\\" + resume_timestring + "_" + current_frame + ".png"
+                unlock_frame()
+                maxBackTrack = 20
+                while not os.path.isfile(imagePath):
+                    if (current_frame == 0):
+                        break
+                    current_frame = str(int(current_frame) - 1)
+                    current_frame = current_frame.zfill(9)
+                    imagePath = outdir + "\\" + resume_timestring + "_" + current_frame + ".png"
+                    maxBackTrack = maxBackTrack -1
+                    if maxBackTrack == 0:
+                        break
+                if os.path.isfile(imagePath):
+                    self.img = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
+                    self.img = self.img.Scale(int(self.img.GetWidth() / 2), int(self.img.GetHeight() / 2), wx.IMAGE_QUALITY_HIGH)
+                    self.bitmap = wx.StaticBitmap(self, -1, self.img, pos=(trbX + 700, tbrY - 120))
+                    self.frame_step_input_box.SetValue(str(int(current_frame)))
+                    self.Refresh()
+        elif btn == "Set current image":
+            if os.path.isfile(frame_path):
+                while not lock_frame():
+                    print("Waiting for lock file")
+                framefileRead = open(frame_path, 'r')
+                shouldResume = int(framefileRead.readline())
+                current_frame = framefileRead.readline().strip().replace('\n', '')
+                current_frame = str(int(current_frame) - 1)
+                outdir = framefileRead.readline().replace('/', '\\').replace('\n', '')
+                resume_timestring = framefileRead.readline()
+                framefileRead.close()
+
+                framefileWrite = open(frame_path, 'w')
+                current_frame = self.frame_step_input_box.GetValue()
+                framefileWrite.write("1"+"\n")
+                framefileWrite.write(current_frame+"\n")
+                framefileWrite.write(outdir+"\n")
+                framefileWrite.write(resume_timestring)
+                unlock_frame()
         self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
         self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
         self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
@@ -356,7 +499,6 @@ class Mywin(wx.Frame):
         if is_paused_rendering == False:
             unlock()
 
-
     def OnToggle(self, event):
         state = event.GetEventObject().GetValue()
 
@@ -367,6 +509,14 @@ class Mywin(wx.Frame):
             print(" Toggle button state on")
             event.GetEventObject().SetLabel("click to on")
 
+    def OnPaint(self, event):
+        # All that is needed here is to draw the buffer to screen
+        print("Buffer")
+        if USE_BUFFERED_DC:
+            dc = wx.BufferedPaintDC(self, self._Buffer)
+        else:
+            dc = wx.PaintDC(self)
+            dc.DrawBitmap(self._Buffer, 0, 0)
 if __name__ == '__main__':
     app = wx.App()
     Mywin(None, 'Deforumation @ Rakile & Lainol, 2023')
