@@ -41,7 +41,7 @@ The suggested method is to just start generating without this functionality turn
 
 Here is an example of LIVE prompt changing for facial expression during rendering.
 
-PROMPT: Beatifull (smiling:0.1), bear girl, focus on face
+Positive Prompt: Beatifull (smiling:0.1), bear girl, focus on face
 
 Here we just increase the "(smiling:0.1)" value upwards. 
 
