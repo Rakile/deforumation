@@ -11,7 +11,7 @@ from .prompt import check_is_number
 # Webui
 from modules.shared import state
 
-#FULHACK
+#FulHack
 prompt_path = "C:\\temp\\prompt.txt"
 deforumSettingsLockFilePath = "C:\\temp\\prompt.txt.locked"
 def lock():
@@ -29,7 +29,6 @@ def lock():
 def unlock():
     os.remove(deforumSettingsLockFilePath)
 #END OF FULHACK
-
 def sample_from_cv2(sample: np.ndarray) -> torch.Tensor:
     sample = ((sample.astype(float) / 255.0) * 2) - 1
     sample = sample[None].transpose(0, 3, 1, 2).astype(np.float16)
