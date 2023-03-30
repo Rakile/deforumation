@@ -24,11 +24,11 @@ You may also set any strength value or other values in beforehand.
 Now that this is done, push the "Generate" button in the Deforum extention.
 You may now play around with all the values (PANNING, ROTATING, TILTING, ZOOM, Strength Value and of course Prompts) as deforum keeps generating images and applying the new values.
 
-You can also pause the rendering, look at the current image, rewind or forward in your creation, and resume at any given point. The settings for this movement is shown in the Deforumation interface below.
+You can also pause the rendering, look at the current image, rewind or forward in your creation, and resume at any given point.
 
 ![img](github_images/output.gif)
 
-Easy to control exakt motions (above, doing a Panning left while at the same time Rotating right, creatinging an orbit camera movement around the person).
+Easy to control exakt motions (above, doing a Panning left while at the same time Rotating right, creatinging an orbit camera movement around the person). The settings for this movement is shown in the Deforumation interface below.
 
 ![img](github_images/interface.png)
 
