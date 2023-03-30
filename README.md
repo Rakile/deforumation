@@ -37,6 +37,8 @@ In order to use this functionality, you have to turn on "Resume from timestring"
 ![img](github_images/resume.PNG)
 The suggested method is to just start generating without this functionality turned on. Then Deforum will create a folder for you with a timestring. Interupt the generation, and use that time string in the "Resume timestring" field. Then turn on "Resume from timestring", and you should be good to go.
 
+![img](github_images/smile.gif)
+
 ## Trouble shooting
 If the rendering shouldn't work (freezes), it might be because there is still a lock file that hasn't been released (C:\TEMP\prompt.txt.locked). This file is used in order for Deforum and Deforumation not to deadlock each-other. Just manually delete it if that should happen.
 Normally, you will see alot of "Waiting for lock file", in the command line interface that you started Automatic1111 from.
