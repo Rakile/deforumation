@@ -30,6 +30,8 @@ You can also pause the rendering, look at the current image, rewind or forward i
 
 Easy to control exakt motions (above, doing a Panning left while at the same time Rotating right, creatinging an orbit camera movement around the person).
 
+![img](github_images/interface.png)
+
 ## Trouble shooting
 If the rendering shouldn't work (freezes), it might be because there is still a lock file that hasn't been released (C:\TEMP\prompt.txt.locked). This file is used in order for Deforum and Deforumation not to deadlock each-other. Just manually delete it if that should happen.
 Normally, you will see alot of "Waiting for lock file", in the command line interface that you started Automatic1111 from.
