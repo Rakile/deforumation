@@ -33,8 +33,9 @@ from .deforum_controlnet import unpack_controlnet_vids, is_controlnet_enabled
 # Webui
 from modules.shared import opts, cmd_opts, state, sd_model
 from modules import lowvram, devices, sd_hijack
-
 #FULHACK
+frame_path = "C:\\temp\\currentFrame.txt"
+frame_lockfile_path = "C:\\temp\\currentFrame.txt.locked"
 prompt_path = "C:\\temp\\prompt.txt"
 deforumSettingsLockFilePath = "C:\\temp\\prompt.txt.locked"
 def lock():
@@ -51,6 +52,22 @@ def lock():
         return False
 def unlock():
     os.remove(deforumSettingsLockFilePath)
+
+def lock_frame():
+    try:
+        with open(frame_lockfile_path, 'x') as lockfile:
+            # write the PID of the current process so you can debug
+            # later if a lockfile can be deleted after a program crash
+            lockfile.write(str(os.getpid()))
+            lockfile.close()
+            return True
+    except IOError:
+         # file already exists
+        #print("ALREADY LOCKED")
+        return False
+def unlock_frame():
+    os.remove(frame_lockfile_path)
+
 #END OF FULHACK
 
 def render_animation(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root):
@@ -84,7 +101,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     loopSchedulesAndData = LooperAnimKeys(loop_args, anim_args, args.seed)
     # resume animation
     start_frame = 0
+    #FULHACK
     if anim_args.resume_from_timestring:
+        args.outdir = args.outdir[0:args.outdir.rfind('\\')+1]+"Deforum_"+str(anim_args.resume_timestring)
         for tmp in os.listdir(args.outdir):
             if ".txt" in tmp : 
                 pass
@@ -94,6 +113,19 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 if anim_args.resume_timestring in filename and "depth" not in filename:
                     start_frame += 1
         #start_frame = start_frame - 1
+        if os.path.isfile(prompt_path):
+            while not lock_frame():
+                print("Waiting for lock file")        
+            framefileRead = open(frame_path, 'w')
+            framefileRead.write("0\n")
+            framefileRead.write(str(start_frame)+"\n")           
+            framefileRead.write(str(args.outdir)+"\n")
+            framefileRead.write(str(anim_args.resume_timestring))
+            framefileRead.close()
+            unlock_frame()
+
+    else:
+        print("!!NO ARGUMENT resume_from_timestring!!")
 
     # create output folder for the batch
     os.makedirs(args.outdir, exist_ok=True)
@@ -214,6 +246,51 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     state.job_count = anim_args.max_frames
 
     while frame_idx < (anim_args.max_frames if not anim_args.use_mask_video else anim_args.max_frames - 1):
+        #FulHack
+        if os.path.isfile(prompt_path):
+            while not lock_frame():
+                print("Waiting for lock file")
+            framefileRead = open(frame_path, 'r')
+            if framefileRead:
+                shouldResume = int(framefileRead.readline())
+                if shouldResume == 1:
+                    start_frame = int(framefileRead.readline())
+                    framefileRead.close()
+                    print("RESUMING FROM FRAME:" + str(start_frame))
+                    # resume animation
+                    prev_img = None
+                    color_match_sample = None
+                    if anim_args.resume_from_timestring:
+                        last_frame = start_frame-1
+                        if turbo_steps > 1:
+                            last_frame -= last_frame%turbo_steps
+                        path = os.path.join(args.outdir,f"{args.timestring}_{last_frame:09}.png")
+                        img = cv2.imread(path)
+                        prev_img = img
+                        if anim_args.color_coherence != 'None':
+                            color_match_sample = img
+                        if turbo_steps > 1:
+                            turbo_next_image, turbo_next_frame_idx = prev_img, last_frame
+                            turbo_prev_image, turbo_prev_frame_idx = turbo_next_image, turbo_next_frame_idx
+                            start_frame = last_frame+turbo_steps
+                    args.n_samples = 1
+                    frame_idx = start_frame
+                else:
+                    framefileRead.close()
+            unlock_frame()
+        else:
+            donothing = 0
+        #FULHACK
+        while not lock_frame():
+            print("Waiting for lock file")        
+        framefileRead = open(frame_path, 'w')
+        framefileRead.write("0\n")
+        framefileRead.write(str(frame_idx)+"\n")           
+        framefileRead.write(str(args.outdir)+"\n")
+        framefileRead.write(str(anim_args.resume_timestring))
+        framefileRead.close()
+        unlock_frame()
+
         #Webui
         state.job = f"frame {frame_idx + 1}/{anim_args.max_frames}"
         state.job_no = frame_idx + 1
@@ -240,7 +317,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 fulhack_rotation_3d_z = float(promptfileRead.readline())            
                 scale = float(promptfileRead.readline())
                 promptfileRead.close()
-                unlock()
+            unlock()
         else:
             strength = keys.strength_schedule_series[frame_idx]        
             scale = keys.cfg_scale_schedule_series[frame_idx]
@@ -262,7 +339,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         scheduled_noise_multiplier = None
         mask_seq = None
         noise_mask_seq = None
-
         #FulHack
         if os.path.isfile(prompt_path):
             while not lock():
@@ -282,7 +358,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 fov_deg = float(promptfileRead.readline())
                 args.steps = int(promptfileRead.readline())
                 promptfileRead.close()
-                unlock()
+            unlock()
         elif anim_args.enable_steps_scheduling and keys.steps_schedule_series[frame_idx] is not None:
             args.steps = int(keys.steps_schedule_series[frame_idx])
 
@@ -465,7 +541,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         args.pix2pix_img_cfg_scale = float(keys.pix2pix_img_cfg_scale_series[frame_idx])
 
         # grab prompt for current frame
-        #args.prompt = prompt_series[frame_idx]
+        #FULHACK
         if os.path.isfile(prompt_path):
             while not lock():
                 print("Waiting for lock file")
@@ -474,9 +550,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 args.prompt = promptfileRead.readline()
                 args.prompt = args.prompt + "--neg "+ promptfileRead.readline()
                 promptfileRead.close()
-                unlock()
+            unlock()
         else:
-            args.prompt = prompt_series[frame_idx]        
+            args.prompt = prompt_series[frame_idx]
+
         if args.seed_behavior == 'schedule' or use_parseq:
             args.seed = int(keys.seed_schedule_series[frame_idx])
 
@@ -508,7 +585,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         prompt_to_print, *after_neg = prompt_parsed.strip().split("--neg")
         prompt_to_print = prompt_to_print.strip()
         after_neg = "".join(after_neg).strip()
-        print(f"\033[34mStrength  \033[0m{args.strength}")
+
         print(f"\033[32mSeed: \033[0m{args.seed}")
         print(f"\033[35mPrompt: \033[0m{prompt_to_print}")
         if after_neg and after_neg.strip():
@@ -639,7 +716,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         else:    
             filename = f"{args.timestring}_{frame_idx:09}.png"
             save_image(image, 'PIL', filename, args, video_args, root)
-
+            
             if anim_args.save_depth_maps:
                 if cmd_opts.lowvram or cmd_opts.medvram:
                     lowvram.send_everything_to_cpu()
@@ -658,7 +735,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         state.current_image = image
 
         args.seed = next_seed(args)
-        
+
     if predict_depths and not keep_in_vram:
         depth_model.delete_model
         if anim_args.midas_weight < 1.0:

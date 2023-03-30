@@ -29,6 +29,7 @@ def lock():
 def unlock():
     os.remove(deforumSettingsLockFilePath)
 #END OF FULHACK
+
 def sample_from_cv2(sample: np.ndarray) -> torch.Tensor:
     sample = ((sample.astype(float) / 255.0) * 2) - 1
     sample = sample[None].transpose(0, 3, 1, 2).astype(np.float16)
@@ -233,7 +234,7 @@ def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
                 -fulhack_translation_3d_z * TRANSLATION_SCALE
             ]
             promptfileRead.close()
-            unlock()
+        unlock()
     else:
         translate_xyz = [
             -keys.translation_x_series[frame_idx] * TRANSLATION_SCALE, 
@@ -262,7 +263,7 @@ def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
                 math.radians(fulhack_rotation_3d_z)
             ]
             promptfileRead.close()
-            unlock()
+        unlock()
     else:
         rotate_xyz = [
             math.radians(keys.rotation_3d_x_series[frame_idx]), 
@@ -300,7 +301,7 @@ def transform_image_3d(device, prev_img_cv2, depth_tensor, rot_mat, translate, a
             scale = float(promptfileRead.readline())
             fov_deg = float(promptfileRead.readline())
             promptfileRead.close()
-            unlock()
+        unlock()
     else:
         fov_deg = keys.fov_series[frame_idx]
     persp_cam_old = p3d.FoVPerspectiveCameras(near, far, aspect_ratio, fov=fov_deg, degrees=True, device=device)
