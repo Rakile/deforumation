@@ -34,7 +34,8 @@ Easy to control exakt motions (above, doing a Panning left while at the same tim
 Deforumation allows you to rewind to a given frame, and gives you the ability to start generating from that given frame. This is good for when something in your creativity "goes bananas". Maybe that clown shouldn't have appeard all of a sudden ;P
 
 In order to use this functionality, you have to turn on Resume from timestring.
-![img](github_images/resume.png)
+![img](github_images/resume.png) 
+
 ## Trouble shooting
 If the rendering shouldn't work (freezes), it might be because there is still a lock file that hasn't been released (C:\TEMP\prompt.txt.locked). This file is used in order for Deforum and Deforumation not to deadlock each-other. Just manually delete it if that should happen.
 Normally, you will see alot of "Waiting for lock file", in the command line interface that you started Automatic1111 from.
