@@ -1,5 +1,5 @@
 # deforumation
-A GUI to remotely steer the Deforum motions, strengths, and prompts, in real time.
+A GUI to remotely steer the Deforum motions, strengths, and prompts, in real time. It is also possible to rewind, forward and resume, in order to fix a bad outcome.
 
 ## Dependencies
 wxPython (pip install wxPython)
@@ -23,6 +23,8 @@ You may also set any strength value or other values in beforehand.
 
 Now that this is done, push the "Generate" button in the Deforum extention.
 You may now play around with all the values (PANNING, ROTATING, TILTING, ZOOM, Strength Value and of course Prompts) as deforum keeps generating images and applying the new values.
+
+You can also pause the rendering, look at the current image, rewind or forward in your creation, and resume at any given point.
 
 ## Trouble shooting
 If the rendering shouldn't work (freezes), it might be because there is still a lock file that hasn't been released (C:\TEMP\prompt.txt.locked). This file is used in order for Deforum and Deforumation not to deadlock each-other. Just manually delete it if that should happen.
