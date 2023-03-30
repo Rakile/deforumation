@@ -23,7 +23,7 @@ In the Deforum extention in the Keyframes TAB, you have to choose "3D", else it 
 Before pushing "Generate" in the deforum extention, prime the communication by inserting a Positive and a Negative prompt in the Deforumation GUI.
 
 To apply any text changes, you then have to push the "SAVE PROMPTS" button (this will create a file in your path C:\Temp\prompt.txt)
-You may also set any strength value or other values in beforehand.
+You may also set any strength value or other values in beforehand. Also, moving any sliders or pushing any buttons will automatically save all other values (prompts included).
 
 Now that this is done, push the "Generate" button in the Deforum extention.
 You may now play around with all the values (Panning, Rotating, Tilting, Zoom, Strength Value, CFG value, Sample steps, and of course Prompts, positive and negative) as deforum keeps generating images and applying the new values.
