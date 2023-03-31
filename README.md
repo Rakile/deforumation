@@ -16,18 +16,15 @@ wxPython (pip install wxPython).
 Get the repo through: git clone https://github.com/Rakile/deforumatio  or download the zip file and unpack somewhere.
 Go into the deforumation folder in your terminal (Only supports Windows CMD), and run it with: python main.py
 
+![img](github_images/install.PNG)
+
 Replace the two files, located in your Automatic1111 path: ".\stable-diffusion-webui\extensions\deforum-for-automatic1111-webui\scripts\deforum_helpers\"
 with the two from ".\deforumation\deforum-for-automatic1111-webui\scripts\deforum_helpers\"
 
 So be aware that deforumation itself, is an external application that needs to be started on the side (running python main.py in deforumation).
+
 ## Introduction
 As a big fan of deforum, I did this small "Hack" in order to remotely be able to change motion values while deforum is rendering.
-
-## Getting started
-In order for deforumation to work, the files "animation.py" and "render.py" need to be replaced with the ones provided in "deforum-for-automatic1111-webui\scripts\deforum_helpers".
-
-Two files will be created in "C:\Temp" when the application is started, "prompt.txt" and "prompt.txt.locked", so be sure that you have a Temp folder on "C:\".
-These two files are used as the communication between Deforum and Deforumation.
 
 ## How it works
 In the Deforum extention in the Keyframes TAB, you have to choose "3D", else it will not work.
