@@ -124,8 +124,12 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             unlock_frame()
 
     else:
-        print("!!NO ARGUMENT resume_from_timestring!!")
-
+        framefileRead = open(frame_path, 'w')
+        framefileRead.write("0\n")
+        framefileRead.write(str(start_frame)+"\n")           
+        framefileRead.write(str(args.outdir)+"\n")
+        framefileRead.write(str(anim_args.resume_timestring))
+        framefileRead.close()
 
     # create output folder for the batch
     os.makedirs(args.outdir, exist_ok=True)
