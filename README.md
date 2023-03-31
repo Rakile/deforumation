@@ -12,11 +12,14 @@ A GUI to remotely steer the Deforum motions, strengths, and prompts, in real tim
 ## Dependencies
 wxPython (pip install wxPython).
 
-The version of deforum needs to be "Deforum extension for auto1111 webui, v2.3b".
+## Installation
+Get the repo through: git clone https://github.com/Rakile/deforumatio  or download the zip file and unpack somewhere.
+Go into the deforumation folder in your terminal (Only supports Windows CMD), and run it with: python main.py
 
-More precisely I changed the animation.py with sha1sum of (1aca4ae71fefabe2a8b17f977fc28f3157c14d56),
-and render.py with the sha1sum of (94121a91bf88d36c065cdaa07ea72c8c7a8b0aa2).
+Replace the two files, located in your Automatic1111 path: ".\stable-diffusion-webui\extensions\deforum-for-automatic1111-webui\scripts\deforum_helpers\"
+with the two from ".\deforumation\deforum-for-automatic1111-webui\scripts\deforum_helpers\"
 
+So be aware that deforumation itself, is an external application that needs to be started on the side (running python main.py in deforumation).
 ## Introduction
 As a big fan of deforum, I did this small "Hack" in order to remotely be able to change motion values while deforum is rendering.
 
