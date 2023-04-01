@@ -9,6 +9,10 @@ import numexpr
 import gc
 import random
 import PIL
+import pickle
+import asyncio
+import websockets
+import time
 from PIL import Image, ImageOps
 from .rich import console
 from .generate import generate, isJson
@@ -32,43 +36,14 @@ from .deforum_controlnet import unpack_controlnet_vids, is_controlnet_enabled
 # Webui
 from modules.shared import opts, cmd_opts, state, sd_model
 from modules import lowvram, devices, sd_hijack
-#FULHACK
-frame_path = "C:\\temp\\currentFrame.txt"
-frame_lockfile_path = "C:\\temp\\currentFrame.txt.locked"
-prompt_path = "C:\\temp\\prompt.txt"
-deforumSettingsLockFilePath = "C:\\temp\\prompt.txt.locked"
-def lock():
-    try:
-        with open(deforumSettingsLockFilePath, 'x') as lockfile:
-            # write the PID of the current process so you can debug
-            # later if a lockfile can be deleted after a program crash
-            lockfile.write(str(os.getpid()))
-            lockfile.close()
-            return True
-    except IOError:
-         # file already exists
-        #print("ALREADY LOCKED")
-        return False
-def unlock():
-    os.remove(deforumSettingsLockFilePath)
+usingDeforumation = True
 
-def lock_frame():
-    try:
-        with open(frame_lockfile_path, 'x') as lockfile:
-            # write the PID of the current process so you can debug
-            # later if a lockfile can be deleted after a program crash
-            lockfile.write(str(os.getpid()))
-            lockfile.close()
-            return True
-    except IOError:
-         # file already exists
-        #print("ALREADY LOCKED")
-        return False
-def unlock_frame():
-    os.remove(frame_lockfile_path)
-
-#END OF FULHACK
-
+async def sendAsync(value):
+    async with websockets.connect("ws://localhost:8765") as websocket:
+        await websocket.send(pickle.dumps(value))
+        message = await websocket.recv()
+        return message
+        
 def render_animation(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root):
     # handle hybrid video generation
     if anim_args.animation_mode in ['2D','3D']:
@@ -100,7 +75,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     loopSchedulesAndData = LooperAnimKeys(loop_args, anim_args, args.seed)
     # resume animation
     start_frame = 0
-    #FULHACK
+    ##################FIXED RESUME, including deforumation#####################################################
     if anim_args.resume_from_timestring:
         args.outdir = args.outdir[0:args.outdir.rfind('\\')+1]+"Deforum_"+str(anim_args.resume_timestring)
         for tmp in os.listdir(args.outdir):
@@ -112,25 +87,24 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 if anim_args.resume_timestring in filename and "depth" not in filename:
                     start_frame += 1
         #start_frame = start_frame - 1
-        if os.path.isfile(prompt_path):
-            while not lock_frame():
-                print("Waiting for lock file")        
-            framefileRead = open(frame_path, 'w')
-            framefileRead.write("0\n")
-            framefileRead.write(str(start_frame)+"\n")           
-            framefileRead.write(str(args.outdir)+"\n")
-            framefileRead.write(str(anim_args.resume_timestring))
-            framefileRead.close()
-            unlock_frame()
+    connectedToServer = False
+    if usingDeforumation: #Should we Connect to the Deforumation websocket server to write the current resume frame properties?
+        try:
+            asyncio.run(sendAsync([1, "should_resume", 0]))
+            print("DEFORUM, SETTING STARTFRAME:"+str(start_frame))
+            asyncio.run(sendAsync([1, "start_frame", start_frame]))
+            print("DEFORUM, SETTING OUTDIR:"+args.outdir)
+            asyncio.run(sendAsync([1, "frame_outdir", args.outdir]))
+            print("DEFORUM, SETTING RESUMESTRING:"+str(anim_args.resume_timestring))
+            if anim_args.resume_from_timestring:
+                asyncio.run(sendAsync([1, "resume_timestring", anim_args.resume_timestring]))
+            else:
+                asyncio.run(sendAsync([1, "resume_timestring", args.timestring]))                
+            connectedToServer = True
+        except Exception as e:
+            print("Deforumation Error:"+e)
 
-    else:
-        framefileRead = open(frame_path, 'w')
-        framefileRead.write("0\n")
-        framefileRead.write(str(start_frame)+"\n")           
-        framefileRead.write(str(args.outdir)+"\n")
-        framefileRead.write(str(anim_args.resume_timestring))
-        framefileRead.close()
-
+    ######################END FIX, RESUME#######################################################################################
     # create output folder for the batch
     os.makedirs(args.outdir, exist_ok=True)
     print(f"Saving animation frames to:\n{args.outdir}")
@@ -249,24 +223,29 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     #Webui
     state.job_count = anim_args.max_frames
 
-    noise = keys.noise_schedule_series[frame_idx]
     while frame_idx < (anim_args.max_frames if not anim_args.use_mask_video else anim_args.max_frames - 1):
-        #FulHack
-        if os.path.isfile(prompt_path):
-            while not lock_frame():
-                print("Waiting for lock file")
-            framefileRead = open(frame_path, 'r')
-            if framefileRead:
-                shouldResume = int(framefileRead.readline())
+        connectedToServer = False
+        if usingDeforumation:
+            try:
+                if int(asyncio.run(sendAsync([0, "seed_changed", 0]))):
+                    args.seed = int(asyncio.run(sendAsync([0, "seed", 0])))
+                    connectedToServer = True
+            except Exception as e:
+                print("Deforumation Error:"+str(e))
+
+        if usingDeforumation: #Should we Connect to the Deforumation websocket server to get strength values?
+            try:
+                ispaused = 0
+                while int(asyncio.run(sendAsync([0, "is_paused_rendering", 0]))) == 1:
+                    if ispaused == 0:
+                        print("RENDERING PAUSED")
+                        ispaused = 1
+                    time.sleep(0.2)
+                if ispaused:
+                        print("RENDERING RESUMED")                    
+                shouldResume = int(asyncio.run(sendAsync([0, "should_resume", 0])))
                 if shouldResume == 1:
-                    start_frame = int(framefileRead.readline())
-                    framefileRead.close()
-                    framefileRead = open(frame_path, 'w')
-                    framefileRead.write("0\n")
-                    framefileRead.write(str(start_frame)+"\n")           
-                    framefileRead.write(str(args.outdir)+"\n")
-                    framefileRead.write(str(anim_args.resume_timestring))
-                    framefileRead.close()
+                    start_frame = int(asyncio.run(sendAsync([0, "start_frame", 0])))
                     print("RESUMING FROM FRAME:" + str(start_frame))
                     # resume animation
                     prev_img = None
@@ -276,6 +255,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                         if turbo_steps > 1:
                             last_frame -= last_frame%turbo_steps
                         path = os.path.join(args.outdir,f"{args.timestring}_{last_frame:09}.png")
+                        print("RESUMING FROM PATH:" + str(path))
                         img = cv2.imread(path)
                         prev_img = img
                         if anim_args.color_coherence != 'None':
@@ -286,12 +266,22 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                             start_frame = last_frame+turbo_steps
                     args.n_samples = 1
                     frame_idx = start_frame
+                    asyncio.run(sendAsync([1, "should_resume", 0]))
                 else:
-                    framefileRead.close()
-            unlock_frame()
-        else:
-            donothing = 0
-        #FULHACK
+                    donothing = 0
+                connectedToServer = True
+            except Exception as e:
+                print("Deforumation Error:"+str(e))
+
+        if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell what frame_idx we are on currently?
+            try:
+                shouldResume = int(asyncio.run(sendAsync([0, "should_resume", 0])))
+                if shouldResume != 1:
+                    asyncio.run(sendAsync([1, "start_frame", frame_idx]))
+            except Exception as e:
+                print("Deforumation Error:"+e)
+
+
         #Webui
         state.job = f"frame {frame_idx + 1}/{anim_args.max_frames}"
         state.job_no = frame_idx + 1
@@ -300,8 +290,27 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
         print(f"\033[36mAnimation frame: \033[0m{frame_idx}/{anim_args.max_frames}  ")
 
-        strength = keys.strength_schedule_series[frame_idx]
-        scale = keys.cfg_scale_schedule_series[frame_idx]
+        noise = keys.noise_schedule_series[frame_idx]
+        if usingDeforumation: #Should we Connect to the Deforumation websocket server to get strength values?
+            try:
+                deforumation_strength = float(asyncio.run(sendAsync([0, "strength", 0])))
+                connectedToServer = True
+                strength = deforumation_strength
+            except Exception as e:
+                print("Deforumation Error:"+e)
+        if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
+            strength = keys.strength_schedule_series[frame_idx]
+
+        if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
+            connectedToServer = False
+            try:
+                deforumation_cfg = float(asyncio.run(sendAsync([0, "cfg", 0])))
+                connectedToServer = True
+                scale = deforumation_cfg
+            except Exception as e:
+                print("Deforumation Error:"+e)
+        if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
+            scale = keys.cfg_scale_schedule_series[frame_idx]
         contrast = keys.contrast_schedule_series[frame_idx]
         kernel = int(keys.kernel_schedule_series[frame_idx])
         sigma = keys.sigma_schedule_series[frame_idx]
@@ -320,29 +329,18 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         scheduled_noise_multiplier = None
         mask_seq = None
         noise_mask_seq = None
-        #FulHack
-        if os.path.isfile(prompt_path):
-            while not lock():
-                print("Waiting for lock file")
-            promptfileRead = open(prompt_path, 'r')
-            if promptfileRead:
-                args.prompt = promptfileRead.readline()
-                args.prompt = args.prompt + "--neg "+ promptfileRead.readline()
-                strength = float(promptfileRead.readline())
-                fulhack_translation_3d_x = float(promptfileRead.readline())
-                fulhack_translation_3d_y = float(promptfileRead.readline())
-                fulhack_translation_3d_z = float(promptfileRead.readline())
-                fulhack_rotation_3d_x = float(promptfileRead.readline())
-                fulhack_rotation_3d_y = float(promptfileRead.readline())
-                fulhack_rotation_3d_z = float(promptfileRead.readline())            
-                scale = float(promptfileRead.readline())
-                fov_deg = float(promptfileRead.readline())
-                args.steps = int(promptfileRead.readline())
-                promptfileRead.close()
-            unlock()
-        elif anim_args.enable_steps_scheduling and keys.steps_schedule_series[frame_idx] is not None:
-            args.steps = int(keys.steps_schedule_series[frame_idx])
 
+        if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
+            connectedToServer = False
+            try:
+                deforumation_steps = int(asyncio.run(sendAsync([0, "steps", 0])))
+                connectedToServer = True
+                args.steps = int(deforumation_steps)
+            except Exception as e:
+                print("Deforumation Error:"+e)
+        if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
+            if anim_args.enable_steps_scheduling and keys.steps_schedule_series[frame_idx] is not None:
+                args.steps = int(keys.steps_schedule_series[frame_idx])
         if anim_args.enable_sampler_scheduling and keys.sampler_schedule_series[frame_idx] is not None:
             scheduled_sampler_name = keys.sampler_schedule_series[frame_idx].casefold()
         if anim_args.enable_clipskip_scheduling and keys.clipskip_schedule_series[frame_idx] is not None:
@@ -522,19 +520,18 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         args.pix2pix_img_cfg_scale = float(keys.pix2pix_img_cfg_scale_series[frame_idx])
 
         # grab prompt for current frame
-        #FULHACK
-        if os.path.isfile(prompt_path):
-            while not lock():
-                print("Waiting for lock file")
-            promptfileRead = open(prompt_path, 'r')
-            if promptfileRead:
-                args.prompt = promptfileRead.readline()
-                args.prompt = args.prompt + "--neg "+ promptfileRead.readline()
-                promptfileRead.close()
-            unlock()
-        else:
+        if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
+            connectedToServer = False
+            try:
+                deforumation_positive_prompt = str(asyncio.run(sendAsync([0, "positive_prompt", 0])))
+                deforumation_negative_prompt = str(asyncio.run(sendAsync([0, "negative_prompt", 0])))
+                args.prompt = deforumation_positive_prompt + "--neg "+ deforumation_negative_prompt
+                connectedToServer = True
+            except Exception as e:
+                print("Deforumation Error:"+e)
+        if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             args.prompt = prompt_series[frame_idx]
-
+        
         if args.seed_behavior == 'schedule' or use_parseq:
             args.seed = int(keys.seed_schedule_series[frame_idx])
 

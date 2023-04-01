@@ -1,34 +1,18 @@
 import numpy as np
 import cv2
-import os
 from functools import reduce
 import math
 import py3d_tools as p3d
 import torch
 from einops import rearrange
 from .prompt import check_is_number
-
+import pickle
+import asyncio
+import websockets
+usingDeforumation = True
 # Webui
 from modules.shared import state
 
-#FulHack
-prompt_path = "C:\\temp\\prompt.txt"
-deforumSettingsLockFilePath = "C:\\temp\\prompt.txt.locked"
-def lock():
-    try:
-        with open(deforumSettingsLockFilePath, 'x') as lockfile:
-            # write the PID of the current process so you can debug
-            # later if a lockfile can be deleted after a program crash
-            lockfile.write(str(os.getpid()))
-            lockfile.close()
-            return True
-    except IOError:
-         # file already exists
-        #print("ALREADY LOCKED")
-        return False
-def unlock():
-    os.remove(deforumSettingsLockFilePath)
-#END OF FULHACK
 def sample_from_cv2(sample: np.ndarray) -> torch.Tensor:
     sample = ((sample.astype(float) / 255.0) * 2) - 1
     sample = sample[None].transpose(0, 3, 1, 2).astype(np.float16)
@@ -189,6 +173,12 @@ def anim_frame_warp(prev_img_cv2, args, anim_args, keys, frame_idx, depth_model=
                 
     return prev_img, depth
 
+async def sendAsync(value):
+    async with websockets.connect("ws://localhost:8765") as websocket:
+        await websocket.send(pickle.dumps(value))
+        message = await websocket.recv()
+        return message
+
 def anim_frame_warp_2d(prev_img_cv2, args, anim_args, keys, frame_idx):
     angle = keys.angle_series[frame_idx]
     zoom = keys.zoom_series[frame_idx]
@@ -215,55 +205,42 @@ def anim_frame_warp_2d(prev_img_cv2, args, anim_args, keys, frame_idx):
 
 def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
     TRANSLATION_SCALE = 1.0/200.0 # matches Disco
-    #FulHack
-    if os.path.isfile(prompt_path):
-        while not lock():
-            print("Waiting for lock file")
-        promptfileRead = open(prompt_path, 'r')
-        if promptfileRead:
-            prompt = promptfileRead.readline()
-            prompt = prompt + "--neg "+ promptfileRead.readline()
-            strength = float(promptfileRead.readline())
-            fulhack_translation_3d_x = float(promptfileRead.readline())
-            fulhack_translation_3d_y = float(promptfileRead.readline())
-            fulhack_translation_3d_z = float(promptfileRead.readline())
+    connectedToServer = False
+    if usingDeforumation: #Should we Connect to the Deforumation websocket server to get translation values?
+        try:
+            deforumation_translation_x = float(asyncio.run(sendAsync([0, "translation_x", 0])))
+            deforumation_translation_y = float(asyncio.run(sendAsync([0, "translation_y", 0])))
+            deforumation_translation_z = float(asyncio.run(sendAsync([0, "translation_z", 0])))
+            connectedToServer = True
             translate_xyz = [
-                -fulhack_translation_3d_x * TRANSLATION_SCALE, 
-                fulhack_translation_3d_y * TRANSLATION_SCALE, 
-                -fulhack_translation_3d_z * TRANSLATION_SCALE
+                -deforumation_translation_x * TRANSLATION_SCALE, 
+                deforumation_translation_y * TRANSLATION_SCALE, 
+                -deforumation_translation_z * TRANSLATION_SCALE
             ]
-            promptfileRead.close()
-        unlock()
-    else:
+        except Exception as e:
+            print("Deforumation Error:"+e)
+    if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
         translate_xyz = [
             -keys.translation_x_series[frame_idx] * TRANSLATION_SCALE, 
             keys.translation_y_series[frame_idx] * TRANSLATION_SCALE, 
             -keys.translation_z_series[frame_idx] * TRANSLATION_SCALE
         ]
 
-    #FulHack
-    if os.path.isfile(prompt_path):
-        while not lock():
-            print("Waiting for lock file")
-        promptfileRead = open(prompt_path, 'r')
-        if promptfileRead:
-            prompt = promptfileRead.readline()
-            prompt = prompt + "--neg "+ promptfileRead.readline()
-            strength = float(promptfileRead.readline())
-            fulhack_translation_3d_x = float(promptfileRead.readline())
-            fulhack_translation_3d_y = float(promptfileRead.readline())
-            fulhack_translation_3d_z = float(promptfileRead.readline())
-            fulhack_rotation_3d_x = float(promptfileRead.readline())
-            fulhack_rotation_3d_y = float(promptfileRead.readline())
-            fulhack_rotation_3d_z = float(promptfileRead.readline())
+    if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get rotation values?
+        connectedToServer = False
+        try:
+            deforumation_rotation_x = float(asyncio.run(sendAsync([0, "rotation_x", 0])))
+            deforumation_rotation_y = float(asyncio.run(sendAsync([0, "rotation_y", 0])))
+            deforumation_rotation_z = float(asyncio.run(sendAsync([0, "rotation_z", 0])))
+            connectedToServer = True
             rotate_xyz = [
-                math.radians(fulhack_rotation_3d_x), 
-                math.radians(fulhack_rotation_3d_y), 
-                math.radians(fulhack_rotation_3d_z)
+                math.radians(deforumation_rotation_x), 
+                math.radians(deforumation_rotation_y), 
+                math.radians(deforumation_rotation_z)
             ]
-            promptfileRead.close()
-        unlock()
-    else:
+        except Exception as e:
+            print("Deforumation Error:"+e)
+    if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
         rotate_xyz = [
             math.radians(keys.rotation_3d_x_series[frame_idx]), 
             math.radians(keys.rotation_3d_y_series[frame_idx]), 
@@ -283,25 +260,15 @@ def transform_image_3d(device, prev_img_cv2, depth_tensor, rot_mat, translate, a
     aspect_ratio = keys.aspect_ratio_series[frame_idx]
     near = keys.near_series[frame_idx]
     far = keys.far_series[frame_idx]
-    if os.path.isfile(prompt_path):
-        while not lock():
-            print("Waiting for lock file")
-        promptfileRead = open(prompt_path, 'r')
-        if promptfileRead:
-            prompt = promptfileRead.readline()
-            prompt = prompt + "--neg "+ promptfileRead.readline()
-            strength = float(promptfileRead.readline())
-            fulhack_translation_3d_x = float(promptfileRead.readline())
-            fulhack_translation_3d_y = float(promptfileRead.readline())
-            fulhack_translation_3d_z = float(promptfileRead.readline())
-            fulhack_rotation_3d_x = float(promptfileRead.readline())
-            fulhack_rotation_3d_y = float(promptfileRead.readline())
-            fulhack_rotation_3d_z = float(promptfileRead.readline())
-            scale = float(promptfileRead.readline())
-            fov_deg = float(promptfileRead.readline())
-            promptfileRead.close()
-        unlock()
-    else:
+    connectedToServer = False
+    if usingDeforumation: #Should we Connect to the Deforumation websocket server to get fov values?
+        try:
+            deforumation_fov = float(asyncio.run(sendAsync([0, "fov", 0])))
+            connectedToServer = True
+            fov_deg = float(deforumation_fov)
+        except Exception as e:
+            print("Deforumation Error:"+e)
+    if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
         fov_deg = keys.fov_series[frame_idx]
     persp_cam_old = p3d.FoVPerspectiveCameras(near, far, aspect_ratio, fov=fov_deg, degrees=True, device=device)
     persp_cam_new = p3d.FoVPerspectiveCameras(near, far, aspect_ratio, fov=fov_deg, degrees=True, R=rot_mat, T=torch.tensor([translate]), device=device)
