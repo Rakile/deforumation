@@ -197,8 +197,7 @@ class Mywin(wx.Frame):
         self.strength_schedule_Text = wx.StaticText(panel, label="Steps", pos=(trbX-25, tbrY-70-64))
 
         #SEED INPUT BOX
-        self.sample_schedule_slider.SetLabel("Seed")
-        self.strength_schedule_Text = wx.StaticText(panel, label="Seed", pos=(trbX+300, tbrY-50-80))
+        self.seed_schedule_Text = wx.StaticText(panel, label="Seed", pos=(trbX+300, tbrY-50-80))
         self.seed_input_box = wx.TextCtrl(panel, 3, size=(300,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+300, tbrY-50-60))
         self.seed_input_box.SetLabel("-1")
         self.seed_input_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=3)
