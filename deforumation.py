@@ -382,7 +382,7 @@ class Mywin(wx.Frame):
         global current_frame
         global seedValue
         btn = event.GetEventObject().GetLabel()
-        print("Label of pressed button = ", str(event.GetId()))
+        #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUS RENDERING":
             self.pause_rendering.SetLabel("PUSH TO RESUME RENDERING")
             is_paused_rendering = True
