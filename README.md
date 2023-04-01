@@ -90,7 +90,7 @@ Be sure that the Mediator is upp and running! Else no communication can be had b
 
 ## Examples of using Deforumation (Give a shout if you want to be here)
 By Lainol, Live prompting, facial expression:
-[![Watch the video]](https://www.youtube.com/watch?v=UKYZEQVljRE)
+[![Watch the video](https://i.imgur.com/vKb2F1B.png)](https://www.youtube.com/watch?v=UKYZEQVljRE)
 
 
 ## Last thoughts
