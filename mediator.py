@@ -179,7 +179,6 @@ async def echo(websocket):
             ##########################################################################
             elif str(parameter) == "should_resume":
                 if shouldWrite:
-                    print("The value is:"+str(value))
                     should_resume = int(value)
                     if doVerbose2:
                         print("writing should_resume:" + str(should_resume))
