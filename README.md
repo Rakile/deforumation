@@ -88,5 +88,8 @@ When you push "Interupt", sometimes Deforum buggs out and it doesn't stich up yo
 ## Trouble shooting
 Be sure that the Mediator is upp and running! Else no communication can be had between Deforum and Deforumation!
 
+## Examples of using Deforumation (Give a shout if you want to be here)
+By Laionol, Live prompting, facial expression: https://www.youtube.com/watch?v=UKYZEQVljRE
+
 ## Last thoughts
 There might be an ongoing discussions on how to implement this into Deforum, so that updates will be more smoth and accordance with Deforum... As of now it remains a Hack... Never the less, we encourage users to test Deforumation, and understand how vital this concept is for creating anything with precision. Please post videos, tutorials or, whatever, whith how you use Deforum, through Deforumation to your advantage. Join the r/deforumation channel (https://www.reddit.com/r/deforumation/).
