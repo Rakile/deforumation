@@ -160,7 +160,7 @@ async def echo(websocket):
                 else:
                     if doVerbose:
                         print("sending SEED:"+str(seed_value))
-                        did_seed_change = 0r
+                        did_seed_change = 0
                     await websocket.send(str(seed_value))
             elif str(parameter) == "seed_changed":
                 if not shouldWrite: #don't support write (it's not nessecary)
