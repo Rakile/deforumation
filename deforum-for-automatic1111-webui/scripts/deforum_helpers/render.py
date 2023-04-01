@@ -229,6 +229,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             try:
                 if int(asyncio.run(sendAsync([0, "seed_changed", 0]))):
                     args.seed = int(asyncio.run(sendAsync([0, "seed", 0])))
+                    print("!!!!!!!!!!!!!!!!!!!!!!NEW SEED:"+str(args.seed))
                     connectedToServer = True
             except Exception as e:
                 print("Deforumation Error:"+str(e))
@@ -250,20 +251,20 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     # resume animation
                     prev_img = None
                     color_match_sample = None
-                    if anim_args.resume_from_timestring:
-                        last_frame = start_frame-1
-                        if turbo_steps > 1:
-                            last_frame -= last_frame%turbo_steps
-                        path = os.path.join(args.outdir,f"{args.timestring}_{last_frame:09}.png")
-                        print("RESUMING FROM PATH:" + str(path))
-                        img = cv2.imread(path)
-                        prev_img = img
-                        if anim_args.color_coherence != 'None':
-                            color_match_sample = img
-                        if turbo_steps > 1:
-                            turbo_next_image, turbo_next_frame_idx = prev_img, last_frame
-                            turbo_prev_image, turbo_prev_frame_idx = turbo_next_image, turbo_next_frame_idx
-                            start_frame = last_frame+turbo_steps
+                    #if anim_args.resume_from_timestring:
+                    last_frame = start_frame-1
+                    if turbo_steps > 1:
+                        last_frame -= last_frame%turbo_steps
+                    path = os.path.join(args.outdir,f"{args.timestring}_{last_frame:09}.png")
+                    print("RESUMING FROM PATH:" + str(path))
+                    img = cv2.imread(path)
+                    prev_img = img
+                    if anim_args.color_coherence != 'None':
+                        color_match_sample = img
+                    if turbo_steps > 1:
+                        turbo_next_image, turbo_next_frame_idx = prev_img, last_frame
+                        turbo_prev_image, turbo_prev_frame_idx = turbo_next_image, turbo_next_frame_idx
+                        start_frame = last_frame+turbo_steps
                     args.n_samples = 1
                     frame_idx = start_frame
                     asyncio.run(sendAsync([1, "should_resume", 0]))
@@ -279,7 +280,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 if shouldResume != 1:
                     asyncio.run(sendAsync([1, "start_frame", frame_idx]))
             except Exception as e:
-                print("Deforumation Error:"+e)
+                print("Deforumation Error:"+str(e))
 
 
         #Webui
