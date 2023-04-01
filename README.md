@@ -56,6 +56,8 @@ Easy to control exakt motions (above, doing a Panning left while at the same tim
 
 ![img](github_images/newinterface.png)
 
+To change the seed, just type a new seed in the seed-input box, and push return. It will then be loyal to whatever you have choosen in the Deforum GUI, itterative, etc.
+
 ## Pause, rewind, and rerender
 Deforumation allows you to rewind to a given frame, and gives you the ability to start generating from that given frame. This is good for when something in your creativity "goes bananas". Maybe that clown shouldn't have appeard all of a sudden ;P
 
