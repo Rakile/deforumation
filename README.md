@@ -14,27 +14,38 @@ wxPython (pip install wxPython).
 
 ## Installation
 Get the repo through: git clone https://github.com/Rakile/deforumatio  or download the zip file and unpack somewhere.
-Go into the deforumation folder in your terminal and start by running:
-
->python -m pip install -r requirements.txt
-
-
-![img](github_images/install.PNG)
 
 Replace the two files, located in your Automatic1111 path: ".\stable-diffusion-webui\extensions\deforum-for-automatic1111-webui\scripts\deforum_helpers\"
 with the two from ".\deforumation\deforum-for-automatic1111-webui\scripts\deforum_helpers\"
 
-So be aware that deforumation itself, is an external application that needs to be started on the side (running python main.py in deforumation).
+Be sure to restart Automatic1111 after this.
+
+Go into the deforumation folder in your terminal and start by running:
+
+>python -m pip install -r requirements.txt
+
+## Running
+There are two parts, the "Mediator" and the Application (Deforumation GUI).
+
+Start by running the Mediator, which is located in the deforumation folder (mediator.py):
+
+>python mediator.py
+
+Then you can start the acctual application from another terminal, with:
+
+>python deforumation.py
 
 ## Introduction
-As a big fan of deforum, I did this small "Hack" in order to remotely be able to change motion values while deforum is rendering.
+As a big fan of deforum, I did this small "Hack" in order to remotely be able to change motion values and others, while deforum is rendering.
+
+The Mediator is running a websocket server that becomes the communication channel between Deforum and deforumation... Altough, any application could communicate with deforum through the Mediator (So go make some video editing applications that look better than mine ;P)
 
 ## How it works
 In the Deforum extention in the Keyframes TAB, you have to choose "3D", else it will not work.
 Before pushing "Generate" in the deforum extention, prime the communication by inserting a Positive and a Negative prompt in the Deforumation GUI.
 
-To apply any text changes, you then have to push the "SAVE PROMPTS" button (this will create a file in your path C:\Temp\prompt.txt)
-You may also set any strength value or other values in beforehand. Also, moving any sliders or pushing any buttons will automatically save all other values (prompts included).
+To apply any text changes, you then have to push the "SAVE PROMPTS" button.
+You may also set any strength value or other values in beforehand. Also, moving any sliders or pushing any buttons will automatically save all other values (prompts included). The file that is being saved is located inside the deforumation folder (deforumation_settings.txt), and will keep you settings during a restarts.
 
 Now that this is done, push the "Generate" button in the Deforum extention.
 You may now play around with all the values (Panning, Rotating, Tilting, Zoom, Strength Value, CFG value, Sample steps, and of course Prompts, positive and negative) as deforum keeps generating images and applying the new values.
@@ -48,7 +59,7 @@ Easy to control exakt motions (above, doing a Panning left while at the same tim
 ## Pause, rewind, and rerender
 Deforumation allows you to rewind to a given frame, and gives you the ability to start generating from that given frame. This is good for when something in your creativity "goes bananas". Maybe that clown shouldn't have appeard all of a sudden ;P
 
-In order to use this functionality, you have to turn on "Resume from timestring".
+In order to use this functionality, just push "Show current image" during generation, and you will see the current image currently rendering, along with the framenumber.
 ![img](github_images/resume.PNG)
 The suggested method is to just start generating without this functionality turned on. Then Deforum will create a folder for you with a timestring. Interupt the generation, and use that time string in the "Resume timestring" field. Then turn on "Resume from timestring", and you should be good to go.
 
