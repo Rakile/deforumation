@@ -261,6 +261,12 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 if shouldResume == 1:
                     start_frame = int(framefileRead.readline())
                     framefileRead.close()
+                    framefileRead = open(frame_path, 'w')
+                    framefileRead.write("0\n")
+                    framefileRead.write(str(start_frame)+"\n")           
+                    framefileRead.write(str(args.outdir)+"\n")
+                    framefileRead.write(str(anim_args.resume_timestring))
+                    framefileRead.close()
                     print("RESUMING FROM FRAME:" + str(start_frame))
                     # resume animation
                     prev_img = None
