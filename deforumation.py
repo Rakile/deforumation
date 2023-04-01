@@ -457,12 +457,12 @@ class Mywin(wx.Frame):
             STEP_Schedule = int(self.sample_schedule_slider.GetValue())
         elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2:
             current_frame = int(asyncio.run(sendAsync([0, "start_frame", 0])))
-            print("current_frame:"+ str(current_frame))
+            #print("current_frame:"+ str(current_frame))
             current_frame = str(int(current_frame) - 1)
             outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('/', '\\').replace('\n', '')
-            print("outdir:"+ str(outdir))
+            #print("outdir:"+ str(outdir))
             resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
-            print("resume_timestring:"+ str(resume_timestring))
+            #print("resume_timestring:"+ str(resume_timestring))
             # arne = len(str(current_frame))
             # fillings = 11 - len(str(current_frame))
             if btn == "REWIND":
