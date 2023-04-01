@@ -14,7 +14,10 @@ wxPython (pip install wxPython).
 
 ## Installation
 Get the repo through: git clone https://github.com/Rakile/deforumatio  or download the zip file and unpack somewhere.
-Go into the deforumation folder in your terminal (Only supports Windows CMD), and run it with: python main.py
+Go into the deforumation folder in your terminal and start by running:
+
+>python -m pip install -r requirements.txt
+
 
 ![img](github_images/install.PNG)
 
