@@ -54,7 +54,7 @@ You may now play around with all the values (Panning, Rotating, Tilting, Zoom, S
 
 Easy to control exakt motions (above, doing a Panning left while at the same time Rotating right, creatinging an orbit camera movement around the person). The settings for this movement is shown in the Deforumation interface below.
 
-![img](github_images/interface.png)
+![img](github_images/newinterface.png)
 
 ## Pause, rewind, and rerender
 Deforumation allows you to rewind to a given frame, and gives you the ability to start generating from that given frame. This is good for when something in your creativity "goes bananas". Maybe that clown shouldn't have appeard all of a sudden ;P
