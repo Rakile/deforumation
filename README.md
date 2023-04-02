@@ -41,6 +41,7 @@ As a big fan of deforum, I did this small "Hack" in order to remotely be able to
 The Mediator is running a websocket server that becomes the communication channel between Deforum and deforumation... Altough, any application could communicate with deforum through the Mediator (So go make some video editing applications that look better than mine ;P)
 
 ## How it works
+Watch this video to get a feeling of how to use Deforumation... or read on below.
 [![Watch the video](github_images/Deforumation_Tutorial.PNG)](https://www.youtube.com/watch?v=UKYZEQVljRE)
 
 In the Deforum extention in the Keyframes TAB, you have to choose "3D", else it will not work.
