@@ -41,6 +41,8 @@ As a big fan of deforum, I did this small "Hack" in order to remotely be able to
 The Mediator is running a websocket server that becomes the communication channel between Deforum and deforumation... Altough, any application could communicate with deforum through the Mediator (So go make some video editing applications that look better than mine ;P)
 
 ## How it works
+[![Watch the video](github_images/Deforumation_Tutorial.PNG)](https://www.youtube.com/watch?v=UKYZEQVljRE)
+
 In the Deforum extention in the Keyframes TAB, you have to choose "3D", else it will not work.
 Before pushing "Generate" in the deforum extention, prime the communication by inserting a Positive and a Negative prompt in the Deforumation GUI.
 
@@ -91,7 +93,6 @@ Be sure that the Mediator is upp and running! Else no communication can be had b
 ## Examples of using Deforumation (Give a shout if you want to be here)
 By Lainol, Live prompting, facial expression:
 [![Watch the video](github_images/Linol_1.PNG)](https://www.youtube.com/watch?v=UKYZEQVljRE)
-
 
 ## Last thoughts
 There might be an ongoing discussions on how to implement this into Deforum, so that updates will be more smoth and accordance with Deforum... As of now it remains a Hack... Never the less, we encourage users to test Deforumation, and understand how vital this concept is for creating anything with precision (not looking like an LSD trip). Please post videos, tutorials or, whatever, whith how you use Deforum, through Deforumation to your advantage. Join the r/deforumation channel (https://www.reddit.com/r/deforumation/).
