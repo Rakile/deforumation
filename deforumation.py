@@ -491,6 +491,7 @@ class Mywin(wx.Frame):
             if os.path.isfile(imagePath):
                 if self.bitmap != None:
                     self.bitmap.Destroy()
+                    self.bitmap = None
                 self.img = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
                 self.img = self.img.Scale(int(self.img.GetWidth() / 2), int(self.img.GetHeight() / 2), wx.IMAGE_QUALITY_HIGH)
                 self.bitmap = wx.StaticBitmap(self, -1, self.img, pos=(trbX + 700, tbrY - 120))
