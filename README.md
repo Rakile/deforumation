@@ -31,7 +31,9 @@ Start by running the Mediator, which is located in the deforumation folder (medi
 
 >python mediator.py
 
-Then you can start the acctual application from another terminal, with:
+Keep the mediator CMD open, its needed for the communication between deforum and deforumation.
+
+Then you can start the acctual application from a new terminal, with:
 
 >python deforumation.py
 
