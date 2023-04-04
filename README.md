@@ -5,6 +5,7 @@ BIG DISCLAIMER!!!
 !!!THERE WILL BE NO DEFORUM SUPPORT IF YOU USE THIS EXTENSION!!!
 !!!THERE WILL BE NO DEFORUM SUPPORT IF YOU USE THIS EXTENSION!!!
 
+Here they are by the way: https://github.com/deforum-art/deforum-for-automatic1111-webui
 
 # deforumation
 A GUI to remotely steer the Deforum motions, strengths, and prompts, in real time. It is also possible to rewind, forward and resume, in order to fix a bad outcome.
