@@ -47,6 +47,11 @@ The Mediator is running a websocket server that becomes the communication channe
 Watch this video to get a feeling of how to use Deforumation... or read on below.
 [![Watch the video](github_images/Deforumation_Tutorial.png)](https://www.youtube.com/watch?v=UKYZEQVljRE)
 
+## Recommended setting
+
+In settings, Live previews recommends this setting...........
+
+
 In the Deforum extention in the Keyframes TAB, you have to choose "3D", else it will not work.
 Before pushing "Generate" in the deforum extention, prime the communication by inserting a Positive and a Negative prompt in the Deforumation GUI.
 
