@@ -50,6 +50,7 @@ Watch this video to get a feeling of how to use Deforumation... or read on below
 ## Recommended setting
 
 In settings, Live previews recommends this setting. This gives you better visual feedback. 
+
 ![img](github_images/Live_preview.png)
 
 
