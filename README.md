@@ -23,6 +23,17 @@ When Deforum developers have implemented a communication module for third-party 
 No compatibility issues when Deforum is updated.
 
 
+
+## Ongoing work
+deforumation_design_01.jpg
+![img](github_images/deforumation_design_01.jpg)
+
+
+
+
+
+
+
 ## Installation
 Get the repo through: git clone https://github.com/Rakile/deforumation  or download the zip file and unpack somewhere.
 
