@@ -10,8 +10,18 @@ Here they are by the way: https://github.com/deforum-art/deforum-for-automatic11
 # deforumation
 A GUI to remotely steer the Deforum motions, strengths, and prompts, in real time. It is also possible to rewind, forward and resume, in order to fix a bad outcome.
 
-## Dependencies
+## Dependencies, And deforum version
 wxPython (pip install wxPython).
+
+When Deforum is updated deforumation will not work.
+
+https://drive.google.com/file/d/1fWGi219p7qcrKlZheQ0GB1XeVctO10Nv/view?usp=share_link
+
+use this link to download a version of Deforum extension that Deforumation is compatible with.
+It`s to much work to redo the programming every time Deforum is updated. 
+When Deforum developers have implemented a communication module for third-party apps things will be much easier. 
+No compatibility issues when Deforum is updated.
+
 
 ## Installation
 Get the repo through: git clone https://github.com/Rakile/deforumation  or download the zip file and unpack somewhere.
