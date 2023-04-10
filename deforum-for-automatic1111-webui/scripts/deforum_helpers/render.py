@@ -294,9 +294,13 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         noise = keys.noise_schedule_series[frame_idx]
         if usingDeforumation: #Should we Connect to the Deforumation websocket server to get strength values?
             try:
-                deforumation_strength = float(asyncio.run(sendAsync([0, "strength", 0])))
+                #Should we use manuel or deforum's scheduling?
+                if int(asyncio.run(sendAsync([0, "should_use_deforumation_strength", 0]))) == 1:              
+                    deforumation_strength = float(asyncio.run(sendAsync([0, "strength", 0])))
+                    strength = deforumation_strength
+                else:
+                    strength = keys.strength_schedule_series[frame_idx]    
                 connectedToServer = True
-                strength = deforumation_strength
             except Exception as e:
                 print("Deforumation Error:"+e)
         if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
@@ -337,6 +341,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 deforumation_steps = int(asyncio.run(sendAsync([0, "steps", 0])))
                 connectedToServer = True
                 args.steps = int(deforumation_steps)
+                print("Steps is:"+str(args.steps))
             except Exception as e:
                 print("Deforumation Error:"+e)
         if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
