@@ -213,9 +213,9 @@ def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
             deforumation_translation_z = float(asyncio.run(sendAsync([0, "translation_z", 0])))
             connectedToServer = True
             translate_xyz = [
-                -deforumation_translation_x * TRANSLATION_SCALE, 
-                deforumation_translation_y * TRANSLATION_SCALE, 
-                -deforumation_translation_z * TRANSLATION_SCALE
+                (-keys.translation_x_series[frame_idx] * TRANSLATION_SCALE) + (-deforumation_translation_x * TRANSLATION_SCALE), 
+                (keys.translation_y_series[frame_idx] * TRANSLATION_SCALE) + (deforumation_translation_y * TRANSLATION_SCALE), 
+                (-keys.translation_z_series[frame_idx] * TRANSLATION_SCALE) + -deforumation_translation_z * TRANSLATION_SCALE
             ]
         except Exception as e:
             print("Deforumation Error:"+e)
@@ -234,9 +234,9 @@ def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
             deforumation_rotation_z = float(asyncio.run(sendAsync([0, "rotation_z", 0])))
             connectedToServer = True
             rotate_xyz = [
-                math.radians(deforumation_rotation_x), 
-                math.radians(deforumation_rotation_y), 
-                math.radians(deforumation_rotation_z)
+                math.radians(keys.rotation_3d_x_series[frame_idx]) + math.radians(deforumation_rotation_x), 
+                math.radians(keys.rotation_3d_y_series[frame_idx]) + math.radians(deforumation_rotation_y), 
+                math.radians(keys.rotation_3d_z_series[frame_idx]) + math.radians(deforumation_rotation_z)
             ]
         except Exception as e:
             print("Deforumation Error:"+e)
@@ -265,7 +265,7 @@ def transform_image_3d(device, prev_img_cv2, depth_tensor, rot_mat, translate, a
         try:
             deforumation_fov = float(asyncio.run(sendAsync([0, "fov", 0])))
             connectedToServer = True
-            fov_deg = float(deforumation_fov)
+            fov_deg = keys.fov_series[frame_idx] + float(deforumation_fov)
         except Exception as e:
             print("Deforumation Error:"+e)
     if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
