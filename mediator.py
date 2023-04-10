@@ -28,6 +28,7 @@ did_seed_change = 0
 fov = 70
 doVerbose = False
 doVerbose2 = False
+should_use_deforumation_strength = 1
 async def echo(websocket):
     global Prompt_Positive
     global Prompt_Negative
@@ -48,6 +49,7 @@ async def echo(websocket):
     global shouldPause
     global seed_value
     global did_seed_change
+    global should_use_deforumation_strength
     async for message in websocket:
         arr = pickle.loads(message)
         if len(arr) == 3:
@@ -179,6 +181,7 @@ async def echo(websocket):
             ##########################################################################
             elif str(parameter) == "should_resume":
                 if shouldWrite:
+                    print("The value is:"+str(value))
                     should_resume = int(value)
                     if doVerbose2:
                         print("writing should_resume:" + str(should_resume))
@@ -205,6 +208,14 @@ async def echo(websocket):
                     if doVerbose2:
                         print("sending resume_timestring:"+str(resume_timestring))
                     await websocket.send(str(resume_timestring))
+            elif str(parameter) == "should_use_deforumation_strength":
+                if shouldWrite:
+                    print("Setting should use deforumation strength to:"+str(int(value)))
+                    should_use_deforumation_strength = int(value)
+                else:
+                    if doVerbose2:
+                        print("sending should_use_deforumation_strength:"+str(should_use_deforumation_strength))
+                    await websocket.send(str(should_use_deforumation_strength))
 
 
             if shouldWrite: #Return an "OK" if the writes went OK
