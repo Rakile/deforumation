@@ -45,7 +45,7 @@ Or whatever your imagination can come up with.
 
 
 ## Installation
-Get the repo through: git clone https://github.com/Rakile/deforumation  or download the zip file and unpack somewhere.
+Get the repo through: `git clone https://github.com/Rakile/deforumation`  or download the zip file and unpack somewhere.
 
 Replace the two files, located in your Automatic1111 path: ".\stable-diffusion-webui\extensions\deforum-for-automatic1111-webui\scripts\deforum_helpers\"
 with the two from ".\deforumation\deforum-for-automatic1111-webui\scripts\deforum_helpers\"
