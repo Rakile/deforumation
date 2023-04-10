@@ -15,7 +15,13 @@ wxPython (pip install wxPython).
 
 When Deforum is updated deforumation will not work.
 
-https://drive.google.com/file/d/1fWGi219p7qcrKlZheQ0GB1XeVctO10Nv/view?usp=share_link
+This link provides the bare deforum files of an older working version, does not contain python packages, 4 meg download
+
+`https://drive.google.com/file/d/1dp2LkQ25T1W3fD7w3a01OX4weFKxGgHy/view?usp=share_link`
+
+This link provides deforum files of an older working version, including python packages, 130 med download
+
+`https://drive.google.com/file/d/1fWGi219p7qcrKlZheQ0GB1XeVctO10Nv/view?usp=share_link`
 
 use this link to download a version of Deforum extension that Deforumation is compatible with.
 It`s to much work to redo the programming every time Deforum is updated. 
