@@ -136,5 +136,12 @@ Be sure that the Mediator is upp and running! Else no communication can be had b
 By Lainol, Live prompting, facial expression:
 [![Watch the video](github_images/Linol_1.PNG)](https://www.youtube.com/watch?v=UKYZEQVljRE)
 
+## Example 2
+By Lainol, Live prompting, facial expressions and more .
+
+Aiwakening.
+
+[![Watch the video](github_images/Aiwakening.png)](https://youtu.be/VLggWlV0fmY)
+
 ## Last thoughts
 There might be an ongoing discussions on how to implement this into Deforum, so that updates will be more smoth and accordance with Deforum... As of now it remains a Hack... Never the less, we encourage users to test Deforumation, and understand how vital this concept is for creating anything with precision (not looking like an LSD trip). Please post videos, tutorials or, whatever, whith how you use Deforum, through Deforumation to your advantage. Join the r/deforumation channel (https://www.reddit.com/r/deforumation/).
