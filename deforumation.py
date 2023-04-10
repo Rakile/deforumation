@@ -30,6 +30,7 @@ seedValue = -1
 render_frame_window_is_open = False
 should_render_live = False
 current_render_frame = -1
+should_use_deforumation_strength = 1
 async def sendAsync(value):
     async with websockets.connect("ws://localhost:8765") as websocket:
         await websocket.send(pickle.dumps(value))
@@ -217,7 +218,11 @@ class Mywin(wx.Frame):
         self.strength_schedule_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.strength_schedule_slider.SetTickFreq(1)
         self.strength_schedule_slider.SetLabel("STRENGTH SCHEDULE")
-        self.strength_schedule_Text = wx.StaticText(panel, label="Strength Value - (slider value is divided by 100)", pos=(trbX-25, tbrY-70))
+        self.strength_schedule_Text = wx.StaticText(panel, label="Strength Value (divided by 100)", pos=(trbX-25, tbrY-70))
+
+        #SHOULD USE DEFORUMATION STRENGTH VALUES? CHECK-BOX
+        self.should_use_deforumation_strength_checkbox = wx.CheckBox(panel, label="USE DEFORUMATION", pos=(trbX+160, tbrY-66))
+        self.should_use_deforumation_strength_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
         #SAMPLE STEP SLIDER
         self.sample_schedule_slider = wx.Slider(panel, id=wx.ID_ANY, value=25, minValue=1, maxValue=200, pos = (trbX-25, tbrY-50-70), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
@@ -227,19 +232,19 @@ class Mywin(wx.Frame):
         self.strength_schedule_Text = wx.StaticText(panel, label="Steps", pos=(trbX-25, tbrY-70-64))
 
         #SEED INPUT BOX
-        self.seed_schedule_Text = wx.StaticText(panel, label="Seed", pos=(trbX+300, tbrY-50-80))
-        self.seed_input_box = wx.TextCtrl(panel, 3, size=(300,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+300, tbrY-50-60))
+        self.seed_schedule_Text = wx.StaticText(panel, label="Seed", pos=(trbX+340, tbrY-50-80))
+        self.seed_input_box = wx.TextCtrl(panel, 3, size=(300,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+340, tbrY-50-60))
         self.seed_input_box.SetLabel("-1")
         self.seed_input_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=3)
 
 
 
         #CFG SCHEDULE SLIDER
-        self.cfg_schedule_slider = wx.Slider(panel, id=wx.ID_ANY, value=7, minValue=1, maxValue=30, pos = (trbX+325, tbrY-50), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.cfg_schedule_slider = wx.Slider(panel, id=wx.ID_ANY, value=7, minValue=1, maxValue=30, pos = (trbX+340, tbrY-50), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.cfg_schedule_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.cfg_schedule_slider.SetTickFreq(1)
         self.cfg_schedule_slider.SetLabel("CFG SCALE")
-        self.CFG_scale_Text = wx.StaticText(panel, label="CFG Scale", pos=(trbX+325, tbrY-70))
+        self.CFG_scale_Text = wx.StaticText(panel, label="CFG Scale", pos=(trbX+340, tbrY-70))
 
 
         #LOOK LEFT BUTTTON
@@ -333,6 +338,7 @@ class Mywin(wx.Frame):
         global is_reverse_fov_locked
         global STEP_Schedule
         global is_paused_rendering
+        global should_use_deforumation_strength
         if os.path.isfile(deforumationSettingsPath):
             deforumFile = open(deforumationSettingsPath, 'r')
             is_paused_rendering = int(deforumFile.readline())
@@ -358,6 +364,9 @@ class Mywin(wx.Frame):
             self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
             self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
             self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
+            should_use_deforumation_strength = int(deforumFile.readline())
+            print("LOADED VALUE:"+str(should_use_deforumation_strength))
+            self.should_use_deforumation_strength_checkbox.SetValue(int(should_use_deforumation_strength))
             asyncio.run(sendAsync([1, "is_paused_rendering", is_paused_rendering]))
             asyncio.run(sendAsync([1, "positive_prompt", self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n"]))
             asyncio.run(sendAsync([1, "negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n"]))
@@ -372,6 +381,8 @@ class Mywin(wx.Frame):
             asyncio.run(sendAsync([1, "rotation_y", Rotation_3D_Y]))
             asyncio.run(sendAsync([1, "rotation_z", Rotation_3D_Z]))
             asyncio.run(sendAsync([1, "rotation_z", Rotation_3D_Z]))
+            asyncio.run(sendAsync([1, "should_use_deforumation_strength", int(should_use_deforumation_strength)]))
+
     def writeAllValues(self):
         try:
             asyncio.run(sendAsync([1, "is_paused_rendering", is_paused_rendering]))
@@ -386,6 +397,7 @@ class Mywin(wx.Frame):
             asyncio.run(sendAsync([1, "translation_z", Translation_Z]))
             asyncio.run(sendAsync([1, "rotation_x", Rotation_3D_X]))
             asyncio.run(sendAsync([1, "rotation_y", Rotation_3D_Y]))
+            asyncio.run(sendAsync([1, "rotation_z", Rotation_3D_Z]))
             asyncio.run(sendAsync([1, "rotation_z", Rotation_3D_Z]))
         except Exception as e:
             print(e)
@@ -403,6 +415,9 @@ class Mywin(wx.Frame):
         deforumFile.write(str('%.2f' % Rotation_3D_X)+"\n")
         deforumFile.write(str('%.2f' % Rotation_3D_Y)+"\n")
         deforumFile.write(str('%.2f' % Rotation_3D_Z)+"\n")
+        print("WRITING:" + str(should_use_deforumation_strength))
+        deforumFile.write(str(int(should_use_deforumation_strength))+"\n")
+
         deforumFile.close()
     def OnClicked(self, event):
         global Translation_X
@@ -422,6 +437,7 @@ class Mywin(wx.Frame):
         global seedValue
         global should_render_live
         global current_render_frame
+        global should_use_deforumation_strength
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
@@ -556,9 +572,19 @@ class Mywin(wx.Frame):
             current_frame = self.frame_step_input_box.GetValue()
             asyncio.run(sendAsync([1, "start_frame", int(current_frame)]))
             asyncio.run(sendAsync([1, "should_resume", 1]))
+        elif btn == "USE DEFORUMATION":
+            print("CURRENT IS:"+str(should_use_deforumation_strength))
+            if should_use_deforumation_strength == 0:
+                asyncio.run(sendAsync([1, "should_use_deforumation_strength", 1]))
+                should_use_deforumation_strength = 1
+                print("NOW IT IS:"+str(should_use_deforumation_strength))
+            else:
+                asyncio.run(sendAsync([1, "should_use_deforumation_strength", 0]))
+                should_use_deforumation_strength = 0
+                print("NOW IT IS:"+str(should_use_deforumation_strength))
         elif btn == "LIVE RENDER":
             current_frame = str(int(asyncio.run(sendAsync([0, "start_frame", 0]))))
-            print("should_render_live"+str(should_render_live))
+            #print("should_render_live: "+str(should_render_live))
             if should_render_live == False:
                 should_render_live = True
                 outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('/', '\\').replace('\n', '')
@@ -628,13 +654,14 @@ class Mywin(wx.Frame):
                         break
                 #Destroy and repaint image
                 #print(str(self.framer.bitmap))
-                if self.framer.bitmap != None:
-                    self.framer.bitmap.Destroy()
-                    self.framer.bitmap = None
-                self.img_render = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
-                if self.framer:
-                    self.framer.bitmap = wx.StaticBitmap(self.framer, -1, self.img_render)
-                    self.framer.Refresh()
+                if self.framer != None:
+                    if self.framer.bitmap != None:
+                        self.framer.bitmap.Destroy()
+                        self.framer.bitmap = None
+                    self.img_render = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
+                    if self.framer:
+                        self.framer.bitmap = wx.StaticBitmap(self.framer, -1, self.img_render)
+                        self.framer.Refresh()
 
 
 if __name__ == '__main__':
