@@ -82,7 +82,7 @@ The Mediator is running a websocket server that becomes the communication channe
 
 ## How it works
 Watch this video to get a feeling of how to use Deforumation... or read on below.
-[![Watch the video](github_images/Deforumation_Tutorial.png)](https://www.youtube.com/watch?v=UKYZEQVljRE)
+[![Watch the video](github_images/Deforumation_Tutorial.png)](https://www.youtube.com/watch?v=v1h2jo3f5U4)
 
 ## Recommended setting
 
