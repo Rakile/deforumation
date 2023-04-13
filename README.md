@@ -103,6 +103,10 @@ You may also set any strength value or other values in beforehand. Also, moving 
 Now that this is done, push the "Generate" button in the Deforum extention.
 You may now play around with all the values (Panning, Rotating, Tilting, Zoom, Strength Value, CFG value, Sample steps, and of course Prompts, positive and negative) as deforum keeps generating images and applying the new values.
 
+!!!BE AWARE!!!
+Deforumation now adds the values to any scheduled motion. That means that if you have scheduled ANY motions, like "Translation X" or "Rotation 3D Y", or whatever, they will be added to your manual values done through Deforumation. Be aware that "Translation Z" is by default set to "0:(1.75)"... If you don't want this influence, and only want Deforumation to controll all values, you need to set this to 0:(0).
+
+
 ![img](github_images/output.gif)
 
 Easy to control exakt motions (above, doing a Panning left while at the same time Rotating right, creatinging an orbit camera movement around the person). The settings for this movement is shown in the Deforumation interface below.
