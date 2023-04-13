@@ -19,18 +19,19 @@ Be aware that if you choose to install Deforumation, it needs to be (at current 
 
 When Deforum is updated deforumation will stop working. As of now 2023-04-14 it works.
 
-This link provides the bare deforum files of an older working version, does not contain python packages, 4 meg download
+If the latest version of Deforum shouldn't be working with Deforumation:
+  This link provides the bare deforum files of an older working version, does not contain python packages, 4 meg download
 
-https://drive.google.com/file/d/1dp2LkQ25T1W3fD7w3a01OX4weFKxGgHy/view?usp=share_link
+  https://drive.google.com/file/d/1dp2LkQ25T1W3fD7w3a01OX4weFKxGgHy/view?usp=share_link
 
-This link provides deforum files of an older working version, including python packages, 130 meg download
+  This link provides deforum files of an older working version, including python packages, 130 meg download
 
-https://drive.google.com/file/d/1fWGi219p7qcrKlZheQ0GB1XeVctO10Nv/view?usp=share_link
+  https://drive.google.com/file/d/1fWGi219p7qcrKlZheQ0GB1XeVctO10Nv/view?usp=share_link
 
-use this link to download a version of Deforum extension that Deforumation is compatible with.
-It`s to much work to redo the programming every time Deforum is updated. 
-When Deforum developers have implemented a communication module for third-party apps things will be much easier. 
-No compatibility issues when Deforum is updated.
+  use this link to download a version of Deforum extension that Deforumation is compatible with.
+  It`s to much work to redo the programming every time Deforum is updated. 
+  When Deforum developers have implemented a communication module for third-party apps things will be much easier. 
+  No compatibility issues when Deforum is updated.
 
 
 
