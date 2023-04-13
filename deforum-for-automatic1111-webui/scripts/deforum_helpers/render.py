@@ -9,9 +9,6 @@ import numexpr
 import gc
 import random
 import PIL
-import pickle
-import asyncio
-import websockets
 import time
 from PIL import Image, ImageOps
 from .rich import console
@@ -33,21 +30,27 @@ from .save_images import save_image
 from .composable_masks import compose_mask_with_check
 from .settings import save_settings_from_animation_run
 from .deforum_controlnet import unpack_controlnet_vids, is_controlnet_enabled
-# Webui
+from .subtitle_handler import init_srt_file, write_frame_subtitle, format_animation_params
+from .resume import get_resume_vars
+from .masks import do_overlay_mask
 from modules.shared import opts, cmd_opts, state, sd_model
 from modules import lowvram, devices, sd_hijack
+#Deforumation_mediator imports/settings
+from .deforum_mediator import mediator_getValue, mediator_setValue
 usingDeforumation = True
+#End settings
 
-async def sendAsync(value):
-    async with websockets.connect("ws://localhost:8765") as websocket:
-        await websocket.send(pickle.dumps(value))
-        message = await websocket.recv()
-        return message
-        
+# DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
+
 def render_animation(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root):
-    # handle hybrid video generation
+
+    if opts.data.get("deforum_save_gen_info_as_srt"): # create .srt file and set timeframe mechanism using FPS
+        srt_filename = os.path.join(args.outdir, f"{args.timestring}.srt")
+        srt_frame_duration = init_srt_file(srt_filename, video_args.fps)
+
     if anim_args.animation_mode in ['2D','3D']:
-        if anim_args.hybrid_composite or anim_args.hybrid_motion in ['Affine', 'Perspective', 'Optical Flow']:
+        # handle hybrid video generation
+        if anim_args.hybrid_composite != 'None' or anim_args.hybrid_motion in ['Affine', 'Perspective', 'Optical Flow']:
             args, anim_args, inputfiles = hybrid_generation(args, anim_args, root)
             # path required by hybrid functions, even if hybrid_comp_save_extra_frames is False
             hybrid_frame_path = os.path.join(args.outdir, 'hybridframes')
@@ -73,38 +76,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     # expand key frame strings to values
     keys = DeformAnimKeys(anim_args, args.seed) if not use_parseq else ParseqAnimKeys(parseq_args, anim_args, video_args)
     loopSchedulesAndData = LooperAnimKeys(loop_args, anim_args, args.seed)
-    # resume animation
-    start_frame = 0
-    ##################FIXED RESUME, including deforumation#####################################################
-    if anim_args.resume_from_timestring:
-        args.outdir = args.outdir[0:args.outdir.rfind('\\')+1]+"Deforum_"+str(anim_args.resume_timestring)
-        for tmp in os.listdir(args.outdir):
-            if ".txt" in tmp : 
-                pass
-            else:
-                filename = tmp.split("_")
-                # don't use saved depth maps to count number of frames
-                if anim_args.resume_timestring in filename and "depth" not in filename:
-                    start_frame += 1
-        #start_frame = start_frame - 1
-    connectedToServer = False
-    if usingDeforumation: #Should we Connect to the Deforumation websocket server to write the current resume frame properties?
-        try:
-            asyncio.run(sendAsync([1, "should_resume", 0]))
-            print("DEFORUM, SETTING STARTFRAME:"+str(start_frame))
-            asyncio.run(sendAsync([1, "start_frame", start_frame]))
-            print("DEFORUM, SETTING OUTDIR:"+args.outdir)
-            asyncio.run(sendAsync([1, "frame_outdir", args.outdir]))
-            print("DEFORUM, SETTING RESUMESTRING:"+str(anim_args.resume_timestring))
-            if anim_args.resume_from_timestring:
-                asyncio.run(sendAsync([1, "resume_timestring", anim_args.resume_timestring]))
-            else:
-                asyncio.run(sendAsync([1, "resume_timestring", args.timestring]))                
-            connectedToServer = True
-        except Exception as e:
-            print("Deforumation Error:"+e)
 
-    ######################END FIX, RESUME#######################################################################################
     # create output folder for the batch
     os.makedirs(args.outdir, exist_ok=True)
     print(f"Saving animation frames to:\n{args.outdir}")
@@ -150,7 +122,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             adabins_model = AdaBinsModel(root.models_path, keep_in_vram=keep_in_vram)
             
         # depth-based hybrid composite mask requires saved depth maps
-        if anim_args.hybrid_composite and anim_args.hybrid_comp_mask_type =='Depth':
+        if anim_args.hybrid_composite != 'None' and anim_args.hybrid_comp_mask_type =='Depth':
             anim_args.save_depth_maps = True
     else:
         depth_model = None
@@ -161,22 +133,40 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     turbo_prev_image, turbo_prev_frame_idx = None, 0
     turbo_next_image, turbo_next_frame_idx = None, 0
 
-    # resume animation
+    # initialize vars
     prev_img = None
     color_match_sample = None
+    start_frame = 0
+
+    # resume animation (requires at least two frames - see function)
     if anim_args.resume_from_timestring:
-        last_frame = start_frame-1
+        # determine last frame and frame to start on
+        prev_frame, next_frame, prev_img, next_img = get_resume_vars(
+            folder=args.outdir,
+            timestring=anim_args.resume_timestring,
+            cadence=turbo_steps
+        )
+
+        # set up turbo step vars
         if turbo_steps > 1:
-            last_frame -= last_frame%turbo_steps
-        path = os.path.join(args.outdir,f"{args.timestring}_{last_frame:09}.png")
-        img = cv2.imread(path)
-        prev_img = img
-        if anim_args.color_coherence != 'None':
-            color_match_sample = img
-        if turbo_steps > 1:
-            turbo_next_image, turbo_next_frame_idx = prev_img, last_frame
-            turbo_prev_image, turbo_prev_frame_idx = turbo_next_image, turbo_next_frame_idx
-            start_frame = last_frame+turbo_steps
+            turbo_prev_image, turbo_prev_frame_idx = prev_img, prev_frame
+            turbo_next_image, turbo_next_frame_idx = next_img, next_frame
+        
+        # advance start_frame to next frame
+        start_frame = next_frame + 1
+
+    if usingDeforumation: #Should we Connect to the Deforumation websocket server to write the current resume frame properties?
+        mediator_setValue("should_resume", 0)
+        print("DEFORUM, SETTING STARTFRAME:"+str(start_frame))
+        mediator_setValue("start_frame", start_frame)
+        print("DEFORUM, SETTING OUTDIR:"+args.outdir)
+        mediator_setValue("frame_outdir", args.outdir)
+        print("DEFORUM, SETTING RESUMESTRING:"+str(anim_args.resume_timestring))
+        if anim_args.resume_from_timestring:
+            mediator_setValue("resume_timestring", anim_args.resume_timestring)
+        else:
+            mediator_setValue("resume_timestring", args.timestring)               
+        connectedToServer = True
 
     args.n_samples = 1
     frame_idx = start_frame
@@ -224,96 +214,81 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     state.job_count = anim_args.max_frames
 
     while frame_idx < (anim_args.max_frames if not anim_args.use_mask_video else anim_args.max_frames - 1):
-        connectedToServer = False
-        if usingDeforumation:
-            try:
-                if int(asyncio.run(sendAsync([0, "seed_changed", 0]))):
-                    args.seed = int(asyncio.run(sendAsync([0, "seed", 0])))
-                    print("!!!!!!!!!!!!!!!!!!!!!!NEW SEED:"+str(args.seed))
-                    connectedToServer = True
-            except Exception as e:
-                print("Deforumation Error:"+str(e))
-
-        if usingDeforumation: #Should we Connect to the Deforumation websocket server to get strength values?
-            try:
-                ispaused = 0
-                while int(asyncio.run(sendAsync([0, "is_paused_rendering", 0]))) == 1:
-                    if ispaused == 0:
-                        print("RENDERING PAUSED")
-                        ispaused = 1
-                    time.sleep(0.2)
-                if ispaused:
-                        print("RENDERING RESUMED")                    
-                shouldResume = int(asyncio.run(sendAsync([0, "should_resume", 0])))
-                if shouldResume == 1:
-                    start_frame = int(asyncio.run(sendAsync([0, "start_frame", 0])))
-                    print("RESUMING FROM FRAME:" + str(start_frame))
-                    # resume animation
-                    prev_img = None
-                    color_match_sample = None
-                    #if anim_args.resume_from_timestring:
-                    last_frame = start_frame-1
-                    if turbo_steps > 1:
-                        last_frame -= last_frame%turbo_steps
-                    path = os.path.join(args.outdir,f"{args.timestring}_{last_frame:09}.png")
-                    print("RESUMING FROM PATH:" + str(path))
-                    img = cv2.imread(path)
-                    prev_img = img
-                    if anim_args.color_coherence != 'None':
-                        color_match_sample = img
-                    if turbo_steps > 1:
-                        turbo_next_image, turbo_next_frame_idx = prev_img, last_frame
-                        turbo_prev_image, turbo_prev_frame_idx = turbo_next_image, turbo_next_frame_idx
-                        start_frame = last_frame+turbo_steps
-                    args.n_samples = 1
-                    frame_idx = start_frame
-                    asyncio.run(sendAsync([1, "should_resume", 0]))
-                else:
-                    donothing = 0
-                connectedToServer = True
-            except Exception as e:
-                print("Deforumation Error:"+str(e))
-
-        if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell what frame_idx we are on currently?
-            try:
-                shouldResume = int(asyncio.run(sendAsync([0, "should_resume", 0])))
-                if shouldResume != 1:
-                    asyncio.run(sendAsync([1, "start_frame", frame_idx]))
-            except Exception as e:
-                print("Deforumation Error:"+str(e))
-
-
         #Webui
+        connectedToServer = False        
         state.job = f"frame {frame_idx + 1}/{anim_args.max_frames}"
         state.job_no = frame_idx + 1
-        if state.interrupted:
-            break
+
+        if state.skipped:
+            print("\n** PAUSED **")
+            state.skipped = False
+            while not state.skipped:
+                time.sleep(0.1)
+            print("** RESUMING **")
+
+        if usingDeforumation: #Should we Connect to the Deforumation websocket server and get is_paused_rendering?
+            ispaused = 0
+            while int(mediator_getValue("is_paused_rendering")) == 1:
+                if ispaused == 0:
+                    print("\n** PAUSED **")
+                    ispaused = 1
+                time.sleep(0.1)
+            if ispaused:
+                print("** RESUMING **")
+            shouldResume = int(mediator_getValue("should_resume"))  #should_resume is should be set when third party chooses another frame (rewqinding forward, etc), it doesn't need to happen in paused mode       
+            if shouldResume == 1: #If shouldResume == 1, then third party has choosen to jump to a non continues frame
+                start_frame = int(mediator_getValue("start_frame"))
+                print("\n** RESUMING FROM FRAME: " + str(start_frame)+" **")
+                # resume animation
+                prev_img = None
+                color_match_sample = None
+                #if anim_args.resume_from_timestring:
+                last_frame = start_frame-1
+                if turbo_steps > 1:
+                    last_frame -= last_frame%turbo_steps
+                path = os.path.join(args.outdir,f"{args.timestring}_{last_frame:09}.png")
+                #print("RESUMING FROM PATH:" + str(path))
+                img = cv2.imread(path)
+                prev_img = img
+                if anim_args.color_coherence != 'None':
+                    color_match_sample = img
+                if turbo_steps > 1:
+                    turbo_next_image, turbo_next_frame_idx = prev_img, last_frame
+                    turbo_prev_image, turbo_prev_frame_idx = turbo_next_image, turbo_next_frame_idx
+                    start_frame = last_frame+turbo_steps
+                args.n_samples = 1
+                frame_idx = start_frame
+                mediator_setValue("should_resume", 0)
+            else:
+                donothing = 0
+            connectedToServer = True
+
+        if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell 3:d parties what frame_idx we are on currently?
+            mediator_setValue("start_frame", frame_idx)
 
         print(f"\033[36mAnimation frame: \033[0m{frame_idx}/{anim_args.max_frames}  ")
 
-        noise = keys.noise_schedule_series[frame_idx]
-        if usingDeforumation: #Should we Connect to the Deforumation websocket server to get strength values?
-            try:
-                #Should we use manuel or deforum's scheduling?
-                if int(asyncio.run(sendAsync([0, "should_use_deforumation_strength", 0]))) == 1:              
-                    deforumation_strength = float(asyncio.run(sendAsync([0, "strength", 0])))
-                    strength = deforumation_strength
-                else:
-                    strength = keys.strength_schedule_series[frame_idx]    
+        if usingDeforumation: #Should we Connect to the Deforumation websocket server and get seed_changed == new seed?
+            if int(mediator_getValue("seed_changed")):
+                args.seed = int(mediator_getValue("seed"))
                 connectedToServer = True
-            except Exception as e:
-                print("Deforumation Error:"+e)
-        if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
+
+        noise = keys.noise_schedule_series[frame_idx]
+        if usingDeforumation: #Should we Connect to the Deforumation websocket server to get strength values?            
+            if int(mediator_getValue("should_use_deforumation_strength")) == 1: #Should we use manual or deforum's strength scheduling?
+                deforumation_strength = float(mediator_getValue("strength"))
+                strength = deforumation_strength
+            else:
+                strength = keys.strength_schedule_series[frame_idx]    
+            connectedToServer = True
+        if usingDeforumation == False or connectedToServer == False:
             strength = keys.strength_schedule_series[frame_idx]
 
         if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
             connectedToServer = False
-            try:
-                deforumation_cfg = float(asyncio.run(sendAsync([0, "cfg", 0])))
-                connectedToServer = True
-                scale = deforumation_cfg
-            except Exception as e:
-                print("Deforumation Error:"+e)
+            deforumation_cfg = float(mediator_getValue("cfg"))
+            connectedToServer = True
+            scale = deforumation_cfg
         if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             scale = keys.cfg_scale_schedule_series[frame_idx]
         contrast = keys.contrast_schedule_series[frame_idx]
@@ -321,6 +296,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         sigma = keys.sigma_schedule_series[frame_idx]
         amount = keys.amount_schedule_series[frame_idx]
         threshold = keys.threshold_schedule_series[frame_idx]
+        cadence_flow_factor = keys.cadence_flow_factor_schedule_series[frame_idx]
+        redo_flow_factor = keys.redo_flow_factor_schedule_series[frame_idx]
         hybrid_comp_schedules = {
             "alpha": keys.hybrid_comp_alpha_schedule_series[frame_idx],
             "mask_blend_alpha": keys.hybrid_comp_mask_blend_alpha_schedule_series[frame_idx],
@@ -328,22 +305,19 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             "mask_auto_contrast_cutoff_low": int(keys.hybrid_comp_mask_auto_contrast_cutoff_low_schedule_series[frame_idx]),
             "mask_auto_contrast_cutoff_high": int(keys.hybrid_comp_mask_auto_contrast_cutoff_high_schedule_series[frame_idx]),
             "flow_factor": keys.hybrid_flow_factor_schedule_series[frame_idx]
-        }        
+        }
         scheduled_sampler_name = None
         scheduled_clipskip = None
         scheduled_noise_multiplier = None
         mask_seq = None
         noise_mask_seq = None
-
+        
         if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
             connectedToServer = False
-            try:
-                deforumation_steps = int(asyncio.run(sendAsync([0, "steps", 0])))
-                connectedToServer = True
-                args.steps = int(deforumation_steps)
-                print("Steps is:"+str(args.steps))
-            except Exception as e:
-                print("Deforumation Error:"+e)
+            deforumation_steps = int(mediator_getValue("steps"))
+            connectedToServer = True
+            args.steps = int(deforumation_steps)
+            print("Steps is:"+str(args.steps))
         if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             if anim_args.enable_steps_scheduling and keys.steps_schedule_series[frame_idx] is not None:
                 args.steps = int(keys.steps_schedule_series[frame_idx])
@@ -370,11 +344,17 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             devices.torch_gc()
             depth_model.to(root.device)
         
+        if turbo_steps == 1 and opts.data.get("deforum_save_gen_info_as_srt"):
+            params_string = format_animation_params(keys, frame_idx)
+            write_frame_subtitle(srt_filename, frame_idx, srt_frame_duration, f"F#: {frame_idx}; Seed: {args.seed}; {params_string}")
+            params_string = None
+            
         # emit in-between frames
         if turbo_steps > 1:
-            tween_frame_start_idx = max(0, frame_idx-turbo_steps)
+            tween_frame_start_idx = max(start_frame, frame_idx-turbo_steps)
             cadence_flow = None
             for tween_frame_idx in range(tween_frame_start_idx, frame_idx):
+ 
                 tween = float(tween_frame_idx - tween_frame_start_idx + 1) / float(frame_idx - tween_frame_start_idx)
                 advance_prev = turbo_prev_image is not None and tween_frame_idx > turbo_prev_frame_idx
                 advance_next = tween_frame_idx > turbo_next_frame_idx
@@ -385,6 +365,11 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                         if cadence_flow is None and turbo_prev_image is not None and turbo_next_image is not None:
                             cadence_flow = get_flow_from_images(turbo_prev_image, turbo_next_image, anim_args.optical_flow_cadence) / 2
                             turbo_next_image = image_transform_optical_flow(turbo_next_image, -cadence_flow, 1)
+
+                if opts.data.get("deforum_save_gen_info_as_srt"):
+                    params_string = format_animation_params(keys, tween_frame_idx)
+                    write_frame_subtitle(srt_filename, tween_frame_idx, srt_frame_duration, f"F#: {tween_frame_idx}; Seed: {args.seed}; {params_string}")
+                    params_string = None
 
                 print(f"Creating in-between {'' if cadence_flow is None else anim_args.optical_flow_cadence + ' optical flow '}cadence frame: {tween_frame_idx}; tween:{tween:0.2f};")
 
@@ -403,19 +388,19 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     cadence_flow, _ = anim_frame_warp(cadence_flow, args, anim_args, keys, tween_frame_idx, depth_model, depth=depth, device=root.device, half_precision=root.half_precision)
                     cadence_flow_inc = rel_flow_to_abs_flow(cadence_flow) * tween
                     if advance_prev:
-                        turbo_prev_image = image_transform_optical_flow(turbo_prev_image, cadence_flow_inc, 1)
+                        turbo_prev_image = image_transform_optical_flow(turbo_prev_image, cadence_flow_inc, cadence_flow_factor)
                     if advance_next:
-                        turbo_next_image = image_transform_optical_flow(turbo_next_image, cadence_flow_inc, 1)
+                        turbo_next_image = image_transform_optical_flow(turbo_next_image, cadence_flow_inc, cadence_flow_factor)
 
                 # hybrid video motion - warps turbo_prev_image or turbo_next_image to match motion
                 if tween_frame_idx > 0:
                     if anim_args.hybrid_motion in ['Affine', 'Perspective']:
                         if anim_args.hybrid_motion_use_prev_img:
                             if advance_prev:
-                                matrix = get_matrix_for_hybrid_motion_prev(tween_frame_idx, (args.W, args.H), inputfiles, turbo_prev_image, anim_args.hybrid_motion)
+                                matrix = get_matrix_for_hybrid_motion_prev(tween_frame_idx-1, (args.W, args.H), inputfiles, turbo_prev_image, anim_args.hybrid_motion)
                                 turbo_prev_image = image_transform_ransac(turbo_prev_image, matrix, anim_args.hybrid_motion, cv2_border_mode)
                             if advance_next:
-                                matrix = get_matrix_for_hybrid_motion_prev(tween_frame_idx, (args.W, args.H), inputfiles, turbo_next_image, anim_args.hybrid_motion)
+                                matrix = get_matrix_for_hybrid_motion_prev(tween_frame_idx-1, (args.W, args.H), inputfiles, turbo_next_image, anim_args.hybrid_motion)
                                 turbo_next_image = image_transform_ransac(turbo_next_image, matrix, anim_args.hybrid_motion, cv2_border_mode)
                         else:
                             matrix = get_matrix_for_hybrid_motion(tween_frame_idx-1, (args.W, args.H), inputfiles, anim_args.hybrid_motion)
@@ -426,18 +411,19 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     if anim_args.hybrid_motion in ['Optical Flow']:
                         if anim_args.hybrid_motion_use_prev_img:
                             if advance_prev:
-                                flow = get_flow_for_hybrid_motion_prev(tween_frame_idx-1, (args.W, args.H), inputfiles, hybrid_frame_path, prev_flow, turbo_prev_image, anim_args.hybrid_flow_method, anim_args.hybrid_comp_save_extra_frames)
+                                flow = get_flow_for_hybrid_motion_prev(tween_frame_idx-1, (args.W, args.H), inputfiles, hybrid_frame_path, prev_flow, turbo_prev_image, anim_args.hybrid_flow_method, anim_args.hybrid_comp_save_extra_frames)                            
                                 turbo_prev_image = image_transform_optical_flow(turbo_prev_image, flow, hybrid_comp_schedules['flow_factor'], cv2_border_mode)
                             if advance_next:
                                 flow = get_flow_for_hybrid_motion_prev(tween_frame_idx-1, (args.W, args.H), inputfiles, hybrid_frame_path, prev_flow, turbo_next_image, anim_args.hybrid_flow_method, anim_args.hybrid_comp_save_extra_frames)
                                 turbo_next_image = image_transform_optical_flow(turbo_next_image, flow, hybrid_comp_schedules['flow_factor'], cv2_border_mode)
+                            prev_flow = flow
                         else:
                             flow = get_flow_for_hybrid_motion(tween_frame_idx-1, (args.W, args.H), inputfiles, hybrid_frame_path, prev_flow, anim_args.hybrid_flow_method, anim_args.hybrid_comp_save_extra_frames)
                             if advance_prev:
                                 turbo_prev_image = image_transform_optical_flow(turbo_prev_image, flow, hybrid_comp_schedules['flow_factor'], cv2_border_mode)
                             if advance_next:
                                 turbo_next_image = image_transform_optical_flow(turbo_next_image, flow, hybrid_comp_schedules['flow_factor'], cv2_border_mode)
-                        prev_flow = flow
+                            prev_flow = flow
 
                 turbo_prev_frame_idx = turbo_next_frame_idx = tween_frame_idx
 
@@ -451,6 +437,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     img = cv2.cvtColor(img.astype(np.uint8), cv2.COLOR_BGR2GRAY)
                     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
+                # overlay mask
+                if args.overlay_mask and (anim_args.use_mask_video or args.use_mask):
+                    img = do_overlay_mask(args, anim_args, img, tween_frame_idx, True)
+
                 filename = f"{args.timestring}_{tween_frame_idx:09}.png"
                 cv2.imwrite(os.path.join(args.outdir, filename), img)
                 if anim_args.save_depth_maps:
@@ -459,7 +449,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 prev_img = turbo_next_image
 
         # get color match for video outside of prev_img conditional
-        hybrid_available = anim_args.hybrid_composite or anim_args.hybrid_motion in ['Optical Flow', 'Affine', 'Perspective']
+        hybrid_available = anim_args.hybrid_composite != 'None' or anim_args.hybrid_motion in ['Optical Flow', 'Affine', 'Perspective']
         if anim_args.color_coherence == 'Video Input' and hybrid_available:
             if int(frame_idx) % int(anim_args.color_coherence_video_every_N_frames) == 0:
                 prev_vid_img = Image.open(os.path.join(args.outdir, 'inputframes', get_frame_name(anim_args.video_init_path) + f"{frame_idx+1:09}.jpg"))
@@ -467,9 +457,14 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 color_match_sample = np.asarray(prev_vid_img)
                 color_match_sample = cv2.cvtColor(color_match_sample, cv2.COLOR_RGB2BGR)
 
-        # apply transforms to previous frame
+        # after 1st frame, prev_img exists
         if prev_img is not None:
+            # apply transforms to previous frame
             prev_img, depth = anim_frame_warp(prev_img, args, anim_args, keys, frame_idx, depth_model, depth=None, device=root.device, half_precision=root.half_precision)
+
+            # do hybrid compositing before motion
+            if anim_args.hybrid_composite == 'Before Motion':
+                args, prev_img = hybrid_composite(args, anim_args, frame_idx, prev_img, depth_model, hybrid_comp_schedules, root)
 
             # hybrid video motion - warps prev_img to match motion, usually to prepare for compositing
             if frame_idx > 0:
@@ -487,8 +482,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     prev_img = image_transform_optical_flow(prev_img, flow, hybrid_comp_schedules['flow_factor'], cv2_border_mode)
                     prev_flow = flow
 
-            # do hybrid video - composites video frame into prev_img (now warped if using motion)
-            if anim_args.hybrid_composite:
+            # do hybrid compositing after motion (normal)
+            if anim_args.hybrid_composite == 'Normal':
                 args, prev_img = hybrid_composite(args, anim_args, frame_idx, prev_img, depth_model, hybrid_comp_schedules, root)
 
             # apply color matching
@@ -528,13 +523,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         # grab prompt for current frame
         if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
             connectedToServer = False
-            try:
-                deforumation_positive_prompt = str(asyncio.run(sendAsync([0, "positive_prompt", 0])))
-                deforumation_negative_prompt = str(asyncio.run(sendAsync([0, "negative_prompt", 0])))
-                args.prompt = deforumation_positive_prompt + "--neg "+ deforumation_negative_prompt
-                connectedToServer = True
-            except Exception as e:
-                print("Deforumation Error:"+e)
+            deforumation_positive_prompt = str(mediator_getValue("positive_prompt"))
+            deforumation_negative_prompt = str(mediator_getValue("negative_prompt"))
+            args.prompt = deforumation_positive_prompt + "--neg "+ deforumation_negative_prompt
+            connectedToServer = True
         if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             args.prompt = prompt_series[frame_idx]
         
@@ -615,18 +607,18 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             devices.torch_gc()
             lowvram.setup_for_low_vram(sd_model, cmd_opts.medvram)
             sd_hijack.model_hijack.hijack(sd_model)
-        
+
         # optical flow redo before generation
-        if anim_args.optical_flow_redo_generation and prev_img is not None and strength > 0:
-            print("Optical Flow redo creating disposable diffusion before actual diffusion for flow estimate.")
+        if anim_args.optical_flow_redo_generation != 'None' and prev_img is not None and strength > 0:
+            print(f"Optical flow redo is diffusing and warping using {anim_args.optical_flow_redo_generation} optical flow before final diffusion.")
             stored_seed = args.seed
             args.seed = random.randint(0, 2**32 - 1)
             disposable_image = generate(args, keys, anim_args, loop_args, controlnet_args, root, frame_idx, sampler_name=scheduled_sampler_name)
             disposable_image = cv2.cvtColor(np.array(disposable_image), cv2.COLOR_RGB2BGR)
-            disposable_image = maintain_colors(prev_img, color_match_sample, anim_args.color_coherence)
-            disposable_flow = get_flow_from_images(prev_img, disposable_image, "DIS Fine")
-            noised_image = image_transform_optical_flow(noised_image, disposable_flow, 1)
-            args.init_sample = Image.fromarray(cv2.cvtColor(noised_image, cv2.COLOR_BGR2RGB))
+            disposable_flow = get_flow_from_images(prev_img, disposable_image, anim_args.optical_flow_redo_generation)
+            disposable_image = cv2.cvtColor(disposable_image, cv2.COLOR_BGR2RGB)
+            disposable_image = image_transform_optical_flow(disposable_image, disposable_flow, redo_flow_factor)
+            args.init_sample = Image.fromarray(disposable_image)
             args.seed = stored_seed
             del(disposable_image,disposable_flow,stored_seed)
             gc.collect()
@@ -648,19 +640,33 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
         # generation
         image = generate(args, keys, anim_args, loop_args, controlnet_args, root, frame_idx, sampler_name=scheduled_sampler_name)
+        
+        if image is None:
+            break
+
+        # do hybrid video after generation
+        if frame_idx > 0 and anim_args.hybrid_composite == 'After Generation':
+            image = np.array(image)
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            args, image = hybrid_composite(args, anim_args, frame_idx, image, depth_model, hybrid_comp_schedules, root)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            image = Image.fromarray(image)
 
         # color matching on first frame is after generation, color match was collected earlier
-        if frame_idx == 0:
-            if anim_args.color_coherence == 'Image' or (anim_args.color_coherence == 'Video Input' and hybrid_available):
-                image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-                image = maintain_colors(image, color_match_sample, anim_args.color_coherence)
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                image = Image.fromarray(image)
+        if frame_idx == 0 and (anim_args.color_coherence == 'Image' or (anim_args.color_coherence == 'Video Input' and hybrid_available)):
+            image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+            image = maintain_colors(image, color_match_sample, anim_args.color_coherence)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            image = Image.fromarray(image)
 
         # intercept and override to grayscale
         if anim_args.color_force_grayscale:
             image = ImageOps.grayscale(image)
             image = ImageOps.colorize(image, black ="black", white ="white")
+
+        # overlay mask
+        if args.overlay_mask and (anim_args.use_mask_video or args.use_mask):
+            image = do_overlay_mask(args, anim_args, image, frame_idx)
 
         # on strength 0, set color match to generation
         if strength == 0 and not anim_args.color_coherence in ['Image', 'Video Input']:

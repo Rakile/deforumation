@@ -6,12 +6,16 @@ import py3d_tools as p3d
 import torch
 from einops import rearrange
 from .prompt import check_is_number
-import pickle
-import asyncio
-import websockets
+
+#Deforumation_mediator imports/settings
+from .deforum_mediator import mediator_getValue, mediator_setValue
 usingDeforumation = True
+#End settings
+
 # Webui
-from modules.shared import state
+from modules.shared import state, opts
+
+DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
 
 def sample_from_cv2(sample: np.ndarray) -> torch.Tensor:
     sample = ((sample.astype(float) / 255.0) * 2) - 1
@@ -173,12 +177,6 @@ def anim_frame_warp(prev_img_cv2, args, anim_args, keys, frame_idx, depth_model=
                 
     return prev_img, depth
 
-async def sendAsync(value):
-    async with websockets.connect("ws://localhost:8765") as websocket:
-        await websocket.send(pickle.dumps(value))
-        message = await websocket.recv()
-        return message
-
 def anim_frame_warp_2d(prev_img_cv2, args, anim_args, keys, frame_idx):
     angle = keys.angle_series[frame_idx]
     zoom = keys.zoom_series[frame_idx]
@@ -207,39 +205,32 @@ def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
     TRANSLATION_SCALE = 1.0/200.0 # matches Disco
     connectedToServer = False
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to get translation values?
-        try:
-            deforumation_translation_x = float(asyncio.run(sendAsync([0, "translation_x", 0])))
-            deforumation_translation_y = float(asyncio.run(sendAsync([0, "translation_y", 0])))
-            deforumation_translation_z = float(asyncio.run(sendAsync([0, "translation_z", 0])))
-            connectedToServer = True
-            translate_xyz = [
-                (-keys.translation_x_series[frame_idx] * TRANSLATION_SCALE) + (-deforumation_translation_x * TRANSLATION_SCALE), 
-                (keys.translation_y_series[frame_idx] * TRANSLATION_SCALE) + (deforumation_translation_y * TRANSLATION_SCALE), 
-                (-keys.translation_z_series[frame_idx] * TRANSLATION_SCALE) + -deforumation_translation_z * TRANSLATION_SCALE
-            ]
-        except Exception as e:
-            print("Deforumation Error:"+e)
+        deforumation_translation_x = float(mediator_getValue("translation_x"))
+        deforumation_translation_y = float(mediator_getValue("translation_y"))
+        deforumation_translation_z = float(mediator_getValue("translation_z"))
+        connectedToServer = True
+        translate_xyz = [
+            (-keys.translation_x_series[frame_idx] * TRANSLATION_SCALE) + (-deforumation_translation_x * TRANSLATION_SCALE), 
+            (keys.translation_y_series[frame_idx] * TRANSLATION_SCALE) + (deforumation_translation_y * TRANSLATION_SCALE), 
+            (-keys.translation_z_series[frame_idx] * TRANSLATION_SCALE) + -deforumation_translation_z * TRANSLATION_SCALE
+        ]
     if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
         translate_xyz = [
             -keys.translation_x_series[frame_idx] * TRANSLATION_SCALE, 
             keys.translation_y_series[frame_idx] * TRANSLATION_SCALE, 
             -keys.translation_z_series[frame_idx] * TRANSLATION_SCALE
         ]
-
     if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get rotation values?
         connectedToServer = False
-        try:
-            deforumation_rotation_x = float(asyncio.run(sendAsync([0, "rotation_x", 0])))
-            deforumation_rotation_y = float(asyncio.run(sendAsync([0, "rotation_y", 0])))
-            deforumation_rotation_z = float(asyncio.run(sendAsync([0, "rotation_z", 0])))
-            connectedToServer = True
-            rotate_xyz = [
-                math.radians(keys.rotation_3d_x_series[frame_idx]) + math.radians(deforumation_rotation_x), 
-                math.radians(keys.rotation_3d_y_series[frame_idx]) + math.radians(deforumation_rotation_y), 
-                math.radians(keys.rotation_3d_z_series[frame_idx]) + math.radians(deforumation_rotation_z)
-            ]
-        except Exception as e:
-            print("Deforumation Error:"+e)
+        deforumation_rotation_x = float(mediator_getValue("rotation_x"))
+        deforumation_rotation_y = float(mediator_getValue("rotation_y"))
+        deforumation_rotation_z = float(mediator_getValue("rotation_z"))
+        connectedToServer = True
+        rotate_xyz = [
+            math.radians(keys.rotation_3d_x_series[frame_idx]) + math.radians(deforumation_rotation_x), 
+            math.radians(keys.rotation_3d_y_series[frame_idx]) + math.radians(deforumation_rotation_y), 
+            math.radians(keys.rotation_3d_z_series[frame_idx]) + math.radians(deforumation_rotation_z)
+        ]
     if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
         rotate_xyz = [
             math.radians(keys.rotation_3d_x_series[frame_idx]), 
@@ -257,17 +248,18 @@ def transform_image_3d(device, prev_img_cv2, depth_tensor, rot_mat, translate, a
     # adapted and optimized version of transform_image_3d from Disco Diffusion https://github.com/alembics/disco-diffusion 
     w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
 
-    aspect_ratio = keys.aspect_ratio_series[frame_idx]
+    if anim_args.aspect_ratio_use_old_formula:
+        aspect_ratio = float(w)/float(h)
+    else:
+        aspect_ratio = keys.aspect_ratio_series[frame_idx]
+    
     near = keys.near_series[frame_idx]
     far = keys.far_series[frame_idx]
     connectedToServer = False
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to get fov values?
-        try:
-            deforumation_fov = float(asyncio.run(sendAsync([0, "fov", 0])))
-            connectedToServer = True
-            fov_deg = keys.fov_series[frame_idx] + float(deforumation_fov)
-        except Exception as e:
-            print("Deforumation Error:"+e)
+        deforumation_fov = float(mediator_getValue("fov"))
+        connectedToServer = True
+        fov_deg = keys.fov_series[frame_idx] + float(deforumation_fov)
     if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
         fov_deg = keys.fov_series[frame_idx]
     persp_cam_old = p3d.FoVPerspectiveCameras(near, far, aspect_ratio, fov=fov_deg, degrees=True, device=device)
