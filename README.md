@@ -13,6 +13,7 @@ https://discord.gg/R9XFP8MN
 
 # deforumation
 A GUI to remotely steer the Deforum motions, strengths, and prompts, in real time. It is also possible to rewind, forward and resume, in order to fix a bad outcome.
+Be aware that if you choose to install Deforumation, it needs to be (at current moment), running, always, in order for Deforum to work when rendering.
 
 ## Dependencies, And deforum version
 
