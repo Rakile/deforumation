@@ -20,6 +20,8 @@ Be aware that if you choose to install Deforumation, it needs to be (at current 
 When Deforum is updated deforumation will stop working. As of now 2023-04-14 it works.
 
 If the latest version of Deforum shouldn't be working with Deforumation:
+
+
   This link provides the bare deforum files of an older working version, does not contain python packages, 4 meg download
 
   https://drive.google.com/file/d/1dp2LkQ25T1W3fD7w3a01OX4weFKxGgHy/view?usp=share_link
