@@ -15,9 +15,8 @@ https://discord.gg/R9XFP8MN
 A GUI to remotely steer the Deforum motions, strengths, and prompts, in real time. It is also possible to rewind, forward and resume, in order to fix a bad outcome.
 
 ## Dependencies, And deforum version
-wxPython (pip install wxPython).
 
-When Deforum is updated deforumation will not work.
+When Deforum is updated deforumation will stop working. As of now 2023-04-14 it works.
 
 This link provides the bare deforum files of an older working version, does not contain python packages, 4 meg download
 
@@ -55,10 +54,10 @@ Or whatever your imagination can come up with.
 
 
 ## Installation
-Get the repo through: `git clone https://github.com/Rakile/deforumation`  or download the zip file and unpack somewhere.
+Get the repo through: `git clone https://github.com/Rakile/deforumation`  or download the zip file and unpack somewhere (or download the zip)
 
-Replace the two files, located in your Automatic1111 path: ".\stable-diffusion-webui\extensions\deforum-for-automatic1111-webui\scripts\deforum_helpers\"
-with the two from ".\deforumation\deforum-for-automatic1111-webui\scripts\deforum_helpers\"
+Replace the now three files, located in your Automatic1111 path: ".\stable-diffusion-webui\extensions\deforum-for-automatic1111-webui\scripts\deforum_helpers\"
+with the three files downloaded from deforumation: ".\deforumation\deforum-for-automatic1111-webui\scripts\deforum_helpers\"
 
 Be sure to restart Automatic1111 after this.
 
