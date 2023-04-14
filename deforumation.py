@@ -3,10 +3,15 @@ import asyncio
 import websockets
 import os
 import time
+import keyboard
 import pickle
+from threading import *
+from pathlib import Path
+import wx.lib.newevent
 #import subprocess
 
 deforumationSettingsPath="./deforumation_settings.txt"
+deforumationSettingsPath_Keys = "./deforum_settings_keys.txt"
 USE_BUFFERED_DC = True
 frame_path = "gibberish"
 Prompt_Positive = ""
@@ -31,12 +36,21 @@ render_frame_window_is_open = False
 should_render_live = False
 current_render_frame = -1
 should_use_deforumation_strength = 1
+#KEYBOARD KEYS
+pan_left_key = 0
+pan_right_key = 0
+pan_up_key = 0
+pan_down_key = 0
+zoom_down_key = 0
+zoom_up_key = 0
 async def sendAsync(value):
     async with websockets.connect("ws://localhost:8765") as websocket:
         await websocket.send(pickle.dumps(value))
         message = await websocket.recv()
         #print(str(message))
         return message
+
+
 class render_window(wx.Frame):
     def __init__(self, parent, title):
         global render_frame_window_is_open
@@ -109,6 +123,11 @@ class Mywin(wx.Frame):
         self.live_render_checkbox = wx.CheckBox(panel, label="LIVE RENDER", pos=(trbX+1130, tbrY-110))
         self.live_render_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
+        #OFF GRID BUTTON FOR KEYBOARD INPUT
+        #self.off_grid_input_box = wx.Button(panel, label="", pos=(-1000, -1000))
+        self.off_grid_input_box = wx.TextCtrl(panel, style=wx.TE_MULTILINE, size=(1, 1), pos=(-100,-100))
+        #self.off_grid_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+
         #SHOW CURRENT IMAGE, BUTTON
         self.show_current_image = wx.Button(panel, label="Show current image", pos=(trbX+992, tbrY-110))
         self.show_current_image.Bind(wx.EVT_BUTTON, self.OnClicked)
@@ -171,6 +190,7 @@ class Mywin(wx.Frame):
         self.transform_y_upp_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(35+trbX, 25+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.transform_y_upp_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_y_upp_button.SetLabel("PAN_UP")
+
         #RIGHT PAN BUTTTON
         bmp = wx.Bitmap(".\\images\\right_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.transform_x_right_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(65+trbX, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
@@ -311,7 +331,7 @@ class Mywin(wx.Frame):
         #TILT STEPS INPUT
         self.tilt_step_input_box = wx.TextCtrl(panel, size=(40,20), pos=(360+trbX+38+80, 30+tbrY))
         self.tilt_step_input_box.SetLabel("1.0")
-        self.loadAllValues()
+
         #PAUSE VIDEO RENDERING
         if is_paused_rendering:
             self.pause_rendering = wx.Button(panel, label="PUSH TO RESUME RENDERING")
@@ -323,6 +343,53 @@ class Mywin(wx.Frame):
         self.Centre()
         self.Show()
         self.Fit()
+
+        self.loadAllValues()
+        #KEYBOARD INPUT EVNTG HANDLER
+        self.off_grid_input_box.Bind(wx.EVT_KEY_DOWN, self.KeyDown)
+        self.off_grid_input_box.SetFocus()
+        panel.Bind(wx.EVT_LEFT_DOWN, self.PanelClicked)
+
+    def PanelClicked(self, event):
+        #print("Pushed pannel %s" % (event))
+        self.off_grid_input_box.SetFocus()
+    def KeyDown(self, event):
+        keycode = event.GetKeyCode()
+        #if keycode !=wx.WXK_NONE:
+        #    print("Pushed:" + str(keycode))
+        if event.GetKeyCode() == pan_up_key:
+            evt = wx.PyCommandEvent(wx.EVT_BUTTON.typeId)
+            evt.SetEventObject(self.transform_y_upp_button)
+            evt.SetId(self.transform_y_upp_button.GetId())
+            self.transform_y_upp_button.GetEventHandler().ProcessEvent(evt)
+        elif event.GetKeyCode() == pan_down_key:
+            evt = wx.PyCommandEvent(wx.EVT_BUTTON.typeId)
+            evt.SetEventObject(self.transform_y_down_button)
+            evt.SetId(self.transform_y_down_button.GetId())
+            self.transform_y_down_button.GetEventHandler().ProcessEvent(evt)
+        elif event.GetKeyCode() == pan_left_key:
+            evt = wx.PyCommandEvent(wx.EVT_BUTTON.typeId)
+            evt.SetEventObject(self.transform_x_left_button)
+            evt.SetId(self.transform_x_left_button.GetId())
+            self.transform_x_left_button.GetEventHandler().ProcessEvent(evt)
+        elif event.GetKeyCode() == pan_right_key:
+            evt = wx.PyCommandEvent(wx.EVT_BUTTON.typeId)
+            evt.SetEventObject(self.transform_x_right_button)
+            evt.SetId(self.transform_x_right_button.GetId())
+            self.transform_x_right_button.GetEventHandler().ProcessEvent(evt)
+        elif event.GetKeyCode() == zoom_up_key:
+            evt = wx.PyCommandEvent(wx.EVT_SCROLL.typeId)
+            evt.SetEventObject(self.zoom_slider)
+            evt.SetId(self.zoom_slider.GetId())
+            self.zoom_slider.SetValue(self.zoom_slider.GetValue()+1)
+            self.zoom_slider.GetEventHandler().ProcessEvent(evt)
+        elif event.GetKeyCode() == zoom_down_key:
+            evt = wx.PyCommandEvent(wx.EVT_SCROLL.typeId)
+            evt.SetEventObject(self.zoom_slider)
+            evt.SetId(self.zoom_slider.GetId())
+            self.zoom_slider.SetValue(self.zoom_slider.GetValue()-1)
+            self.zoom_slider.GetEventHandler().ProcessEvent(evt)
+
 
     def loadAllValues(self):
         global Translation_X
@@ -339,6 +406,29 @@ class Mywin(wx.Frame):
         global STEP_Schedule
         global is_paused_rendering
         global should_use_deforumation_strength
+        global pan_left_key,pan_right_key,pan_up_key,pan_down_key,zoom_up_key,zoom_down_key
+        if os.path.isfile(deforumationSettingsPath_Keys):
+            deforumFile = open(deforumationSettingsPath_Keys, 'r')
+            lines = deforumFile.readlines()
+            for shortcut in lines:
+                param = shortcut.strip('\n').replace(" ","").split('=')
+                param_name = param[0]
+                value = param[1]
+                if param_name.lower() == 'pan_left_key':
+                    pan_left_key = int(value)
+                elif param_name.lower() == 'pan_right_key':
+                    pan_right_key = int(value)
+                elif param_name.lower() == 'pan_up_key':
+                    pan_up_key = int(value)
+                elif param_name.lower() == 'pan_down_key':
+                    pan_down_key = int(value)
+                elif param_name.lower() == 'zoom_up_key':
+                    zoom_up_key = int(value)
+                elif param_name.lower() == 'zoom_down_key':
+                    zoom_down_key = int(value)
+
+            deforumFile.close()
+
         if os.path.isfile(deforumationSettingsPath):
             deforumFile = open(deforumationSettingsPath, 'r')
             is_paused_rendering = int(deforumFile.readline())
@@ -415,7 +505,7 @@ class Mywin(wx.Frame):
         deforumFile.write(str('%.2f' % Rotation_3D_X)+"\n")
         deforumFile.write(str('%.2f' % Rotation_3D_Y)+"\n")
         deforumFile.write(str('%.2f' % Rotation_3D_Z)+"\n")
-        print("WRITING:" + str(should_use_deforumation_strength))
+        #print("WRITING:" + str(should_use_deforumation_strength))
         deforumFile.write(str(int(should_use_deforumation_strength))+"\n")
 
         deforumFile.close()
@@ -515,6 +605,7 @@ class Mywin(wx.Frame):
             STEP_Schedule = int(self.sample_schedule_slider.GetValue())
         elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2:
             current_frame = str(int(asyncio.run(sendAsync([0, "start_frame", 0]))))
+            current_render_frame = int(current_frame)
             #current_frame = str(intcurrent_frame) - 1)
             outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('/', '\\').replace('\n', '')
             resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
@@ -570,6 +661,7 @@ class Mywin(wx.Frame):
 
         elif btn == "Set current image":
             current_frame = self.frame_step_input_box.GetValue()
+            current_render_frame = int(current_frame)
             asyncio.run(sendAsync([1, "start_frame", int(current_frame)]))
             asyncio.run(sendAsync([1, "should_resume", 1]))
         elif btn == "USE DEFORUMATION":
@@ -626,6 +718,7 @@ class Mywin(wx.Frame):
         self.writeAllValues()
 
     def OnExit(self, event):
+        #self.worker.abort()
         print("CLOSING!")
         wx.Exit()
 
@@ -636,7 +729,8 @@ class Mywin(wx.Frame):
             self.live_render_checkbox.SetValue(0)
         if should_render_live == True:
             current_frame = int(asyncio.run(sendAsync([0, "start_frame", 0])))
-            if current_render_frame < current_frame:
+            is_paused = asyncio.run(sendAsync([0, "is_paused_rendering", 0]))
+            if current_render_frame < current_frame or int(is_paused) == 0:
                 current_render_frame = current_frame
                 outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('/', '\\').replace('\n', '')
                 resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
@@ -644,26 +738,32 @@ class Mywin(wx.Frame):
                 maxBackTrack = 10
                 while not os.path.isfile(imagePath):
                     if (current_frame == 0):
-                        break
+                        return
                     current_frame = int(current_frame) - 1
                     str_current_frame = current_frame
                     str_current_frame = str(current_frame).zfill(9)
                     imagePath = outdir + "\\" + resume_timestring + "_" + str_current_frame + ".png"
                     maxBackTrack = maxBackTrack - 1
                     if maxBackTrack == 0:
-                        break
+                        return
                 #Destroy and repaint image
                 #print(str(self.framer.bitmap))
-                if self.framer != None:
-                    if self.framer.bitmap != None:
-                        self.framer.bitmap.Destroy()
-                        self.framer.bitmap = None
-                    self.img_render = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
-                    if self.framer:
-                        self.framer.bitmap = wx.StaticBitmap(self.framer, -1, self.img_render)
-                        self.framer.Refresh()
-
-
+                #imagePath = "lkjlkjlk"
+                wx.Log.EnableLogging(False)
+                try:
+                    if self.framer != None:
+                        if self.framer.bitmap != None:
+                            self.framer.bitmap.Destroy()
+                            self.framer.bitmap = None
+                        self.img_render = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
+                        if self.framer:
+                            self.framer.bitmap = wx.StaticBitmap(self.framer, -1, self.img_render)
+                            self.framer.Refresh()
+                except Exception as e:
+                    print("ERROR LOADING IMAGE:" + imagePath)
+                    print("File Size:" + str(Path(imagePath).stat().st_size))
+                    print(str(e))
+                wx.Log.EnableLogging(True)
 if __name__ == '__main__':
     #subprocess.run(["python", "mediator.py"])
     #print("SLEEP")
