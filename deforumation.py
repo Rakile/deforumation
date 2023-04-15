@@ -352,11 +352,16 @@ class Mywin(wx.Frame):
 
     def PanelClicked(self, event):
         #print("Pushed pannel %s" % (event))
+        evt = wx.PyCommandEvent(wx.EVT_BUTTON.typeId)
+        evt.SetEventObject(self.show_current_image)
+        evt.SetId(self.show_current_image.GetId())
+        self.show_current_image.GetEventHandler().ProcessEvent(evt)
+
         self.off_grid_input_box.SetFocus()
     def KeyDown(self, event):
         keycode = event.GetKeyCode()
         #if keycode !=wx.WXK_NONE:
-        #    print("Pushed:" + str(keycode))
+            #print("Pushed:" + str(keycode))
         if event.GetKeyCode() == pan_up_key:
             evt = wx.PyCommandEvent(wx.EVT_BUTTON.typeId)
             evt.SetEventObject(self.transform_y_upp_button)
@@ -455,7 +460,6 @@ class Mywin(wx.Frame):
             self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
             self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
             should_use_deforumation_strength = int(deforumFile.readline())
-            print("LOADED VALUE:"+str(should_use_deforumation_strength))
             self.should_use_deforumation_strength_checkbox.SetValue(int(should_use_deforumation_strength))
             asyncio.run(sendAsync([1, "is_paused_rendering", is_paused_rendering]))
             asyncio.run(sendAsync([1, "positive_prompt", self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n"]))
