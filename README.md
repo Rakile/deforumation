@@ -123,15 +123,29 @@ Panning:
 
 The buttons will move the camera. So if you push the left arrow, the camera will go left, and the "object" will pan right... etc
 
+The "1.0" box decides how much of the value will be applied when you push a button.
+
 ![img](github_images/rotation.PNG)
 
 Think of yourself being the eyes (tyhye camera view)... so if you push the left button, then you'r head will turn left... etc
+
+The "1.0" box decides how much of the value will be applied when you push a button.
 
 ![img](github_images/tilt.PNG)
 
 Tilt is tilt... It will rotate the image clock or counter clock-wise.
 
+The "1.0" box decides how much of the value will be applied when you push a button.
 
+![img](github_images/rewindforward.PNG)
+
+This part is useful to rewinf and forward througout a rendering. When you have started a rendering, you can look at the current image by pressing the "Show current image" or you can also click anywhere else that is bnot a button on the GUI, to update the image.
+
+A suggestion before using any of these option is to push the "PUSH TO PAUSE RENDERING BUTTON". The rendering will pause and you can more easily explore the functionalities.
+
+The "left-arrow"-button shows you the image previous to the current, and the "right-arrow"-button" shows you the next image to the current.
+
+The "double-left-arrow" will jump to your closest saved prompt towards the beginning relative to your current frame, and the "double-right-arrow" will jump to your closest saved prompt towards the end relative to your current frame.
 
 To change the seed, just type a new seed in the seed-input box, and push return. It will then be loyal to whatever you have choosen in the Deforum GUI, iterative, etc.
 
