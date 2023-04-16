@@ -12,6 +12,7 @@ import wx.lib.newevent
 
 deforumationSettingsPath="./deforumation_settings.txt"
 deforumationSettingsPath_Keys = "./deforum_settings_keys.txt"
+deforumationPromptsPath ="./prompts/"
 USE_BUFFERED_DC = True
 frame_path = "gibberish"
 Prompt_Positive = ""
@@ -35,6 +36,7 @@ seedValue = -1
 render_frame_window_is_open = False
 should_render_live = False
 current_render_frame = -1
+current_frame = 0
 should_use_deforumation_strength = 1
 #KEYBOARD KEYS
 pan_left_key = 0
@@ -136,6 +138,11 @@ class Mywin(wx.Frame):
         self.rewind_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1000, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rewind_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rewind_button.SetLabel("REWIND")
+        #REWIND CLOSEST BUTTTON
+        bmp = wx.Bitmap(".\\images\\rewind_closest.bmp", wx.BITMAP_TYPE_BMP)
+        self.rewind_closest_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+970, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rewind_closest_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.rewind_closest_button.SetLabel("REWIND_CLOSEST")
         #SET CURRENT FRAME INPUT BOX
         self.frame_step_input_box = wx.TextCtrl(panel, 2, size=(48,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+1032, tbrY-74))
         self.frame_step_input_box.SetLabel("")
@@ -145,6 +152,11 @@ class Mywin(wx.Frame):
         self.forward_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1080, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.forward_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.forward_button.SetLabel("FORWARD")
+        #FORWARD CLOSEST BUTTTON
+        bmp = wx.Bitmap(".\\images\\forward_closest.bmp", wx.BITMAP_TYPE_BMP)
+        self.forward_closest_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1110, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.forward_closest_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.forward_closest_button.SetLabel("FORWARD_CLOSEST")
         #SET CURRENT IMAGE, BUTTON
         self.set_current_image = wx.Button(panel, label="Set current image", pos=(trbX+998, tbrY-40))
         self.set_current_image.Bind(wx.EVT_BUTTON, self.OnClicked)
@@ -513,6 +525,124 @@ class Mywin(wx.Frame):
         deforumFile.write(str(int(should_use_deforumation_strength))+"\n")
 
         deforumFile.close()
+
+    def getClosestPrompt(self, forwardrewindType, p_current_frame):
+        resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
+        returnFrame = str(p_current_frame)
+        if os.path.isfile(deforumationPromptsPath + resume_timestring + "_P" + ".txt") and os.path.isfile(deforumationPromptsPath + resume_timestring + "_N" + ".txt"):
+            promptFile_positive = open(deforumationPromptsPath + resume_timestring + "_P" + ".txt", 'r')
+            promptFile_negative = open(deforumationPromptsPath + resume_timestring + "_N" + ".txt", 'r')
+            positive_lines = promptFile_positive.readlines()
+            negative_lines = promptFile_negative.readlines()
+            promptFile_positive.close()
+            promptFile_negative.close()
+            positive_promptToShow = self.positive_prompt_input_ctrl.GetValue()
+            negative_promptToShow = self.negative_prompt_input_ctrl.GetValue()
+            for index in range(0, len(positive_lines), 2):
+                param = positive_lines[index].strip('\n').replace(" ", "").split(',')
+                frame_index = param[0]
+                type = param[1]
+                if forwardrewindType == "R" and int(p_current_frame-1) >= int(frame_index):
+                    positive_promptToShow = positive_lines[index + 1]
+                    negative_promptToShow = negative_lines[index + 1]
+                    returnFrame = frame_index
+                elif forwardrewindType == "F" and int(p_current_frame+1) <= int(frame_index):
+                    positive_promptToShow = positive_lines[index + 1]
+                    negative_promptToShow = negative_lines[index + 1]
+                    returnFrame = frame_index
+                    break
+            self.positive_prompt_input_ctrl.SetValue(str(positive_promptToShow))
+            self.negative_prompt_input_ctrl.SetValue(str(negative_promptToShow))
+        return str(returnFrame)
+
+    def loadCurrentPrompt(self, promptType):
+        resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
+        if os.path.isfile(deforumationPromptsPath + resume_timestring + "_" + promptType + ".txt"):
+            promptFile = open(deforumationPromptsPath + resume_timestring + "_" + promptType + ".txt", 'r')
+            old_lines = promptFile.readlines()
+            promptFile.close()
+            promptToShow =  self.positive_prompt_input_ctrl.GetValue()
+            for index in range(0, len(old_lines), 2):
+                param = old_lines[index].strip('\n').replace(" ", "").split(',')
+                frame_index = param[0]
+                type = param[1]
+                if int(current_frame) >= int(frame_index):
+                    promptToShow = old_lines[index+1]
+                else:
+                    break
+            if promptType == "P":
+                self.positive_prompt_input_ctrl.SetValue(str(promptToShow))
+            else:
+                self.negative_prompt_input_ctrl.SetValue(str(promptToShow))
+
+
+    def saveCurrentPrompt(self, promptType):
+        resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
+        fileAlreadyExists = True
+        if not os.path.exists(deforumationPromptsPath):
+            print("Folder doesn't exist.... creating.")
+            os.mkdir(deforumationPromptsPath)
+        if not os.path.isfile(deforumationPromptsPath + resume_timestring + "_" + promptType + ".txt"):
+            print("File Doesn't Exist, creteating file:" + resume_timestring + "_" + promptType + ".txt")
+            promptFile = open(deforumationPromptsPath + resume_timestring + "_" + promptType + ".txt", 'w')
+            promptFile.close()
+            fileAlreadyExists = False
+        if not os.path.isfile(deforumationPromptsPath + resume_timestring + "_" + promptType + ".txt"):
+            print("File Still Doesn't Exist, aborting:" + resume_timestring + "_" + promptType + ".txt")
+            return
+        else:
+            promptFile = open(deforumationPromptsPath + resume_timestring + "_" + promptType + ".txt", 'r')
+            old_lines = promptFile.readlines()
+            promptFile.close()
+            promptFile = open(deforumationPromptsPath + resume_timestring + "_" + promptType + ".txt", 'w')
+            new_lines = [None] * 2
+            didWriteNewPrompt = False
+            for index in range(0, len(old_lines), 2):
+                if not didWriteNewPrompt:
+                    param = old_lines[index].strip('\n').replace(" ", "").split(',')
+                    frame_index = param[0]
+                    type = param[1]
+                    if int(current_frame) == int(frame_index):
+                        new_lines[0] = frame_index + "," + type
+                        if promptType == "P":
+                            new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                        else:
+                            new_lines[1] = self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                        promptFile.write(str(new_lines[0]) + "\n")
+                        promptFile.write(str(new_lines[1]))
+                        if index+2 != len(old_lines):
+                            promptFile.write("\n")
+                        didWriteNewPrompt = True
+                    elif int(current_frame) < int(frame_index):
+                        new_lines[0] = str(current_frame) + "," + type
+                        if promptType == "P":
+                            new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                        else:
+                            new_lines[1] = self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                        promptFile.write(str(new_lines[0]) + "\n")
+                        promptFile.write(str(new_lines[1]) + "\n")
+                        promptFile.write(frame_index + "," + type + "\n")
+                        promptFile.write(old_lines[index + 1])
+                        didWriteNewPrompt = True
+                    else:
+                        promptFile.write(old_lines[index])
+                        promptFile.write(old_lines[index + 1])
+
+                else:
+                    promptFile.write(old_lines[index])
+                    promptFile.write(old_lines[index + 1])
+            if not didWriteNewPrompt:
+                new_lines[0] = str(current_frame) + "," + promptType
+                if promptType == "P":
+                    new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                else:
+                    new_lines[1] = self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                if fileAlreadyExists:
+                    promptFile.write("\n")
+                promptFile.write(str(new_lines[0]) + "\n")
+                promptFile.write(str(new_lines[1]))
+            promptFile.close()
+
     def OnClicked(self, event):
         global Translation_X
         global Translation_Y
@@ -540,6 +670,9 @@ class Mywin(wx.Frame):
         elif btn == "PUSH TO RESUME RENDERING":
             self.pause_rendering.SetLabel("PUSH TO PAUSE RENDERING")
             is_paused_rendering = False
+        elif btn == "SAVE PROMPTS":
+            self.saveCurrentPrompt("P")
+            self.saveCurrentPrompt("N")
         elif btn == "PAN_LEFT":
             Translation_X = Translation_X - float(self.pan_step_input_box.GetValue())
         elif btn == "PAN_RIGHT":
@@ -607,18 +740,30 @@ class Mywin(wx.Frame):
                     self.fov_slider.SetValue(int(FOV_Scale))
         elif btn == "STEPS":
             STEP_Schedule = int(self.sample_schedule_slider.GetValue())
-        elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2:
+        elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2 or btn == "REWIND_CLOSEST" or btn == "FORWARD_CLOSEST":
             current_frame = str(int(asyncio.run(sendAsync([0, "start_frame", 0]))))
             current_render_frame = int(current_frame)
             #current_frame = str(intcurrent_frame) - 1)
             outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('/', '\\').replace('\n', '')
             resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
-            if btn == "REWIND":
+            if btn == "REWIND_CLOSEST":
+                current_frame = self.frame_step_input_box.GetValue()
+                if current_frame == "":
+                    current_frame = 0
+                current_frame = self.getClosestPrompt("R", int(current_frame))
+            elif btn == "FORWARD_CLOSEST":
+                current_frame = self.frame_step_input_box.GetValue()
+                if current_frame == "":
+                    current_frame = 0
+                current_frame = self.getClosestPrompt("F", int(current_frame))
+            elif btn == "REWIND":
                 current_frame = self.frame_step_input_box.GetValue()
                 if current_frame == '':
                     current_frame = 0
                 if int(current_frame) > -1:
                     current_frame = str(int(current_frame)-1)
+                if int(current_frame) < 0:
+                    current_frame = 0
             elif btn == "FORWARD":
                 current_frame = self.frame_step_input_box.GetValue()
                 if current_frame == '':
@@ -627,6 +772,8 @@ class Mywin(wx.Frame):
                     current_frame = str(int(current_frame) + 1)
             elif event.GetId() == 2:
                 current_frame = self.frame_step_input_box.GetValue()
+            self.loadCurrentPrompt("P")
+            self.loadCurrentPrompt("N")
             current_frame = str(current_frame).zfill(9)
             imagePath = outdir + "\\" + resume_timestring + "_" + current_frame + ".png"
             maxBackTrack = 20
