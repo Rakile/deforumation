@@ -139,13 +139,18 @@ The "1.0" box decides how much of the value will be applied when you push a butt
 
 ![img](github_images/rewindforward.PNG)
 
+Deforumation allows you to rewind to a given frame, and gives you the ability to start generating from that given frame. This is good for when something in your creativity "goes bananas". Maybe that clown shouldn't have appeard all of a sudden ;P
+
 This part is useful to rewind and forward througout a rendering. When you have started a rendering, you can look at the current image by pressing the "Show current image" or you can also click anywhere else that is bnot a button on the GUI, to update the image.
 
 A suggestion before using any of these option is to push the "PUSH TO PAUSE RENDERING BUTTON". The rendering will pause and you can more easily explore the functionalities.
 
 The "left-arrow"-button shows you the image previous to the current, and the "right-arrow"-button" shows you the next image to the current.
 
+Typing a frame number in the input box and pushing RETURN will directly transport you to that fram (if it exists).
+
 The "double-left-arrow" will jump to your closest saved prompt towards the beginning relative to your current frame, and the "double-right-arrow" will jump to your closest saved prompt towards the end relative to your current frame.
+
 
 ![img](github_images/resume.PNG)
 
@@ -156,8 +161,6 @@ Pushing the "SAVE PROMPTS" button will save your current prompts (positive and n
 ![img](github_images/smile.gif) 
 
 To change the seed, just type a new seed in the seed-input box, and push return. It will then be loyal to whatever you have choosen in the Deforum GUI, iterative, etc.
-
-Deforumation allows you to rewind to a given frame, and gives you the ability to start generating from that given frame. This is good for when something in your creativity "goes bananas". Maybe that clown shouldn't have appeard all of a sudden ;P
 
 ## Random example
 Here is an example of LIVE prompt changing for facial expression during rendering.
