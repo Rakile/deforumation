@@ -117,6 +117,8 @@ Deforumation now adds the values to any scheduled motion. That means that if you
 ![img](github_images/newinterface3.png)
 
 There are alot of controls, but here comes the basics:
+Panning:
+![img](github_images/panning.PNG)
 
 
 
