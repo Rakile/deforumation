@@ -51,6 +51,7 @@ async def echo(websocket):
     global did_seed_change
     global should_use_deforumation_strength
     async for message in websocket:
+        #print("Incomming message:"+str(message))
         arr = pickle.loads(message)
         if len(arr) == 3:
             shouldWrite = arr[0]
@@ -181,7 +182,7 @@ async def echo(websocket):
             ##########################################################################
             elif str(parameter) == "should_resume":
                 if shouldWrite:
-                    print("The value is:"+str(value))
+                    #print("The value is:"+str(value))
                     should_resume = int(value)
                     if doVerbose2:
                         print("writing should_resume:" + str(should_resume))
@@ -210,7 +211,7 @@ async def echo(websocket):
                     await websocket.send(str(resume_timestring))
             elif str(parameter) == "should_use_deforumation_strength":
                 if shouldWrite:
-                    print("Setting should use deforumation strength to:"+str(int(value)))
+                    #print("Setting should use deforumation strength to:"+str(int(value)))
                     should_use_deforumation_strength = int(value)
                 else:
                     if doVerbose2:
