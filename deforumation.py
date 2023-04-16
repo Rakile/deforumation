@@ -606,8 +606,12 @@ class Mywin(wx.Frame):
                         new_lines[0] = frame_index + "," + type
                         if promptType == "P":
                             new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                            if new_lines[1] == "":
+                                new_lines[1] = " "
                         else:
                             new_lines[1] = self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                            if new_lines[1] == "":
+                                new_lines[1] = " "
                         promptFile.write(str(new_lines[0]) + "\n")
                         promptFile.write(str(new_lines[1]))
                         if index+2 != len(old_lines):
@@ -617,8 +621,12 @@ class Mywin(wx.Frame):
                         new_lines[0] = str(current_frame) + "," + type
                         if promptType == "P":
                             new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                            if new_lines[1] == "":
+                                new_lines[1] = " "
                         else:
                             new_lines[1] = self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                            if new_lines[1] == "":
+                                new_lines[1] = " "
                         promptFile.write(str(new_lines[0]) + "\n")
                         promptFile.write(str(new_lines[1]) + "\n")
                         promptFile.write(frame_index + "," + type + "\n")
@@ -635,8 +643,12 @@ class Mywin(wx.Frame):
                 new_lines[0] = str(current_frame) + "," + promptType
                 if promptType == "P":
                     new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                    if new_lines[1] == "":
+                        new_lines[1] = " "
                 else:
                     new_lines[1] = self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                    if new_lines[1] == "":
+                        new_lines[1] = " "
                 if fileAlreadyExists:
                     promptFile.write("\n")
                 promptFile.write(str(new_lines[0]) + "\n")
