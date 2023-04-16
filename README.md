@@ -118,8 +118,18 @@ Deforumation now adds the values to any scheduled motion. That means that if you
 
 There are alot of controls, but here comes the basics:
 Panning:
+
 ![img](github_images/panning.PNG)
 
+The buttons will move the camera. So if you push the left arrow, the camera will go left, and the "object" will pan right... etc
+
+![img](github_images/rotation.PNG)
+
+Think of yourself being the eyes (tyhye camera view)... so if you push the left button, then you'r head will turn left... etc
+
+![img](github_images/tilt.PNG)
+
+Tilt is tilt... It will rotate the image clock or counter clock-wise.
 
 
 
