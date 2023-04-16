@@ -115,7 +115,7 @@ Deforumation now adds the values to any scheduled motion. That means that if you
 
 Easy to control exakt motions (above, doing a Panning left while at the same time Rotating right, creatinging an orbit camera movement around the person). The settings for this movement is shown in the Deforumation interface below.
 
-![img](github_images/newinterface2.png)
+![img](github_images/newinterface3.png)
 
 To change the seed, just type a new seed in the seed-input box, and push return. It will then be loyal to whatever you have choosen in the Deforum GUI, iterative, etc.
 
