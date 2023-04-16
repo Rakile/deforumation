@@ -139,7 +139,7 @@ The "1.0" box decides how much of the value will be applied when you push a butt
 
 ![img](github_images/rewindforward.PNG)
 
-This part is useful to rewinf and forward througout a rendering. When you have started a rendering, you can look at the current image by pressing the "Show current image" or you can also click anywhere else that is bnot a button on the GUI, to update the image.
+This part is useful to rewind and forward througout a rendering. When you have started a rendering, you can look at the current image by pressing the "Show current image" or you can also click anywhere else that is bnot a button on the GUI, to update the image.
 
 A suggestion before using any of these option is to push the "PUSH TO PAUSE RENDERING BUTTON". The rendering will pause and you can more easily explore the functionalities.
 
