@@ -123,11 +123,13 @@ Panning:
 
 The buttons will move the camera. So if you push the left arrow, the camera will go left, and the "object" will pan right... etc
 
+Think of yourself being the eyes (the camera view)  and the image that you see... so if you push the left button, then it's like YOU are sidestepping left... etc
+
 The "1.0" box decides how much of the value will be applied when you push a button.
 
 ![img](github_images/rotation.PNG)
 
-Think of yourself being the eyes (tyhye camera view)... so if you push the left button, then you'r head will turn left... etc
+Think of yourself being the eyes (the camera view)  and the image that you see... so if you push the left button, then you'r head will turn left... etc
 
 The "1.0" box decides how much of the value will be applied when you push a button.
 
@@ -158,7 +160,7 @@ When you know you did a misstake, start by pressing the "PUSH TO PAUS RENDERING"
 
 Pushing the "SAVE PROMPTS" button will save your current prompts (positive and negative), as files inside the "prompts" folde in your deforumation folder. Depending on your current generation (timestring), seperate files will be saved for that particular "project". That means that your prompts can be recalled during a generation of a specific project. E.g. Push "SAVE PROMPT" on fram 0, then on fram 50 change your prompts, and push again "SAVE PROMPTS", and they will update as you rewind/forward throughout you generated frames... You'll get a hang of it ;) (Else ask in the discord).
 
-![img](github_images/smile.gif) 
+![img](github_images/smile.gif)
 
 To change the seed, just type a new seed in the seed-input box, and push return. It will then be loyal to whatever you have choosen in the Deforum GUI, iterative, etc.
 
