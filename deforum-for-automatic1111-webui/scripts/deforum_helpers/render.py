@@ -297,6 +297,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         amount = keys.amount_schedule_series[frame_idx]
         threshold = keys.threshold_schedule_series[frame_idx]
         cadence_flow_factor = keys.cadence_flow_factor_schedule_series[frame_idx]
+        #print("cadence_flow_factor:"+str(cadence_flow_factor))
         redo_flow_factor = keys.redo_flow_factor_schedule_series[frame_idx]
         hybrid_comp_schedules = {
             "alpha": keys.hybrid_comp_alpha_schedule_series[frame_idx],
@@ -350,6 +351,16 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             params_string = None
             
         # emit in-between frames
+        if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
+            if using_vid_init:
+               # print("We do use using_vid_init")
+                turbo_steps = 1
+            else:
+                #print("We don't use using_vid_init")
+                turbo_steps = int(mediator_getValue("cadence"))
+        else:
+            turbo_steps = 1 if using_vid_init else int(anim_args.diffusion_cadence)
+        #print("Turbo steps:"+str(turbo_steps))
         if turbo_steps > 1:
             tween_frame_start_idx = max(start_frame, frame_idx-turbo_steps)
             cadence_flow = None
@@ -359,7 +370,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 advance_prev = turbo_prev_image is not None and tween_frame_idx > turbo_prev_frame_idx
                 advance_next = tween_frame_idx > turbo_next_frame_idx
 
-                # optical flow cadence setup before animation warping
+                # optical flow r setup before animation warping
                 if anim_args.animation_mode == '3D' and anim_args.optical_flow_cadence != 'None':
                     if keys.strength_schedule_series[tween_frame_start_idx] > 0:
                         if cadence_flow is None and turbo_prev_image is not None and turbo_next_image is not None:
