@@ -45,6 +45,7 @@ pan_up_key = 0
 pan_down_key = 0
 zoom_down_key = 0
 zoom_up_key = 0
+Cadence_Schedule = 2
 async def sendAsync(value):
     async with websockets.connect("ws://localhost:8765") as websocket:
         await websocket.send(pickle.dumps(value))
@@ -352,6 +353,13 @@ class Mywin(wx.Frame):
         sizer.Add(self.pause_rendering, 0, wx.ALL | wx.EXPAND, 5)
         self.pause_rendering.Bind(wx.EVT_BUTTON, self.OnClicked)
 
+        #CADENCE SLIDER
+        self.cadence_slider = wx.Slider(panel, id=wx.ID_ANY, value=int(Cadence_Schedule), minValue=1, maxValue=20, pos = (trbX+1000, tbrY+20), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.cadence_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
+        self.cadence_slider.SetTickFreq(1)
+        self.cadence_slider.SetLabel("CADENCE")
+        self.CFG_scale_Text = wx.StaticText(panel, label="Cadence Scale", pos=(trbX+1000, tbrY))
+
         self.Centre()
         self.Show()
         self.Fit()
@@ -477,6 +485,7 @@ class Mywin(wx.Frame):
                 self.pan_step_input_box.SetValue(deforumFile.readline())
                 self.rotate_step_input_box.SetValue(deforumFile.readline())
                 self.tilt_step_input_box.SetValue(deforumFile.readline())
+                self.cadence_slider.SetValue(int(deforumFile.readline()))
             except Exception as e:
                 print(e)
             asyncio.run(sendAsync([1, "is_paused_rendering", is_paused_rendering]))
@@ -494,6 +503,7 @@ class Mywin(wx.Frame):
             asyncio.run(sendAsync([1, "rotation_z", Rotation_3D_Z]))
             asyncio.run(sendAsync([1, "rotation_z", Rotation_3D_Z]))
             asyncio.run(sendAsync([1, "should_use_deforumation_strength", int(should_use_deforumation_strength)]))
+            asyncio.run(sendAsync([1, "cadence", int(Cadence_Schedule)]))
 
     def writeAllValues(self):
         try:
@@ -511,6 +521,7 @@ class Mywin(wx.Frame):
             asyncio.run(sendAsync([1, "rotation_y", Rotation_3D_Y]))
             asyncio.run(sendAsync([1, "rotation_z", Rotation_3D_Z]))
             asyncio.run(sendAsync([1, "rotation_z", Rotation_3D_Z]))
+            asyncio.run(sendAsync([1, "cadence", Cadence_Schedule]))
         except Exception as e:
             print(e)
         deforumFile = open(deforumationSettingsPath, 'w')
@@ -532,6 +543,7 @@ class Mywin(wx.Frame):
         deforumFile.write(self.pan_step_input_box.GetValue().strip().replace('\n', '')+"\n")
         deforumFile.write(self.rotate_step_input_box.GetValue().strip().replace('\n', '')+"\n")
         deforumFile.write(self.tilt_step_input_box.GetValue().strip().replace('\n', '')+"\n")
+        deforumFile.write(str(self.cadence_slider.GetValue())+"\n")
 
         deforumFile.close()
 
@@ -683,6 +695,7 @@ class Mywin(wx.Frame):
         global should_render_live
         global current_render_frame
         global should_use_deforumation_strength
+        global Cadence_Schedule
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
@@ -761,6 +774,8 @@ class Mywin(wx.Frame):
                     self.fov_slider.SetValue(int(FOV_Scale))
         elif btn == "STEPS":
             STEP_Schedule = int(self.sample_schedule_slider.GetValue())
+        elif btn == "CADENCE":
+            Cadence_Schedule = int(self.cadence_slider.GetValue())
         elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2 or btn == "REWIND_CLOSEST" or btn == "FORWARD_CLOSEST":
             current_frame = str(int(asyncio.run(sendAsync([0, "start_frame", 0]))))
             current_render_frame = int(current_frame)
