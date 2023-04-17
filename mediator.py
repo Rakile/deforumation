@@ -29,6 +29,7 @@ fov = 70
 doVerbose = False
 doVerbose2 = False
 should_use_deforumation_strength = 1
+cadence = 2
 async def echo(websocket):
     global Prompt_Positive
     global Prompt_Negative
@@ -50,6 +51,7 @@ async def echo(websocket):
     global seed_value
     global did_seed_change
     global should_use_deforumation_strength
+    global cadence
     async for message in websocket:
         #print("Incomming message:"+str(message))
         arr = pickle.loads(message)
@@ -217,6 +219,14 @@ async def echo(websocket):
                     if doVerbose2:
                         print("sending should_use_deforumation_strength:"+str(should_use_deforumation_strength))
                     await websocket.send(str(should_use_deforumation_strength))
+            elif str(parameter) == "cadence":
+                if shouldWrite:
+                    #print("Writing cadence:"+str(value))
+                    cadence = str(value)
+                else:
+                    if doVerbose2:
+                        print("sending cadence:"+str(cadence))
+                    await websocket.send(str(cadence))
 
 
             if shouldWrite: #Return an "OK" if the writes went OK
