@@ -135,12 +135,12 @@ class Mywin(wx.Frame):
         self.show_current_image = wx.Button(panel, label="Show current image", pos=(trbX+992, tbrY-110))
         self.show_current_image.Bind(wx.EVT_BUTTON, self.OnClicked)
         #REWIND BUTTTON
-        bmp = wx.Bitmap(".\\images\\left_arrow.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = wx.Bitmap("./images/left_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.rewind_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1000, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rewind_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rewind_button.SetLabel("REWIND")
         #REWIND CLOSEST BUTTTON
-        bmp = wx.Bitmap(".\\images\\rewind_closest.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = wx.Bitmap("./images/rewind_closest.bmp", wx.BITMAP_TYPE_BMP)
         self.rewind_closest_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+970, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rewind_closest_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rewind_closest_button.SetLabel("REWIND_CLOSEST")
@@ -149,12 +149,12 @@ class Mywin(wx.Frame):
         self.frame_step_input_box.SetLabel("")
         self.frame_step_input_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=2)
         #FORWARD BUTTTON
-        bmp = wx.Bitmap(".\\images\\right_arrow.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = wx.Bitmap("./images/right_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.forward_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1080, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.forward_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.forward_button.SetLabel("FORWARD")
         #FORWARD CLOSEST BUTTTON
-        bmp = wx.Bitmap(".\\images\\forward_closest.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = wx.Bitmap("./images/forward_closest.bmp", wx.BITMAP_TYPE_BMP)
         self.forward_closest_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1110, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.forward_closest_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.forward_closest_button.SetLabel("FORWARD_CLOSEST")
@@ -179,7 +179,7 @@ class Mywin(wx.Frame):
         self.pan_step_input_box.SetLabel("1.0")
 
         #LEFT PAN BUTTTON
-        bmp = wx.Bitmap(".\\images\\left_arrow.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = wx.Bitmap("./images/left_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.transform_x_left_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(5+trbX, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.transform_x_left_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_x_left_button.SetLabel("PAN_LEFT")
@@ -199,18 +199,18 @@ class Mywin(wx.Frame):
         self.pan_Y_Value_Text.SetFont(font)
 
         #UPP PAN BUTTTON
-        bmp = wx.Bitmap(".\\images\\upp_arrow.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = wx.Bitmap("./images/upp_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.transform_y_upp_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(35+trbX, 25+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.transform_y_upp_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_y_upp_button.SetLabel("PAN_UP")
 
         #RIGHT PAN BUTTTON
-        bmp = wx.Bitmap(".\\images\\right_arrow.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = wx.Bitmap("./images/right_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.transform_x_right_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(65+trbX, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.transform_x_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_x_right_button.SetLabel("PAN_RIGHT")
         #DOWN PAN BUTTTON
-        bmp = wx.Bitmap(".\\images\\down_arrow.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = wx.Bitmap("./images/down_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.transform_y_down_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(35+trbX, 85+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.transform_y_down_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_y_down_button.SetLabel("PAN_DOWN")
@@ -235,13 +235,13 @@ class Mywin(wx.Frame):
         self.FOV_Text3 = wx.StaticText(panel, label="V", pos=(250+trbX, tbrY+80))
 
         #LOCK FOV TO ZOOM BUTTON
-        bmp = wx.Bitmap(".\\images\\lock_off.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = wx.Bitmap("./images/lock_off.bmp", wx.BITMAP_TYPE_BMP)
         self.fov_lock_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(172+trbX, tbrY-5), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.fov_lock_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.fov_lock_button.SetLabel("LOCK FOV")
 
         #REVERSE FOV TO ZOOM BUTTON
-        bmp = wx.Bitmap(".\\images\\reverse_fov_off.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = wx.Bitmap("./images/reverse_fov_off.bmp", wx.BITMAP_TYPE_BMP)
         self.fov_reverse_lock_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(172+trbX, tbrY+120), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.fov_reverse_lock_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.fov_reverse_lock_button.SetLabel("REVERSE FOV")
@@ -281,7 +281,7 @@ class Mywin(wx.Frame):
 
 
         #LOOK LEFT BUTTTON
-        bmp = wx.Bitmap(".\\images\\look_left.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = wx.Bitmap("./images/look_left.bmp", wx.BITMAP_TYPE_BMP)
         self.rotation_3d_x_left_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+80, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_x_left_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_x_left_button.SetLabel("LOOK_LEFT")
@@ -298,7 +298,7 @@ class Mywin(wx.Frame):
         self.rotate_step_input_box.SetLabel("1.0")
 
         #LOOK UPP BUTTTON
-        bmp = wx.Bitmap(".\\images\\look_upp.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = wx.Bitmap("./images/look_upp.bmp", wx.BITMAP_TYPE_BMP)
         self.rotation_3d_y_up_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30+80, 55+tbrY-30), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_y_up_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_y_up_button.SetLabel("LOOK_UP")
@@ -311,25 +311,25 @@ class Mywin(wx.Frame):
         self.rotation_3d_y_Value_Text.SetFont(font)
 
         #LOOK RIGHT BUTTTON
-        bmp = wx.Bitmap(".\\images\\look_right.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = wx.Bitmap("./images/look_right.bmp", wx.BITMAP_TYPE_BMP)
         self.rotation_3d_x_right_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+57+80, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_x_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_x_right_button.SetLabel("LOOK_RIGHT")
 
         #LOOK UPP BUTTTON
-        bmp = wx.Bitmap(".\\images\\look_down.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = wx.Bitmap("./images/look_down.bmp", wx.BITMAP_TYPE_BMP)
         self.rotation_3d_y_down_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30+80, 55+tbrY+30), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_y_down_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_y_down_button.SetLabel("LOOK_DOWN")
 
         #ROTATE LEFT BUTTTON
-        bmp = wx.Bitmap(".\\images\\rotate_left.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = wx.Bitmap("./images/rotate_left.bmp", wx.BITMAP_TYPE_BMP)
         self.rotation_3d_z_right_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(300+trbX+57+80, 50+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_z_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_z_right_button.SetLabel("ROTATE_LEFT")
 
         #ROTATE RIGHT BUTTTON
-        bmp = wx.Bitmap(".\\images\\rotate_right.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = wx.Bitmap("./images/rotate_right.bmp", wx.BITMAP_TYPE_BMP)
         self.rotation_3d_z_right_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(380+trbX+57+80, 50+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_z_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_z_right_button.SetLabel("ROTATE_RIGHT")
@@ -749,10 +749,10 @@ class Mywin(wx.Frame):
         elif btn == "LOCK FOV":
             if is_fov_locked:
                 is_fov_locked = False
-                self.fov_lock_button.SetBitmap(wx.Bitmap(".\\images\\lock_off.bmp"))
+                self.fov_lock_button.SetBitmap(wx.Bitmap("./images/lock_off.bmp"))
             else:
                 is_fov_locked = True
-                self.fov_lock_button.SetBitmap(wx.Bitmap(".\\images\\lock_on.bmp"))
+                self.fov_lock_button.SetBitmap(wx.Bitmap("./images/lock_on.bmp"))
                 if is_reverse_fov_locked:
                     FOV_Scale = float(70+(Translation_Z*-5))
                     self.fov_slider.SetValue(int(FOV_Scale))
@@ -762,13 +762,13 @@ class Mywin(wx.Frame):
         elif btn == "REVERSE FOV":
             if is_reverse_fov_locked:
                 is_reverse_fov_locked = False
-                self.fov_reverse_lock_button.SetBitmap(wx.Bitmap(".\\images\\reverse_fov_off.bmp"))
+                self.fov_reverse_lock_button.SetBitmap(wx.Bitmap("./images/reverse_fov_off.bmp"))
                 if is_fov_locked:
                     FOV_Scale = float(70+(Translation_Z*5))
                     self.fov_slider.SetValue(int(FOV_Scale))
             else:
                 is_reverse_fov_locked = True
-                self.fov_reverse_lock_button.SetBitmap(wx.Bitmap(".\\images\\reverse_fov_on.bmp"))
+                self.fov_reverse_lock_button.SetBitmap(wx.Bitmap("./images/reverse_fov_on.bmp"))
                 if is_fov_locked:
                     FOV_Scale = float(70+(Translation_Z*-5))
                     self.fov_slider.SetValue(int(FOV_Scale))
@@ -780,7 +780,7 @@ class Mywin(wx.Frame):
             current_frame = str(int(asyncio.run(sendAsync([0, "start_frame", 0]))))
             current_render_frame = int(current_frame)
             #current_frame = str(intcurrent_frame) - 1)
-            outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('/', '\\').replace('\n', '')
+            outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('\\', '/').replace('\n', '')
             resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
             if btn == "REWIND_CLOSEST":
                 current_frame = self.frame_step_input_box.GetValue()
@@ -811,7 +811,7 @@ class Mywin(wx.Frame):
             self.loadCurrentPrompt("P")
             self.loadCurrentPrompt("N")
             current_frame = str(current_frame).zfill(9)
-            imagePath = outdir + "\\" + resume_timestring + "_" + current_frame + ".png"
+            imagePath = outdir + "/" + resume_timestring + "_" + current_frame + ".png"
             maxBackTrack = 20
             #print(str("Trying to load:"+imagePath))
             while not os.path.isfile(imagePath):
@@ -819,7 +819,7 @@ class Mywin(wx.Frame):
                     break
                 current_frame = str(int(current_frame)-1)
                 current_frame = current_frame.zfill(9)
-                imagePath = outdir + "\\" + resume_timestring + "_" + current_frame + ".png"
+                imagePath = outdir + "/" + resume_timestring + "_" + current_frame + ".png"
                 maxBackTrack = maxBackTrack -1
                 if maxBackTrack == 0:
                     break
@@ -866,17 +866,17 @@ class Mywin(wx.Frame):
             #print("should_render_live: "+str(should_render_live))
             if should_render_live == False:
                 should_render_live = True
-                outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('/', '\\').replace('\n', '')
+                outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('\\', '/').replace('\n', '')
                 resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
                 current_frame = current_frame.zfill(9)
-                imagePath = outdir + "\\" + resume_timestring + "_" + current_frame + ".png"
+                imagePath = outdir + "/" + resume_timestring + "_" + current_frame + ".png"
                 maxBackTrack = 20
                 while not os.path.isfile(imagePath):
                     if (current_frame == 0):
                         break
                     current_frame = str(int(current_frame) - 1)
                     current_frame = current_frame.zfill(9)
-                    imagePath = outdir + "\\" + resume_timestring + "_" + current_frame + ".png"
+                    imagePath = outdir + "/" + resume_timestring + "_" + current_frame + ".png"
                     maxBackTrack = maxBackTrack -1
                     if maxBackTrack == 0:
                         break
@@ -919,9 +919,9 @@ class Mywin(wx.Frame):
             is_paused = asyncio.run(sendAsync([0, "is_paused_rendering", 0]))
             if current_render_frame < current_frame or int(is_paused) == 0:
                 current_render_frame = current_frame
-                outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('/', '\\').replace('\n', '')
+                outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('\\', '/').replace('\n', '')
                 resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
-                imagePath = outdir + "\\" + resume_timestring + "_" + str(current_render_frame-2).zfill(9) + ".png"
+                imagePath = outdir + "/" + resume_timestring + "_" + str(current_render_frame-2).zfill(9) + ".png"
                 maxBackTrack = 10
                 while not os.path.isfile(imagePath):
                     if (current_frame == 0):
@@ -929,7 +929,7 @@ class Mywin(wx.Frame):
                     current_frame = int(current_frame) - 1
                     str_current_frame = current_frame
                     str_current_frame = str(current_frame).zfill(9)
-                    imagePath = outdir + "\\" + resume_timestring + "_" + str_current_frame + ".png"
+                    imagePath = outdir + "/" + resume_timestring + "_" + str_current_frame + ".png"
                     maxBackTrack = maxBackTrack - 1
                     if maxBackTrack == 0:
                         return
