@@ -67,6 +67,11 @@ Be sure to restart Automatic1111 after this.
 
 Go into the deforumation folder in your terminal and start by running:
 
+You need to have python3 for Deforumation to work properly (I think).
+So if you still are using 2.7, google how to install python3.
+
+On linux you also have to have to have GTK+ in order for wxPython to work....Follow this guide: https://www.pixelstech.net/article/1599647177-Problem-and-Solution-for-Installing-wxPython-on-Ubuntu-20-04 (Or the likes)... On MAC.... I have no clue, only I know that people got it working. On Windows, just continue.
+
 `>python -m pip install -r requirements.txt`
 
 ## Running
