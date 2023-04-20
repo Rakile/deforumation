@@ -263,8 +263,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 donothing = 0
             connectedToServer = True
 
-        if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell 3:d parties what frame_idx we are on currently?
-            mediator_setValue("start_frame", frame_idx)
+#        if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell 3:d parties what frame_idx we are on currently?
+#            mediator_setValue("start_frame", frame_idx)
 
         print(f"\033[36mAnimation frame: \033[0m{frame_idx}/{anim_args.max_frames}  ")
 
@@ -454,6 +454,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
                 filename = f"{args.timestring}_{tween_frame_idx:09}.png"
                 cv2.imwrite(os.path.join(args.outdir, filename), img)
+                if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell 3:d parties what frame we are on currently?
+                    mediator_setValue("start_frame", tween_frame_idx)
+
                 if anim_args.save_depth_maps:
                     depth_model.save(os.path.join(args.outdir, f"{args.timestring}_depth_{tween_frame_idx:09}.png"), depth)
             if turbo_next_image is not None:
@@ -694,6 +697,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         else:    
             filename = f"{args.timestring}_{frame_idx:09}.png"
             save_image(image, 'PIL', filename, args, video_args, root)
+            if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell 3:d parties what frame_idx we are on currently?
+                mediator_setValue("start_frame", frame_idx)
 
             if anim_args.save_depth_maps:
                 if cmd_opts.lowvram or cmd_opts.medvram:
