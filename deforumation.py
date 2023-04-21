@@ -8,6 +8,7 @@ import pickle
 from threading import *
 from pathlib import Path
 import wx.lib.newevent
+import threading
 #import subprocess
 
 deforumationSettingsPath="./deforumation_settings.txt"
@@ -52,25 +53,139 @@ async def sendAsync(value):
         message = await websocket.recv()
         #print(str(message))
         return message
+def scale_bitmap(bitmap, width, height):
+    image = bitmap.ConvertToImage()
+    image = image.Scale(width, height, wx.IMAGE_QUALITY_HIGH)
+    result = wx.Bitmap(image)
+    return result
 
+def get_current_image_path():
+    outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('\\', '/').replace('\n', '')
+    resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
+    imagePath = outdir + "/" + resume_timestring + "_" + str(current_frame).zfill(9) + ".png"
+    return imagePath
+
+def get_current_image_path_paused():
+    outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('\\', '/').replace('\n', '')
+    resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
+    imagePath = outdir + "/" + resume_timestring + "_" + str(current_render_frame).zfill(9) + ".png"
+    return imagePath
+
+def get_current_image_path_f(frame_num):
+    outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('\\', '/').replace('\n', '')
+    resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
+    imagePath = outdir + "/" + resume_timestring + "_" + str(frame_num).zfill(9) + ".png"
+    return imagePath
+
+def changeBitmapWorker(parent):
+    #global current_render_frame
+    global should_render_live
+    imageFound = True
+    last_rendered = -1
+    shouldrunthis = True
+    if shouldrunthis == True:
+        while parent.shouldRun:
+            if should_render_live == True:
+                current_frame = int(asyncio.run(sendAsync([0, "start_frame", 0])))
+                if current_frame == last_rendered:
+                    continue
+                last_rendered = current_frame
+                is_paused = asyncio.run(sendAsync([0, "is_paused_rendering", 0]))
+                #if current_render_frame < current_frame or int(is_paused) == 0:
+                if int(is_paused) == 0:
+                    imagePath = get_current_image_path_f(current_frame)
+                    maxBackTrack = 10
+                    while not os.path.isfile(imagePath):
+                        if (current_frame == 0):
+                            break
+                        current_frame = int(current_frame) - 1
+                        imagePath = get_current_image_path_f(current_frame)
+                        maxBackTrack = maxBackTrack - 1
+                        if maxBackTrack == 0:
+                            imageFound = False
+                    if(imageFound):
+                        parent.bitmap = wx.Bitmap(imagePath)
+                        bitmap_width, bitmap_height = parent.parent.GetSize()
+                        parent.bitmap = scale_bitmap(parent.bitmap, bitmap_width, bitmap_height)
+                        parent.Refresh()
+                        #print("Image_Nr:"+str(current_frame).zfill(9))
+                    else:
+                        imageFound = True
+                time.sleep(0.10)
+            #elif if should_render_live == True:
+    print("Thread destroyed")
+class MyPanel(wx.Panel):
+
+    def __init__(self,parent):
+        wx.Panel.__init__(self,parent,id=-1)
+        self.Bind(wx.EVT_CLOSE, self.OnExit)
+        self.parent = parent
+        self.shouldRun = True
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.bitmap = None
+        self.t = threading.Thread(target=changeBitmapWorker, args=(self,))
+        #self.t.setDaemon(True)
+        self.t.daemon = True
+        self.t.start()
+    def OnExit(self, event):
+        self.shouldRun = False
+    def OnPaint(self, evt):
+        if self.bitmap != None:
+            dc = wx.BufferedPaintDC(self)
+            dc.Clear()
+            dc.DrawBitmap(self.bitmap, 0,0)
+        else:
+            pass
+    def DeInitialize(self):
+        self.shouldRun = False
+    def resize(self,width,height):
+        self.SetSize(width, height)
+        if is_paused_rendering:
+            imagePath = get_current_image_path_paused()
+        else:
+            imagePath = get_current_image_path()
+        self.bitmap = wx.Bitmap(imagePath)
+        bitmap_width, bitmap_height = self.parent.GetSize()
+        self.bitmap = scale_bitmap(self.bitmap, bitmap_width, bitmap_height)
+        self.Refresh()
 
 class render_window(wx.Frame):
     def __init__(self, parent, title):
         global render_frame_window_is_open
         render_frame_window_is_open = True
+        self.parent = parent
         super(render_window, self).__init__(parent, title=title, size=(100, 100))
         self.Bind(wx.EVT_CLOSE, self.OnExit)
-        panel = wx.Panel(self)
-        panel.SetBackgroundColour(wx.Colour(100, 100, 100))
-        panel.SetDoubleBuffered(True)
+        self.Bind(wx.EVT_SIZING, self.OnResize)
+        #panel = wx.Panel(self)
+        self.panel = MyPanel(self)
+        self.panel.SetBackgroundColour(wx.Colour(100, 100, 100))
+        self.panel.SetDoubleBuffered(True)
         self.bitmap = None
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
+    def OnResize(self, evt):
+        self.current_width, self.current_height = self.GetSize()
+        self.panel.resize(self.current_width, self.current_height)
+        #print("width=" + str(self.current_width))
+        #print("height=" + str(self.current_height))
     def OnErase(self, evt):
         evt.Skip()
+    def DrawImage(self):
+        self.current_width, self.current_height = self.GetSize()
+        self.panel.resize(self.current_width, self.current_height)
+        #print("width=" + str(self.current_width))
+        #print("height=" + str(self.current_height))
     def OnExit(self, event):
         global should_render_live
         global render_frame_window_is_open
-        #print("CLOSING!")
+        self.panel.DeInitialize()
+        self.panel.Hide()
+        self.panel.Close()
+        self.panel.Destroy()
+        self.panel = None
+        self.parent.framer = None
+        self.parent.live_render_checkbox.SetValue(0)
+        print("Cloing render window!")
         self.Destroy()
         render_frame_window_is_open = False
         should_render_live = False
@@ -91,9 +206,9 @@ class Mywin(wx.Frame):
         #wx.EVT_SIZE(self, self.OnSize)
         #Timer Event
         ##############################################################################################################################################################################
-        self.timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self.updateRender, self.timer)
-        self.timer.Start(200)
+        #self.timer = wx.Timer(self)
+        #self.Bind(wx.EVT_TIMER, self.updateRender, self.timer)
+        #self.timer.Start(200)
 
         #Positive Prompt
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -505,23 +620,14 @@ class Mywin(wx.Frame):
             asyncio.run(sendAsync([1, "should_use_deforumation_strength", int(should_use_deforumation_strength)]))
             asyncio.run(sendAsync([1, "cadence", int(Cadence_Schedule)]))
 
+    def writeValue(self, param, value):
+        asyncio.run(sendAsync([1, param, value]))
+
     def writeAllValues(self):
         try:
-            asyncio.run(sendAsync([1, "is_paused_rendering", is_paused_rendering]))
-            asyncio.run(sendAsync([1, "positive_prompt", self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n"]))
-            asyncio.run(sendAsync([1, "negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n"]))
-            asyncio.run(sendAsync([1, "strength", Strength_Scheduler]))
-            asyncio.run(sendAsync([1, "cfg", CFG_Scale]))
-            asyncio.run(sendAsync([1, "steps", STEP_Schedule]))
-            asyncio.run(sendAsync([1, "fov", FOV_Scale]))
-            asyncio.run(sendAsync([1, "translation_x", Translation_X]))
-            asyncio.run(sendAsync([1, "translation_y", Translation_Y]))
-            asyncio.run(sendAsync([1, "translation_z", Translation_Z]))
-            asyncio.run(sendAsync([1, "rotation_x", Rotation_3D_X]))
-            asyncio.run(sendAsync([1, "rotation_y", Rotation_3D_Y]))
-            asyncio.run(sendAsync([1, "rotation_z", Rotation_3D_Z]))
-            asyncio.run(sendAsync([1, "rotation_z", Rotation_3D_Z]))
-            asyncio.run(sendAsync([1, "cadence", Cadence_Schedule]))
+            if is_paused_rendering:
+                asyncio.run(sendAsync([1, "positive_prompt", self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n"]))
+                asyncio.run(sendAsync([1, "negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n"]))
         except Exception as e:
             print(e)
         deforumFile = open(deforumationSettingsPath, 'w')
@@ -576,7 +682,7 @@ class Mywin(wx.Frame):
             self.negative_prompt_input_ctrl.SetValue(str(negative_promptToShow))
         return str(returnFrame)
 
-    def loadCurrentPrompt(self, promptType):
+    def loadCurrentPrompt(self, promptType, frame_start,showType):
         resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
         if os.path.isfile(deforumationPromptsPath + resume_timestring + "_" + promptType + ".txt"):
             promptFile = open(deforumationPromptsPath + resume_timestring + "_" + promptType + ".txt", 'r')
@@ -587,14 +693,20 @@ class Mywin(wx.Frame):
                 param = old_lines[index].strip('\n').replace(" ", "").split(',')
                 frame_index = param[0]
                 type = param[1]
-                if int(current_frame) >= int(frame_index):
+                if int(frame_start) >= int(frame_index):
                     promptToShow = old_lines[index+1]
                 else:
                     break
-            if promptType == "P":
-                self.positive_prompt_input_ctrl.SetValue(str(promptToShow))
-            else:
-                self.negative_prompt_input_ctrl.SetValue(str(promptToShow))
+            if showType == 0:
+                if promptType == "P":
+                    self.positive_prompt_input_ctrl.SetValue(str(promptToShow))
+                else:
+                    self.negative_prompt_input_ctrl.SetValue(str(promptToShow))
+            elif showType == 1:
+                if promptType == "P":
+                    asyncio.run(sendAsync([1, "positive_prompt", promptToShow.strip().replace('\n', '')+"\n"]))
+                else:
+                    asyncio.run(sendAsync([1, "negative_prompt", promptToShow.strip().replace('\n', '')+"\n"]))
 
 
     def saveCurrentPrompt(self, promptType):
@@ -701,51 +813,74 @@ class Mywin(wx.Frame):
         if btn == "PUSH TO PAUSE RENDERING":
             self.pause_rendering.SetLabel("PUSH TO RESUME RENDERING")
             is_paused_rendering = True
+            self.writeValue("is_paused_rendering", is_paused_rendering)
+            return
         elif btn == "PUSH TO RESUME RENDERING":
             self.pause_rendering.SetLabel("PUSH TO PAUSE RENDERING")
+            self.loadCurrentPrompt("P", current_frame, 1)
+            self.loadCurrentPrompt("N", current_frame, 1)
             is_paused_rendering = False
+            self.writeValue("is_paused_rendering", is_paused_rendering)
+            return
         elif btn == "SAVE PROMPTS":
             self.saveCurrentPrompt("P")
             self.saveCurrentPrompt("N")
+            asyncio.run(sendAsync([1, "positive_prompt", self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '') + "\n"]))
+            asyncio.run(sendAsync([1, "negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '') + "\n"]))
         elif btn == "PAN_LEFT":
             Translation_X = Translation_X - float(self.pan_step_input_box.GetValue())
+            self.writeValue("translation_x", Translation_X)
         elif btn == "PAN_RIGHT":
             Translation_X = Translation_X + float(self.pan_step_input_box.GetValue())
+            self.writeValue("translation_x", Translation_X)
         elif btn == "PAN_UP":
             Translation_Y = Translation_Y + float(self.pan_step_input_box.GetValue())
+            self.writeValue("translation_y", Translation_Y)
         elif btn == "PAN_DOWN":
             Translation_Y = Translation_Y - float(self.pan_step_input_box.GetValue())
+            self.writeValue("translation_y", Translation_Y)
         elif btn == "ZOOM":
             Translation_Z = self.zoom_slider.GetValue()
+            self.writeValue("translation_z", Translation_Z)
             if is_fov_locked:
                 if is_reverse_fov_locked:
                     FOV_Scale = 70+(Translation_Z * -5)
                 else:
                     FOV_Scale = 70 + (Translation_Z * 5)
                 self.fov_slider.SetValue(FOV_Scale)
+                self.writeValue("fow", FOV_Scale)
 
         elif btn == "STRENGTH SCHEDULE":
             Strength_Scheduler = float(self.strength_schedule_slider.GetValue())*0.01
+            self.writeValue("strength", Strength_Scheduler)
         elif event.GetId() == 3: #Seed Input Box
             seedValue = int(self.seed_input_box.GetValue())
             print("SeedValue:"+str(seedValue))
-            asyncio.run(sendAsync([1, "seed", seedValue])) #This is handled here, because it is not suitable to be written every time by writeAllValues()
+            self.writeValue("seed", seedValue)
         elif btn == "LOOK_LEFT":
             Rotation_3D_Y = Rotation_3D_Y - float(self.rotate_step_input_box.GetValue())
+            self.writeValue("rotation_y", Rotation_3D_Y)
         elif btn == "LOOK_RIGHT":
             Rotation_3D_Y = Rotation_3D_Y + float(self.rotate_step_input_box.GetValue())
+            self.writeValue("rotation_y", Rotation_3D_Y)
         elif btn == "LOOK_UP":
             Rotation_3D_X = Rotation_3D_X + float(self.rotate_step_input_box.GetValue())
+            self.writeValue("rotation_x", Rotation_3D_X)
         elif btn == "LOOK_DOWN":
             Rotation_3D_X = Rotation_3D_X - float(self.rotate_step_input_box.GetValue())
+            self.writeValue("rotation_x", Rotation_3D_X)
         elif btn == "ROTATE_LEFT":
             Rotation_3D_Z = Rotation_3D_Z + float(self.tilt_step_input_box.GetValue())
+            self.writeValue("rotation_z", Rotation_3D_Z)
         elif btn == "ROTATE_RIGHT":
             Rotation_3D_Z = Rotation_3D_Z - float(self.tilt_step_input_box.GetValue())
+            self.writeValue("rotation_z", Rotation_3D_Z)
         elif btn == "CFG SCALE":
             CFG_Scale = float(self.cfg_schedule_slider.GetValue())
+            self.writeValue("cfg", CFG_Scale)
         elif btn == "FOV":
             FOV_Scale = float(self.fov_slider.GetValue())
+            self.writeValue("fow", FOV_Scale)
         elif btn == "LOCK FOV":
             if is_fov_locked:
                 is_fov_locked = False
@@ -759,6 +894,7 @@ class Mywin(wx.Frame):
                 else:
                     FOV_Scale = float(70+(Translation_Z*5))
                     self.fov_slider.SetValue(int(FOV_Scale))
+                self.writeValue("fow", FOV_Scale)
         elif btn == "REVERSE FOV":
             if is_reverse_fov_locked:
                 is_reverse_fov_locked = False
@@ -766,61 +902,63 @@ class Mywin(wx.Frame):
                 if is_fov_locked:
                     FOV_Scale = float(70+(Translation_Z*5))
                     self.fov_slider.SetValue(int(FOV_Scale))
+                    self.writeValue("fow", FOV_Scale)
             else:
                 is_reverse_fov_locked = True
                 self.fov_reverse_lock_button.SetBitmap(wx.Bitmap("./images/reverse_fov_on.bmp"))
                 if is_fov_locked:
                     FOV_Scale = float(70+(Translation_Z*-5))
                     self.fov_slider.SetValue(int(FOV_Scale))
+                    self.writeValue("fow", FOV_Scale)
         elif btn == "STEPS":
             STEP_Schedule = int(self.sample_schedule_slider.GetValue())
+            self.writeValue("steps", STEP_Schedule)
         elif btn == "CADENCE":
             Cadence_Schedule = int(self.cadence_slider.GetValue())
+            self.writeValue("cadence", Cadence_Schedule)
         elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2 or btn == "REWIND_CLOSEST" or btn == "FORWARD_CLOSEST":
             current_frame = str(int(asyncio.run(sendAsync([0, "start_frame", 0]))))
             current_render_frame = int(current_frame)
-            #current_frame = str(intcurrent_frame) - 1)
             outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('\\', '/').replace('\n', '')
             resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
             if btn == "REWIND_CLOSEST":
-                current_frame = self.frame_step_input_box.GetValue()
-                if current_frame == "":
-                    current_frame = 0
-                current_frame = self.getClosestPrompt("R", int(current_frame))
+                current_render_frame = self.frame_step_input_box.GetValue()
+                if current_render_frame == "":
+                    current_render_frame = 0
+                current_render_frame = self.getClosestPrompt("R", int(current_render_frame))
             elif btn == "FORWARD_CLOSEST":
-                current_frame = self.frame_step_input_box.GetValue()
-                if current_frame == "":
-                    current_frame = 0
-                current_frame = self.getClosestPrompt("F", int(current_frame))
+                current_render_frame = self.frame_step_input_box.GetValue()
+                if current_render_frame == "":
+                    current_render_frame = 0
+                current_render_frame = self.getClosestPrompt("F", int(current_render_frame))
             elif btn == "REWIND":
-                current_frame = self.frame_step_input_box.GetValue()
-                if current_frame == '':
-                    current_frame = 0
-                if int(current_frame) > -1:
-                    current_frame = str(int(current_frame)-1)
-                if int(current_frame) < 0:
-                    current_frame = 0
+                current_render_frame = self.frame_step_input_box.GetValue()
+                if current_render_frame == '':
+                    current_render_frame = 0
+                if int(current_render_frame) > -1:
+                    current_render_frame = str(int(current_render_frame)-1)
+                if int(current_render_frame) < 0:
+                    current_render_frame = 0
             elif btn == "FORWARD":
-                current_frame = self.frame_step_input_box.GetValue()
-                if current_frame == '':
-                    current_frame = 0
-                if int(current_frame) > -1:
-                    current_frame = str(int(current_frame) + 1)
+                current_render_frame = self.frame_step_input_box.GetValue()
+                if current_render_frame == '':
+                    current_render_frame = 0
+                if int(current_render_frame) > -1:
+                    current_render_frame = str(int(current_render_frame) + 1)
             elif event.GetId() == 2:
-                current_frame = self.frame_step_input_box.GetValue()
-            self.loadCurrentPrompt("P")
-            self.loadCurrentPrompt("N")
-            current_frame = str(current_frame).zfill(9)
-            imagePath = outdir + "/" + resume_timestring + "_" + current_frame + ".png"
+                current_render_frame = self.frame_step_input_box.GetValue()
+            self.loadCurrentPrompt("P", current_render_frame, 0)
+            self.loadCurrentPrompt("N", current_render_frame, 0)
+            current_render_frame = str(current_render_frame).zfill(9)
+            imagePath = outdir + "/" + resume_timestring + "_" + current_render_frame + ".png"
             maxBackTrack = 20
             #print(str("Trying to load:"+imagePath))
             while not os.path.isfile(imagePath):
-                if (current_frame == 0):
+                if (current_render_frame == 0):
                     break
-                current_frame = str(int(current_frame)-1)
-                current_frame = current_frame.zfill(9)
-                imagePath = outdir + "/" + resume_timestring + "_" + current_frame + ".png"
-                maxBackTrack = maxBackTrack -1
+                current_render_frame = int(current_render_frame) - 1
+                imagePath = get_current_image_path()
+                maxBackTrack = maxBackTrack - 1
                 if maxBackTrack == 0:
                     break
             #print(str("Loaded:"+imagePath))
@@ -833,22 +971,19 @@ class Mywin(wx.Frame):
                 imgHeight = self.img.GetHeight()
                 self.img = self.img.Scale(int(imgWidth / 2), int(imgHeight / 2), wx.IMAGE_QUALITY_HIGH)
                 self.bitmap = wx.StaticBitmap(self, -1, self.img, pos=(trbX + 650, tbrY - 120))
-                self.frame_step_input_box.SetValue(str(int(current_frame)))
+                self.frame_step_input_box.SetValue(str(int(current_render_frame)))
                 self.Refresh()
                 #Destroy and repaint image
                 #print(str(self.framer.bitmap))
                 if self.framer != None:
-                    if self.framer.bitmap != None:
-                        self.framer.bitmap.Destroy()
-                        self.framer.bitmap = None
-                    self.img_render = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
-                    if self.framer:
-                        self.framer.bitmap = wx.StaticBitmap(self.framer, -1, self.img_render)
-                        self.framer.Refresh()
+                    if is_paused_rendering:
+                        self.framer.DrawImage()
 
         elif btn == "Set current image":
             current_frame = self.frame_step_input_box.GetValue()
             current_render_frame = int(current_frame)
+            self.loadCurrentPrompt("P", current_frame, 1)
+            self.loadCurrentPrompt("N", current_frame, 1)
             asyncio.run(sendAsync([1, "start_frame", int(current_frame)]))
             asyncio.run(sendAsync([1, "should_resume", 1]))
         elif btn == "USE DEFORUMATION":
@@ -870,6 +1005,7 @@ class Mywin(wx.Frame):
                 resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
                 current_frame = current_frame.zfill(9)
                 imagePath = outdir + "/" + resume_timestring + "_" + current_frame + ".png"
+                imagePath = get_current_image_path()
                 maxBackTrack = 20
                 while not os.path.isfile(imagePath):
                     if (current_frame == 0):
@@ -884,17 +1020,18 @@ class Mywin(wx.Frame):
                         self.img_render = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
                         imgWidth = self.img_render.GetWidth()
                         imgHeight = self.img_render.GetHeight()
-                        self.framer = render_window(None, 'Render Image')
-                        self.framer.Show()
+                        if self.framer == None:
+                            self.framer = render_window(self, 'Render Image')
+                            self.framer.Show()
                         self.framer.SetSize(imgWidth + 18, imgHeight + 40)
                         self.framer.bitmap = wx.StaticBitmap(self.framer, -1, self.img_render)
                         self.framer.Refresh()
             else:
                 should_render_live = False
-                if self.framer:
+                if self.framer != None:
                     self.framer.Hide()
                     self.framer.Close()
-                    self.framer.Destroy()
+                    self.framer = None
                 current_render_frame = -1
         self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
         self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
@@ -905,52 +1042,13 @@ class Mywin(wx.Frame):
         self.writeAllValues()
 
     def OnExit(self, event):
-        #self.worker.abort()
+        if self.framer != None:
+            self.framer.Hide()
+            self.framer.Close()
+            self.framer = None
         print("CLOSING!")
         wx.Exit()
 
-    def updateRender(self, event):
-        global current_render_frame
-        global should_render_live
-        if should_render_live == False:
-            self.live_render_checkbox.SetValue(0)
-        if should_render_live == True:
-            current_frame = int(asyncio.run(sendAsync([0, "start_frame", 0])))
-            is_paused = asyncio.run(sendAsync([0, "is_paused_rendering", 0]))
-            if current_render_frame < current_frame or int(is_paused) == 0:
-                current_render_frame = current_frame
-                outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('\\', '/').replace('\n', '')
-                resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
-                imagePath = outdir + "/" + resume_timestring + "_" + str(current_render_frame-2).zfill(9) + ".png"
-                maxBackTrack = 10
-                while not os.path.isfile(imagePath):
-                    if (current_frame == 0):
-                        return
-                    current_frame = int(current_frame) - 1
-                    str_current_frame = current_frame
-                    str_current_frame = str(current_frame).zfill(9)
-                    imagePath = outdir + "/" + resume_timestring + "_" + str_current_frame + ".png"
-                    maxBackTrack = maxBackTrack - 1
-                    if maxBackTrack == 0:
-                        return
-                #Destroy and repaint image
-                #print(str(self.framer.bitmap))
-                #imagePath = "lkjlkjlk"
-                wx.Log.EnableLogging(False)
-                try:
-                    if self.framer != None:
-                        if self.framer.bitmap != None:
-                            self.framer.bitmap.Destroy()
-                            self.framer.bitmap = None
-                        self.img_render = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
-                        if self.framer:
-                            self.framer.bitmap = wx.StaticBitmap(self.framer, -1, self.img_render)
-                            self.framer.Refresh()
-                except Exception as e:
-                    print("ERROR LOADING IMAGE:" + imagePath)
-                    print("File Size:" + str(Path(imagePath).stat().st_size))
-                    print(str(e))
-                wx.Log.EnableLogging(True)
 if __name__ == '__main__':
     #subprocess.run(["python", "mediator.py"])
     #print("SLEEP")
