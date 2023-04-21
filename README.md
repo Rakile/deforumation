@@ -17,7 +17,7 @@ Be aware that if you choose to install Deforumation, it needs to be (at current 
 
 ## Dependencies, And deforum version
 
-When Deforum is updated deforumation will stop working. As of now 2023-04-14 it works.
+When Deforum is updated deforumation will stop working. As of now 2023-04-21 it works.
 
 If the latest version of Deforum shouldn't be working with Deforumation:
 
