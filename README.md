@@ -21,6 +21,9 @@ When Deforum is updated deforumation will stop working. As of now 2023-04-21 it 
 
 If the latest version of Deforum shouldn't be working with Deforumation:
 
+Working version
+https://drive.google.com/file/d/1Fx414-fONjiy7p7SHL1JTi-DkPoIz4HV/view?usp=share_link
+
 * Ask someone in the community if they have an older version of Deforum, that is actually working with Deforumation
 * Wait until Deforum has been updated to work with the latest version of Deforumation
 
