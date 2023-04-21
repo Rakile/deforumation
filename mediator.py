@@ -24,6 +24,7 @@ frame_outdir = ""
 resume_timestring=""
 seed_value = -1
 did_seed_change = 0
+should_use_deforum_prompt_scheduling = 0
 #Keyframes/Field Of View/FOV schedule
 fov = 70
 doVerbose = False
@@ -52,6 +53,7 @@ async def echo(websocket):
     global did_seed_change
     global should_use_deforumation_strength
     global cadence
+    global should_use_deforum_prompt_scheduling
     async for message in websocket:
         #print("Incomming message:"+str(message))
         arr = pickle.loads(message)
@@ -69,6 +71,13 @@ async def echo(websocket):
                     if doVerbose:
                         print("is_paused_rendering:"+str(parameter))
                     await websocket.send(str(shouldPause))
+            elif str(parameter) == "should_use_deforum_prompt_scheduling":
+                if shouldWrite:
+                    should_use_deforum_prompt_scheduling = value
+                else:
+                    if doVerbose:
+                        print("should_use_deforum_prompt_scheduling:" + str(should_use_deforum_prompt_scheduling))
+                    await websocket.send(str(should_use_deforum_prompt_scheduling))
             elif str(parameter) == "positive_prompt":
                 if shouldWrite:
                     Prompt_Positive = value
