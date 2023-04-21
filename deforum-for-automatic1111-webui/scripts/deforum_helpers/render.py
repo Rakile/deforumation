@@ -537,9 +537,13 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         # grab prompt for current frame
         if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
             connectedToServer = False
-            deforumation_positive_prompt = str(mediator_getValue("positive_prompt"))
-            deforumation_negative_prompt = str(mediator_getValue("negative_prompt"))
-            args.prompt = deforumation_positive_prompt + "--neg "+ deforumation_negative_prompt
+            should_use_deforum_prompt_scheduling = int(mediator_getValue("should_use_deforum_prompt_scheduling"))
+            if should_use_deforum_prompt_scheduling == 0:
+                deforumation_positive_prompt = str(mediator_getValue("positive_prompt"))
+                deforumation_negative_prompt = str(mediator_getValue("negative_prompt"))
+                args.prompt = deforumation_positive_prompt + "--neg "+ deforumation_negative_prompt
+            else:
+                args.prompt = prompt_series[frame_idx]
             connectedToServer = True
         if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             args.prompt = prompt_series[frame_idx]
