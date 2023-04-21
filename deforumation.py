@@ -15,6 +15,7 @@ deforumationSettingsPath="./deforumation_settings.txt"
 deforumationSettingsPath_Keys = "./deforum_settings_keys.txt"
 deforumationPromptsPath ="./prompts/"
 USE_BUFFERED_DC = True
+should_stay_on_top = False
 frame_path = "gibberish"
 Prompt_Positive = ""
 Prompt_Negative = ""
@@ -155,6 +156,8 @@ class render_window(wx.Frame):
         render_frame_window_is_open = True
         self.parent = parent
         super(render_window, self).__init__(parent, title=title, size=(100, 100))
+        if should_stay_on_top:
+            self.ToggleWindowStyle(wx.STAY_ON_TOP | wx.BORDER_DEFAULT)
         self.Bind(wx.EVT_CLOSE, self.OnExit)
         self.Bind(wx.EVT_SIZING, self.OnResize)
         #panel = wx.Panel(self)
@@ -210,19 +213,23 @@ class Mywin(wx.Frame):
         #self.Bind(wx.EVT_TIMER, self.updateRender, self.timer)
         #self.timer.Start(200)
 
+
         #Positive Prompt
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self.positivePromtText = wx.StaticText(panel, label="Positive prompt:")
+        self.positivePromtText = wx.StaticText(panel, label="Positive prompt:", size=(200, 25))
         font = self.positivePromtText.GetFont()
         font.PointSize += 5
         font = font.Bold()
         self.positivePromtText.SetFont(font)
-        sizer.Add(self.positivePromtText, 0, wx.ALL | wx.EXPAND, 5)
-        self.positive_prompt_input_ctrl = wx.TextCtrl(panel,style=wx.TE_MULTILINE, size=(-1,100))
+        sizer.Add(self.positivePromtText, 0, wx.ALL , 5)
+        self.positive_prompt_input_ctrl = wx.TextCtrl(panel, style=wx.TE_MULTILINE, size=(-1,100))
         sizer.Add(self.positive_prompt_input_ctrl, 0, wx.ALL | wx.EXPAND, 5)
         if os.path.isfile(deforumationSettingsPath):
             promptfileRead = open(deforumationSettingsPath, 'r')
             self.positive_prompt_input_ctrl.SetValue(promptfileRead.readline())
+        #Stay On Top
+        self.stayOnTop_Checkbox = wx.CheckBox(panel, label="Stay on top", pos=(trbX+1130, 10))
+        self.stayOnTop_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
         #Negative Prompt
         self.negativePromtText = wx.StaticText(panel, label="Negative prompt:")
         font = self.negativePromtText.GetFont()
@@ -808,6 +815,7 @@ class Mywin(wx.Frame):
         global current_render_frame
         global should_use_deforumation_strength
         global Cadence_Schedule
+        global should_stay_on_top
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
@@ -822,6 +830,20 @@ class Mywin(wx.Frame):
             is_paused_rendering = False
             self.writeValue("is_paused_rendering", is_paused_rendering)
             return
+        elif btn == "Stay on top":
+            if should_stay_on_top:
+                should_stay_on_top = False
+                self.ToggleWindowStyle(wx.STAY_ON_TOP | wx.BORDER_DEFAULT)
+                if self.framer != None:
+                    self.framer.ToggleWindowStyle(wx.STAY_ON_TOP | wx.BORDER_DEFAULT)
+            else:
+                should_stay_on_top = True
+                self.ToggleWindowStyle(wx.STAY_ON_TOP | wx.BORDER_DEFAULT)
+                if self.framer != None:
+                    self.framer.ToggleWindowStyle(wx.STAY_ON_TOP | wx.BORDER_DEFAULT)
+                #self.ToggleWindowStyle(wx.STAY_ON_TOP)
+
+
         elif btn == "SAVE PROMPTS":
             self.saveCurrentPrompt("P")
             self.saveCurrentPrompt("N")
