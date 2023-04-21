@@ -40,6 +40,7 @@ should_render_live = False
 current_render_frame = -1
 current_frame = 0
 should_use_deforumation_strength = 1
+should_use_deforum_prompt_scheduling = 0
 #KEYBOARD KEYS
 pan_left_key = 0
 pan_right_key = 0
@@ -227,6 +228,9 @@ class Mywin(wx.Frame):
         if os.path.isfile(deforumationSettingsPath):
             promptfileRead = open(deforumationSettingsPath, 'r')
             self.positive_prompt_input_ctrl.SetValue(promptfileRead.readline())
+        #Should use Deforum prompt scheduling?
+        self.shouldUseDeforumPromptScheduling_Checkbox = wx.CheckBox(panel, label="Use Deforum prompt scheduling", pos=(trbX+600, 10))
+        self.shouldUseDeforumPromptScheduling_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
         #Stay On Top
         self.stayOnTop_Checkbox = wx.CheckBox(panel, label="Stay on top", pos=(trbX+1130, 10))
         self.stayOnTop_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
@@ -816,6 +820,7 @@ class Mywin(wx.Frame):
         global should_use_deforumation_strength
         global Cadence_Schedule
         global should_stay_on_top
+        global should_use_deforum_prompt_scheduling
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
@@ -841,9 +846,13 @@ class Mywin(wx.Frame):
                 self.ToggleWindowStyle(wx.STAY_ON_TOP | wx.BORDER_DEFAULT)
                 if self.framer != None:
                     self.framer.ToggleWindowStyle(wx.STAY_ON_TOP | wx.BORDER_DEFAULT)
-                #self.ToggleWindowStyle(wx.STAY_ON_TOP)
-
-
+        elif btn == "Use Deforum prompt scheduling":
+            if should_use_deforum_prompt_scheduling == 0:
+                should_use_deforum_prompt_scheduling = 1
+                self.writeValue("should_use_deforum_prompt_scheduling", should_use_deforum_prompt_scheduling)
+            else:
+                should_use_deforum_prompt_scheduling = 0
+                self.writeValue("should_use_deforum_prompt_scheduling", should_use_deforum_prompt_scheduling)
         elif btn == "SAVE PROMPTS":
             self.saveCurrentPrompt("P")
             self.saveCurrentPrompt("N")
