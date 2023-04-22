@@ -49,6 +49,8 @@ pan_down_key = 0
 zoom_down_key = 0
 zoom_up_key = 0
 Cadence_Schedule = 2
+zero_pan_active = False
+stepit_pan = 0
 async def sendAsync(value):
     async with websockets.connect("ws://localhost:8765") as websocket:
         await websocket.send(pickle.dumps(value))
@@ -126,7 +128,6 @@ class MyPanel(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.bitmap = None
         self.t = threading.Thread(target=changeBitmapWorker, args=(self,))
-        #self.t.setDaemon(True)
         self.t.daemon = True
         self.t.start()
     def OnExit(self, event):
@@ -347,6 +348,12 @@ class Mywin(wx.Frame):
         self.transform_zero_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(35+trbX, 56+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.transform_zero_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_zero_button.SetLabel("ZERO PAN")
+
+        #ZERO PAN STEP INPUT BOX STRING
+        self.zero_pan_step_input_box_text = wx.StaticText(panel, label="0-Steps", pos=(trbX+74, tbrY+14))
+        #ZERO PAN STEP INPUT BOX
+        self.zero_pan_step_input_box = wx.TextCtrl(panel, size=(40,20), pos=(trbX+70, tbrY+30))
+        self.zero_pan_step_input_box.SetLabel("0")
 
         #ZOOM SLIDER
         self.zoom_slider = wx.Slider(panel, id=wx.ID_ANY, value=0, minValue=-10, maxValue=10, pos = (110+trbX, tbrY-5), size = (40, 150), style = wx.SL_VERTICAL | wx.SL_AUTOTICKS | wx.SL_LABELS | wx.SL_INVERSE )
@@ -605,6 +612,11 @@ class Mywin(wx.Frame):
             try:
                 deforumFile = open(deforumationSettingsPath, 'r')
                 is_paused_rendering = int(deforumFile.readline())
+                if is_paused_rendering:
+                    self.pause_rendering.SetLabel("PUSH TO RESUME RENDERING")
+                else:
+                    self.pause_rendering.SetLabel("PUSH TO PAUSE RENDERING")
+
                 self.positive_prompt_input_ctrl.SetValue(deforumFile.readline())
                 self.negative_prompt_input_ctrl.SetValue(deforumFile.readline())
                 Strength_Scheduler = float(deforumFile.readline())
@@ -633,6 +645,8 @@ class Mywin(wx.Frame):
                 self.rotate_step_input_box.SetValue(deforumFile.readline())
                 self.tilt_step_input_box.SetValue(deforumFile.readline())
                 self.cadence_slider.SetValue(int(deforumFile.readline()))
+                self.zero_pan_step_input_box.SetValue(deforumFile.readline())
+
             except Exception as e:
                 print(e)
             asyncio.run(sendAsync([1, "is_paused_rendering", is_paused_rendering]))
@@ -682,7 +696,7 @@ class Mywin(wx.Frame):
         deforumFile.write(self.rotate_step_input_box.GetValue().strip().replace('\n', '')+"\n")
         deforumFile.write(self.tilt_step_input_box.GetValue().strip().replace('\n', '')+"\n")
         deforumFile.write(str(self.cadence_slider.GetValue())+"\n")
-
+        deforumFile.write(str(self.zero_pan_step_input_box.GetValue())+"\n")
         deforumFile.close()
 
     def getClosestPrompt(self, forwardrewindType, p_current_frame):
@@ -819,7 +833,77 @@ class Mywin(wx.Frame):
                 promptFile.write(str(new_lines[0]) + "\n")
                 promptFile.write(str(new_lines[1]))
             promptFile.close()
+    def ZeroStepper(self, parameter_value, frame_steps):
+        global Translation_X
+        global Translation_Y
+        global stepit_pan
+        global zero_pan_active
+        print("Zero stepper thread started for:"+str(parameter_value))
+        stepit_pan = 1
+        is_negative = 0
+        zero_frame_steps = frame_steps
+        if zero_frame_steps == 0:
+            return
+        now_frame = int(asyncio.run(sendAsync([0, "start_frame", 0])))
+        zero_frame_steps_n_frame = 0
+        if parameter_value == "translation_x":
+            if Translation_X != 0:
+                zero_frame_steps_n_frame = float(Translation_X / zero_frame_steps)
+            if Translation_X < 0:
+                is_negative = 1
+        elif parameter_value == "translation_y":
+            if Translation_Y != 0:
+                zero_frame_steps_n_frame = float(Translation_Y / zero_frame_steps)
+                if Translation_Y < 0:
+                    is_negative = 1
+        print("Stepper")
+        while stepit_pan and zero_frame_steps_n_frame != 0:
+            current_step_frame = int(asyncio.run(sendAsync([0, "start_frame", 0])))
+            if (int(current_step_frame) > int(now_frame)):
+                now_frame = current_step_frame
+                if parameter_value == "translation_x":
+                    Translation_X = Translation_X - float(zero_frame_steps_n_frame)
+                elif parameter_value == "translation_y":
+                    Translation_Y = Translation_Y - float(zero_frame_steps_n_frame)
 
+                if parameter_value == "translation_x":
+                    if is_negative:
+                        if Translation_X >= 0:
+                            Translation_X = 0
+                            self.writeValue(parameter_value, Translation_X)
+                            self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+                            break
+                    elif Translation_X <= 0:
+                        Translation_X = 0
+                        self.writeValue(parameter_value, Translation_X)
+                        self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+                        break
+                elif parameter_value == "translation_y":
+                    if is_negative:
+                        if Translation_Y >= 0:
+                            Translation_Y = 0
+                            self.writeValue(parameter_value, Translation_Y)
+                            self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+                            break
+                    elif Translation_Y <= 0:
+                        Translation_Y = 0
+                        self.writeValue(parameter_value, Translation_Y)
+                        self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+                        break
+
+            if parameter_value == "translation_x":
+                self.writeValue(parameter_value, Translation_X)
+                self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+                print("Translation_X:" + str(Translation_X))
+            elif parameter_value == "translation_y":
+                self.writeValue(parameter_value, Translation_Y)
+                self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+                print("Translation_Y:" + str(Translation_Y))
+            time.sleep(0.10)
+        self.writeAllValues()
+        zero_pan_active = False
+        print("Ending stepper thread")
+#"translation_x"
     def OnClicked(self, event):
         global Translation_X
         global Translation_Y
@@ -842,20 +926,20 @@ class Mywin(wx.Frame):
         global Cadence_Schedule
         global should_stay_on_top
         global should_use_deforum_prompt_scheduling
+        global zero_pan_active
+        global stepit_pan
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
             self.pause_rendering.SetLabel("PUSH TO RESUME RENDERING")
             is_paused_rendering = True
             self.writeValue("is_paused_rendering", is_paused_rendering)
-            return
         elif btn == "PUSH TO RESUME RENDERING":
             self.pause_rendering.SetLabel("PUSH TO PAUSE RENDERING")
             self.loadCurrentPrompt("P", current_frame, 1)
             self.loadCurrentPrompt("N", current_frame, 1)
             is_paused_rendering = False
             self.writeValue("is_paused_rendering", is_paused_rendering)
-            return
         elif btn == "Stay on top":
             if should_stay_on_top:
                 should_stay_on_top = False
@@ -892,10 +976,28 @@ class Mywin(wx.Frame):
             Translation_Y = Translation_Y - float(self.pan_step_input_box.GetValue())
             self.writeValue("translation_y", Translation_Y)
         elif btn == "ZERO PAN":
-            Translation_X = 0
-            Translation_Y = 0
-            self.writeValue("translation_x", Translation_X)
-            self.writeValue("translation_y", Translation_Y)
+            if not zero_pan_active:
+                #Start a ZERO step thread.
+                frame_steps = int(self.zero_pan_step_input_box.GetValue())
+                if frame_steps == 0:
+                    Translation_X = 0
+                    Translation_Y = 0
+                elif Translation_X == 0 and Translation_Y == 0:
+                    zero_pan_active = False
+                else:
+                    zero_pan_active = True
+                    if Translation_X != 0:
+                        self.zero_step_thread_x = threading.Thread(target=self.ZeroStepper, args=("translation_x", frame_steps))
+                        self.zero_step_thread_x.daemon = True
+                        self.zero_step_thread_x.start()
+                    if Translation_Y != 0:
+                        self.zero_step_thread_y = threading.Thread(target=self.ZeroStepper, args=("translation_y", frame_steps))
+                        self.zero_step_thread_y.daemon = True
+                        self.zero_step_thread_y.start()
+            else:
+                stepit_pan = 0
+                zero_pan_active = False
+
         elif btn == "ZOOM":
             Translation_Z = self.zoom_slider.GetValue()
             self.writeValue("translation_z", Translation_Z)
