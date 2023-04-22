@@ -341,6 +341,13 @@ class Mywin(wx.Frame):
         self.transform_y_down_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_y_down_button.SetLabel("PAN_DOWN")
 
+        #ZERO PAN BUTTTON
+        bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = scale_bitmap(bmp, 22, 22)
+        self.transform_zero_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(35+trbX, 56+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.transform_zero_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.transform_zero_button.SetLabel("ZERO PAN")
+
         #ZOOM SLIDER
         self.zoom_slider = wx.Slider(panel, id=wx.ID_ANY, value=0, minValue=-10, maxValue=10, pos = (110+trbX, tbrY-5), size = (40, 150), style = wx.SL_VERTICAL | wx.SL_AUTOTICKS | wx.SL_LABELS | wx.SL_INVERSE )
         self.zoom_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
@@ -454,6 +461,13 @@ class Mywin(wx.Frame):
         self.rotation_3d_z_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_z_right_button.SetLabel("ROTATE_LEFT")
 
+        #ZERO ROTATE BUTTTON
+        bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = scale_bitmap(bmp, 20, 20)
+        self.rotate_zero_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30+80, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotate_zero_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.rotate_zero_button.SetLabel("ZERO ROTATE")
+
         #ROTATE RIGHT BUTTTON
         bmp = wx.Bitmap("./images/rotate_right.bmp", wx.BITMAP_TYPE_BMP)
         self.rotation_3d_z_right_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(380+trbX+57+80, 50+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
@@ -466,6 +480,13 @@ class Mywin(wx.Frame):
         font.PointSize += 1
         font = font.Bold()
         self.rotation_Z_Value_Text.SetFont(font)
+
+        #ZERO TILT BUTTTON
+        bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = scale_bitmap(bmp, 32, 32)
+        self.tilt_zero_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(360+trbX+36+80, 88+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.tilt_zero_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.tilt_zero_button.SetLabel("ZERO TILT")
 
         #TILT STEPS INPUT
         self.tilt_step_input_box = wx.TextCtrl(panel, size=(40,20), pos=(360+trbX+38+80, 30+tbrY))
@@ -870,6 +891,11 @@ class Mywin(wx.Frame):
         elif btn == "PAN_DOWN":
             Translation_Y = Translation_Y - float(self.pan_step_input_box.GetValue())
             self.writeValue("translation_y", Translation_Y)
+        elif btn == "ZERO PAN":
+            Translation_X = 0
+            Translation_Y = 0
+            self.writeValue("translation_x", Translation_X)
+            self.writeValue("translation_y", Translation_Y)
         elif btn == "ZOOM":
             Translation_Z = self.zoom_slider.GetValue()
             self.writeValue("translation_z", Translation_Z)
@@ -900,11 +926,19 @@ class Mywin(wx.Frame):
         elif btn == "LOOK_DOWN":
             Rotation_3D_X = Rotation_3D_X - float(self.rotate_step_input_box.GetValue())
             self.writeValue("rotation_x", Rotation_3D_X)
+        elif btn == "ZERO ROTATE":
+            Rotation_3D_X = 0
+            Rotation_3D_Y = 0
+            self.writeValue("rotation_x", Rotation_3D_X)
+            self.writeValue("rotation_y", Rotation_3D_Y)
         elif btn == "ROTATE_LEFT":
             Rotation_3D_Z = Rotation_3D_Z + float(self.tilt_step_input_box.GetValue())
             self.writeValue("rotation_z", Rotation_3D_Z)
         elif btn == "ROTATE_RIGHT":
             Rotation_3D_Z = Rotation_3D_Z - float(self.tilt_step_input_box.GetValue())
+            self.writeValue("rotation_z", Rotation_3D_Z)
+        elif btn == "ZERO TILT":
+            Rotation_3D_Z = 0
             self.writeValue("rotation_z", Rotation_3D_Z)
         elif btn == "CFG SCALE":
             CFG_Scale = float(self.cfg_schedule_slider.GetValue())
