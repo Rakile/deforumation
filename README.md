@@ -69,6 +69,8 @@ Go into the deforumation folder in your terminal and start by running:
 
 `python -m pip install -r requirements.txt`
 
+Or just use the. .Bat file. "run me first
+
 ## Running
 There are two parts, the "Mediator" and the Application (Deforumation GUI).
 
