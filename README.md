@@ -67,20 +67,23 @@ On linux you also have to have to have GTK+ in order for wxPython to work....Fol
 
 Go into the deforumation folder in your terminal and start by running:
 
-`>python -m pip install -r requirements.txt`
+`python -m pip install -r requirements.txt`
 
 ## Running
 There are two parts, the "Mediator" and the Application (Deforumation GUI).
 
 Start by running the Mediator, which is located in the deforumation folder (mediator.py):
 
-`>python mediator.py`
+`python mediator.py`
 
 Keep the mediator CMD/Terminal open, its needed for the communication between deforum and deforumation.
 
 Then you can start the acctual application from a new terminal, with:
 
-`>python deforumation.py`
+`python deforumation.py`
+
+
+Or just use the    .Bat files 👍
 
 ## Introduction
 As a big fan of deforum, I did this small "Hack" in order to remotely be able to change motion values and others, while deforum is rendering.
