@@ -52,9 +52,24 @@ Or whatever your imagination can come up with.
 
 
 
-## Installation
+## Installation Tutorial
 
-Installation Tutorial can be found here [Installation Tutorial](https://youtu.be/7KmtmPlhzNs)
+Installation Tutorial can be found here [Installation Tutorial](https://youtu.be/7KmtmPlhzNs)  
+
+In the Totorial we go through  Installation process of Deforum. And checking that deforum is working.
+
+Cloning of the git repo to a suitable folder using CMD git clone command.
+
+Making backup copys of the two files (render.py animation.py) that you need to replace inside , deforum-for-automatic1111-webui\scripts\deforum_helpers\.
+And copying those files render.py animation.py and the deforum_mediator.py that is needed for Deforumation to run.
+
+Installing requirements, in CMD or using the "run_me_first_install_requirements.bat"
+
+Starting Deforumation. Running mediator.py and deforumation.py in CMD or using the "Deforumation_start.bat"
+
+And a small test render and showing that Deforumation is controlling the animation in Deforum.
+
+## Installation
 
 Get the repo through: `git clone https://github.com/Rakile/deforumation`  or download the zip file and unpack somewhere and unpack it.
 
