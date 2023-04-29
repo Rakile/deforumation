@@ -54,7 +54,7 @@ Or whatever your imagination can come up with.
 
 ## Installation
 
-Installation Tutorial can be found here ([Installation Tutorial](https://youtu.be/7KmtmPlhzNs)) 
+Installation Tutorial can be found here [Installation Tutorial](https://youtu.be/7KmtmPlhzNs)
 
 Get the repo through: `git clone https://github.com/Rakile/deforumation`  or download the zip file and unpack somewhere and unpack it.
 
