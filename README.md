@@ -53,6 +53,9 @@ Or whatever your imagination can come up with.
 
 
 ## Installation
+
+Installation Tutorial can be found here https://youtu.be/7KmtmPlhzNs
+
 Get the repo through: `git clone https://github.com/Rakile/deforumation`  or download the zip file and unpack somewhere and unpack it.
 
 Replace the now three files, located in your Automatic1111 path: ".\stable-diffusion-webui\extensions\deforum-for-automatic1111-webui\scripts\deforum_helpers\"
