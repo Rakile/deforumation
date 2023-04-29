@@ -9,7 +9,7 @@ Here they are by the way: https://github.com/deforum-art/deforum-for-automatic11
 
 # Discord Channel
 
-https://discord.gg/R9XFP8MN
+[Welcome To Deforumation](https://discord.gg/WrQbnPyc)
 
 # deforumation
 A GUI to remotely steer the Deforum motions, strengths, and prompts, in real time. It is also possible to rewind, forward and resume, in order to fix a bad outcome.
