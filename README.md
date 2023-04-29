@@ -213,9 +213,9 @@ By Lainol, Live prompting, facial expression:
 [![Watch the video](github_images/Linol_1.PNG)](https://www.youtube.com/watch?v=UKYZEQVljRE)
 
 ## Example 2
-By Lainol, Live prompting, facial expressions and more .
+By Lainol, Live prompting.
 
-Aiwakening.
+Ai-xite.
 
 [![Watch the video](github_images/aixite.png)](https://youtu.be/YH0Q8J1NjIA)
 
