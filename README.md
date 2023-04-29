@@ -5,7 +5,7 @@
 `!!!THERE WILL BE NO DEFORUM SUPPORT IF YOU USE THIS EXTENSION!!!`
 `!!!THERE WILL BE NO DEFORUM SUPPORT IF YOU USE THIS EXTENSION!!!`
 
-Here they are by the way: https://github.com/deforum-art/deforum-for-automatic1111-webui
+Here they are by the way: [Deforum Extension for Automatic1111](https://github.com/deforum-art/deforum-for-automatic1111-webui)
 
 # Discord Channel
 
