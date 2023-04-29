@@ -11,7 +11,7 @@ Here they are by the way: [Deforum Extension for Automatic1111](https://github.c
 
 [Welcome To Deforumation](https://discord.gg/WrQbnPyc)
 
-# deforumation
+# Deforumation
 A GUI to remotely steer the Deforum motions, strengths, and prompts, in real time. It is also possible to rewind, forward and resume, in order to fix a bad outcome.
 Be aware that if you choose to install Deforumation, it needs to be (at current moment), running, always, in order for Deforum to work when rendering.
 
