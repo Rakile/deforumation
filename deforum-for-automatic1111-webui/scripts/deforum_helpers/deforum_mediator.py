@@ -5,7 +5,9 @@ import pickle
 async def sendAsync(value):
     async with websockets.connect("ws://localhost:8765") as websocket:
         await websocket.send(pickle.dumps(value))
-        message = await websocket.recv()
+        message = 0
+        #yield from asyncio.wait_for(message = await websocket.recv(), timeout=1)
+        message = await asyncio.wait_for(websocket.recv(), 1)
         return message
 
 def mediator_getValue(param):
