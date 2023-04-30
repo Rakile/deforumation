@@ -23,6 +23,7 @@ Table of Contents
 5. [Compatibility](#compatibility)
 6. [Usage and Tips](#usage-and-tips)
 7. [Disclaimer](#disclaimer) 
+8. [Ongoing Work](#Ongoing-Work)
 
 Introduction<a name="introduction"></a>
 ------------
@@ -68,7 +69,7 @@ Disclaimer<a name="disclaimer"></a>
 By using Deforumation, you understand and acknowledge that it is an unofficial, third-party extension for Deforum. There will be no official support provided for Deforum when using this extension. Use it at your own risk.
 
 
-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 # Discord Channel
 
@@ -96,7 +97,8 @@ implemented internal support.
 
 
 
-## Ongoing work
+Ongoing Work<a name="Ongoing-Work"></a>
+----------
 
 Below you se the draft for the new Deforumation UI.  Many new features like the ability to customize the layout
 and choose what values you work with during the animation rendering process. There will also be support to control
