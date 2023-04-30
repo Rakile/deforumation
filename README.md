@@ -50,7 +50,7 @@ Installation Guide<a name="installation-guide"></a>
 3. **Replace files** (render.py, animation.py, deforum_mediator.py) in the Automatic1111 path ".\deforumation\deforum-for-automatic1111-webui\scripts\deforum_helpers\" with the downloaded files from Deforumation.
 4. **Install dependencies** by running `python -m pip install -r requirements.txt` or using the `"run_me_first_install_requirements.bat"` file.
 5. **Run the Mediator** (mediator.py) and the **Deforumation GUI** (deforumation.py) in CMD inside deforumation path. Or use the `"Deforumation_start.bat"` file.
-6. **Set to 3D in keyframes TAB** In the Deforum extention in the Keyframes TAB, you have to choose "3D", else it will not work.
+6. **Set to 3D in keyframes TAB** In the Deforum extention in the `Keyframes TAB, you have to choose "3D"`, else it will not work.
 
 Installation Tutorial<a name="installation-Tutorial"></a>
 -------------
