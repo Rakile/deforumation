@@ -102,7 +102,7 @@ Or whatever your imagination can come up with.
 
 
 
-in-depth information<a name="in-depth-information"></a>
+In-depth information<a name="in-depth-information"></a>
 ----------
 
 
