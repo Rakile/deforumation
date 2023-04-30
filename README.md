@@ -37,7 +37,7 @@ Key Features<a name="key-features"></a>
 Installation Guide<a name="installation-guide"></a>
 -------------------
 1. **Clone or download** the git repository  `git clone https://github.com/Rakile/deforumation`  (https://github.com/Rakile/deforumation) and unpack the zip file.
-2. **Replace files** in the Automatic1111 path ".\deforumation\deforum-for-automatic1111-webui\scripts\deforum_helpers\" with the downloaded files from Deforumation.
+2. **Replace files** (render.py, animation.py, ) in the Automatic1111 path ".\deforumation\deforum-for-automatic1111-webui\scripts\deforum_helpers\" with the downloaded files from Deforumation.
 3. **Install dependencies** by running `python -m pip install -r requirements.txt`.
 4. **Run the Mediator** (mediator.py) and the **Deforumation GUI** (deforumation.py).
 
