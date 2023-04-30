@@ -17,12 +17,12 @@ Deforumation: Unofficial Extension for Deforum
 Table of Contents
 -----------------
 1. [Introduction](#introduction)
-2. [Key Features](#key-features)
-3. [Installation Guide](#installation-guide)
-4. [Compatibility](#compatibility)
-5. [Usage and Tips](#usage-and-tips)
-6. [Disclaimer](#disclaimer)
-7. [Prerequisites](#prerequisites)
+2. [Prerequisites](#prerequisites)
+3. [Key Features](#key-features)
+4. [Installation Guide](#installation-guide)
+5. [Compatibility](#compatibility)
+6. [Usage and Tips](#usage-and-tips)
+7. [Disclaimer](#disclaimer) 
 
 Introduction<a name="introduction"></a>
 ------------
