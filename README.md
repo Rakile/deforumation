@@ -36,6 +36,7 @@ Key Features<a name="key-features"></a>
 
 Installation Guide<a name="installation-guide"></a>
 -------------------
+0.5 **prerequisites** Local instance of SD ([AUTOMATIC1111/stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui)) 
 1. **Clone or download** the git repository  `git clone https://github.com/Rakile/deforumation`  (https://github.com/Rakile/deforumation) and unpack the zip file.
 2. **Replace files** (render.py, animation.py, deforum_mediator.py) in the Automatic1111 path ".\deforumation\deforum-for-automatic1111-webui\scripts\deforum_helpers\" with the downloaded files from Deforumation.
 3. **Install dependencies** by running `python -m pip install -r requirements.txt` or using the `"run_me_first_install_requirements.bat"` file.
