@@ -60,6 +60,8 @@ Deforumation is a valuable tool for understanding how different parameters affec
 - Be sure that your Deforum extension does work berfore installing Deforumation.
 - Make sure the Mediator is running to ensure proper communication between Deforum and Deforumation.
 - Experiment with different settings to find the most effective values for your specific project.
+- Change "live preview" settings in automatic1111 to draft for faster rendering.
+- Check the "LIVE RENDER" box in deforumation to se generated frames.  
 
 Disclaimer<a name="disclaimer"></a>
 ----------
