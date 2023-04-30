@@ -23,7 +23,7 @@ Table of Contents
 5. [Compatibility](#compatibility)
 6. [Usage and Tips](#usage-and-tips)
 7. [Disclaimer](#disclaimer) 
-8. [Discord Channel](#Discord_Channel)
+8. [Discord Channel](#Discord-Channel)
 9. [Ongoing Work](#Ongoing-Work)
 
 Introduction<a name="introduction"></a>
@@ -71,7 +71,7 @@ By using Deforumation, you understand and acknowledge that it is an unofficial, 
 
 
 
-Discord Channel<a name="Discord_Channel"></a>
+Discord Channel<a name="Discord-Channel"></a>
 ----------
 
 [Welcome To Deforumation](https://discord.gg/WrQbnPyc)
