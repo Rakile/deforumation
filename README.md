@@ -42,10 +42,10 @@ Prerequisites<a name="prerequisites"></a>
 
 Installation Guide<a name="installation-guide"></a>
 -------------------
-1. **Clone or download** the git repository  `git clone https://github.com/Rakile/deforumation`  (https://github.com/Rakile/deforumation) and unpack the zip file.
-2. **Replace files** (render.py, animation.py, deforum_mediator.py) in the Automatic1111 path ".\deforumation\deforum-for-automatic1111-webui\scripts\deforum_helpers\" with the downloaded files from Deforumation.
-3. **Install dependencies** by running `python -m pip install -r requirements.txt` or using the `"run_me_first_install_requirements.bat"` file.
-4. **Run the Mediator** (mediator.py) and the **Deforumation GUI** (deforumation.py) in CMD inside deforumation path. Or use the `"Deforumation_start.bat"` file.
+1. **Clone or download** the git repository  `git clone https://github.com/Rakile/deforumation`  (https://github.com/Rakile/deforumation) and unpack the zip file. Keep deforumation folder outside your `"stable-diffusion-webui"` path.
+3. **Replace files** (render.py, animation.py, deforum_mediator.py) in the Automatic1111 path ".\deforumation\deforum-for-automatic1111-webui\scripts\deforum_helpers\" with the downloaded files from Deforumation.
+4. **Install dependencies** by running `python -m pip install -r requirements.txt` or using the `"run_me_first_install_requirements.bat"` file.
+5. **Run the Mediator** (mediator.py) and the **Deforumation GUI** (deforumation.py) in CMD inside deforumation path. Or use the `"Deforumation_start.bat"` file.
 
 Compatibility<a name="compatibility"></a>
 -------------
@@ -56,6 +56,8 @@ Usage and Tips<a name="usage-and-tips"></a>
 --------------
 Deforumation is a valuable tool for understanding how different parameters affect the image generation process. However, it is essential to remember that using Deforumation may result in some issues, as it is not an officially supported extension. 
 
+
+- Be sure that your Deforum extension does work berfore installing Deforumation.
 - Make sure the Mediator is running to ensure proper communication between Deforum and Deforumation.
 - Experiment with different settings to find the most effective values for your specific project.
 
