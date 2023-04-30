@@ -66,12 +66,13 @@ Usage and Tips<a name="usage-and-tips"></a>
 Deforumation is a valuable tool for understanding how different parameters affect the image generation process. However, it is essential to remember that using Deforumation may result in some issues, as it is not an officially supported extension. 
 
 
+- In the Deforum extention in the Keyframes TAB, you have to choose "3D", else it will not work. Before pushing "Generate" in the deforum extention, prime the communication by inserting a Positive and a Negative prompt in the Deforumation GUI.
 - Be sure that your Deforum extension does work berfore installing Deforumation.
 - Make sure the Mediator is running to ensure proper communication between Deforum and Deforumation.
 - Experiment with different settings to find the most effective values for your specific project.
 - Change "live preview" settings in automatic1111 to draft for faster rendering.
 - Check the "LIVE RENDER" box in deforumation to se generated frames.  
-- In the Deforum extention in the Keyframes TAB, you have to choose "3D", else it will not work. Before pushing "Generate" in the deforum extention, prime the communication by inserting a Positive and a Negative prompt in the Deforumation GUI.
+
 
 Disclaimer<a name="disclaimer"></a>
 ----------
