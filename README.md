@@ -22,7 +22,7 @@ Table of Contents
 4. [Compatibility](#compatibility)
 5. [Usage and Tips](#usage-and-tips)
 6. [Disclaimer](#disclaimer)
-7. [prerequisites](#prerequisites)
+7. [Prerequisites](#prerequisites)
 
 Introduction<a name="introduction"></a>
 ------------
@@ -35,9 +35,10 @@ Key Features<a name="key-features"></a>
 - Live manipulation of key values that effects the animation
 - Pause, rewind, and redo functions
 
-prerequisites<a name="prerequisites"></a>
+Prerequisites<a name="prerequisites"></a>
 ------------
 1. Local instance of SD ([AUTOMATIC1111/stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui)) 
+2. Installed Deforum Extension for AUTOMATIC1111 ([https://github.com/AUTOMATIC1111/stable-diffusion-webui](https://github.com/deforum-art/deforum-stable-diffusion)) 
 
 Installation Guide<a name="installation-guide"></a>
 -------------------
