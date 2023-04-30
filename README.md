@@ -27,6 +27,14 @@ Table of Contents
 9. [Discord Channel](#Discord-Channel)
 10. [Ongoing Work](#Ongoing-Work)
 
+In-dept Contents
+-----------------
+1. [in-depth information](#in-depth-information)
+2. [Prerequisites](#prerequisites)
+3. [Key Features](#key-features)
+4. [Installation Guide](#installation-guide)
+5. [Installation Tutorial](#installation-Tutorial)
+
 Introduction<a name="introduction"></a>
 ------------
 Deforumation is an unofficial extension for Deforum that provides a Graphical User Interface (GUI) to remotely control Deforum 3D motions, zoom and angle , strength value (toggle to use deforum strenght schedule), CFG Scale, sampler steps, seed, cadense scale  and prompts in real-time. It also offers pausing, rewinding, forwarding, and resuming by setting current image to fix any undesired outcomes during the rendering process.
@@ -101,15 +109,13 @@ Or whatever your imagination can come up with.
 
 
 
+in-depth information<a name="in-depth-information"></a>
+----------
 
 
-
-
-
-
-
-
-## How it works
+<details>
+  <summary>How it works</summary>
+    ## How it works
 Watch this video to get a feeling of how to use Deforumation... or read on below.
 [![Watch the video](github_images/Deforumation_Tutorial.png)](https://www.youtube.com/watch?v=v1h2jo3f5U4)
 
@@ -134,8 +140,14 @@ Deforumation now adds the values to any scheduled motion. That means that if you
 
 
 ![img](github_images/output.gif)
+ 
+</details>
 
-## Interface
+
+<details>
+  <summary>Interface</summary>
+  
+ ## Interface
 ![img](github_images/newinterface4.png)
 
 As we talked about before, all motion scheduled values in Deforum are added to the manual motions done through Deforumation... with one exception, and that is the "Strength Value". This value has a specific check box ("USE DEFORUMATION"), which can be turned on and off during rendering to switch between full Deforum controll or Deforumation strength controll. This means, that if you are using Deforum to schedule a beat/pulse throughout your video, you can choose to go manual (overriding the the Deforum strength schedule, and vice versa).
@@ -188,34 +200,81 @@ Pushing the "SAVE PROMPTS" button will save your current prompts (positive and n
 
 To change the seed, just type a new seed in the seed-input box, and push return. It will then be loyal to whatever you have choosen in the Deforum GUI, iterative, etc.
 
-## Random example
+  
+</details>
+
+
+
+
+<details>
+  <summary>Example</summary>
+  
+  ## Example
 Here is an example of LIVE prompt changing for facial expression during rendering.
 
 Positive Prompt: Beatifull (smiling:0.1), bear girl, focus on face
 
 Here we just increase the "(smiling:0.1)" value upwards. 
-
+  
+  
+  
+  </details>
+  
+  
+  
+  
+  <details>
+  <summary>A tool for learning</summary>
+  
 ## A tool for learning
 Deforumation is a perfect tool to learn how different parameters, like Steps, Strength Value and CFG scale, because, in a combination they affect the image generation over time. The best way (I have found, to get as a stable outcome as possible with all other settings you have in Deforum), is to know your values.
 
 One way to achieve this is to have No motion at all, and make every render not go into "Bananas"... Because the most effective values differ alot between samplers, checkpoints, SD VAE's and all other specific settings that you are currently having. Get a feel of what values, keep a balance with your current choices. Note them down, and play around ;P
-
-## Tips and tricks
+  
+  </details>
+  
+  
+  
+  <details>
+  <summary>## Tips and tricks</summary>
+  
+  ## Tips and tricks
 When you push "Interupt", sometimes Deforum buggs out and it doesn't stich up your video correctly. An easy way to avoid/bypass this with the help of Deforumation, is to first push the "PUSH TO PAUS RENDERING OPTION", and after the rendering has paused, then push the "Interrupt"-button. Then in Deforumation resume the flow again by pushing the "PUSH TO RESUME BUTTON" in Deforum. This will mostly get Deforum to get the stitching correctly started.
 
-## Trouble shooting
-Be sure that the Mediator is upp and running! Else no communication can be had between Deforum and Deforumation!
 
-## Examples of using Deforumation (Give a shout if you want to be here)
+</details>
+
+  <details>
+  <summary>Examples of using Deforumation</summary>
+  
+  ## Examples of using Deforumation (Give a shout if you want to be here)
+  
 By Lainol, Live prompting, facial expression:
+  
 [![Watch the video](github_images/Linol_1.PNG)](https://www.youtube.com/watch?v=UKYZEQVljRE)
 
 ## Example 2
+  
 By Lainol, Live prompting.
 
 Ai-xite.
 
 [![Watch the video](github_images/aixite.png)](https://youtu.be/YH0Q8J1NjIA)
 
-## Last thoughts
+  
+</details>
+
+  <details>
+  <summary>Thoughts</summary>
+  
+  ## Last thoughts
 There might be an ongoing discussions on how to implement this into Deforum, so that updates will be more smoth and accordance with Deforum... As of now it remains a Hack... Never the less, we encourage users to test Deforumation, and understand how vital this concept is for creating anything with precision (not looking like an LSD trip). Please post videos, tutorials or, whatever, whith how you use Deforum, through Deforumation to your advantage. Join the r/deforumation channel (https://www.reddit.com/r/deforumation/).
+
+</details>
+
+  
+ 
+
+
+
+
