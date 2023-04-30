@@ -23,7 +23,8 @@ Table of Contents
 5. [Compatibility](#compatibility)
 6. [Usage and Tips](#usage-and-tips)
 7. [Disclaimer](#disclaimer) 
-8. [Ongoing Work](#Ongoing-Work)
+8. [Discord Channel](#Discord_Channel)
+9. [Ongoing Work](#Ongoing-Work)
 
 Introduction<a name="introduction"></a>
 ------------
@@ -70,31 +71,10 @@ By using Deforumation, you understand and acknowledge that it is an unofficial, 
 
 
 
-
-# Discord Channel
+Discord Channel<a name="Discord_Channel"></a>
+----------
 
 [Welcome To Deforumation](https://discord.gg/WrQbnPyc)
-
-# Deforumation
-A GUI to remotely steer the Deforum motions, strengths, and prompts, in real time. It is also possible to rewind, forward and resume, in order to fix a bad outcome.
-Be aware that if you choose to install Deforumation, it needs to be (at current moment), running, always, in order for Deforum to work when rendering.
-
-## Dependencies, And deforum version
-
-When Deforum is updated deforumation will stop working. As of now 2023-04-21 it works.
-
-If the latest version of Deforum shouldn't be working with Deforumation:
-
-Working version
-[Working version of Deforum](https://drive.google.com/file/d/1Fx414-fONjiy7p7SHL1JTi-DkPoIz4HV/view?usp=share_link)
-
-
-* Ask someone in the community if they have an older version of Deforum, that is actually working with Deforumation
-* Wait until Deforum has been updated to work with the latest version of Deforumation
-
-(It is always recommended that you save a working copy of Deforum that works with the latest version of Deforumation)... This has to be done, until Deforum has
-implemented internal support.
-
 
 
 Ongoing Work<a name="Ongoing-Work"></a>
