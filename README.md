@@ -104,63 +104,10 @@ Or whatever your imagination can come up with.
 
 
 
-## Installation Tutorial
-
-Installation Tutorial can be found here [Installation Tutorial](https://youtu.be/7KmtmPlhzNs)  
-
-In the Totorial we go through  Installation process of Deforum. And checking that deforum is working.
-
-Cloning of the git repo to a suitable folder using CMD git clone command.
-
-Making backup copys of the two files (render.py animation.py) that you need to replace inside , deforum-for-automatic1111-webui\scripts\deforum_helpers\.
-And copying those files render.py animation.py and the deforum_mediator.py that is needed for Deforumation to run.
-
-Installing requirements, in CMD or using the "run_me_first_install_requirements.bat"
-
-Starting Deforumation. Running mediator.py and deforumation.py in CMD or using the "Deforumation_start.bat"
-
-And a small test render and showing that Deforumation is controlling the animation in Deforum.
-
-## Installation
-
-Get the repo through: `git clone https://github.com/Rakile/deforumation`  or download the zip file and unpack somewhere and unpack it.
-
-Replace the now three files, located in your Automatic1111 path: ".\stable-diffusion-webui\extensions\deforum-for-automatic1111-webui\scripts\deforum_helpers\"
-with the three files downloaded from deforumation: ".\deforumation\deforum-for-automatic1111-webui\scripts\deforum_helpers\"
-
-Be sure to restart Automatic1111 after this.
-
-You need to have python3 for Deforumation to work properly (I think).
-So if you still are using 2.7, google how to install python3.
-
-On linux you also have to have to have GTK+ in order for wxPython to work....Follow this guide: https://www.pixelstech.net/article/1599647177-Problem-and-Solution-for-Installing-wxPython-on-Ubuntu-20-04 (Or the likes)... On MAC.... I have no clue, only I know that people got it working. On Windows, just continue.
-
-Go into the deforumation folder in your terminal and start by running:
-
-`python -m pip install -r requirements.txt`
-
-Or just use the. .Bat file. "run me first
-
-## Running
-There are two parts, the "Mediator" and the Application (Deforumation GUI).
-
-Start by running the Mediator, which is located in the deforumation folder (mediator.py):
-
-`python mediator.py`
-
-Keep the mediator CMD/Terminal open, its needed for the communication between deforum and deforumation.
-
-Then you can start the acctual application from a new terminal, with:
-
-`python deforumation.py`
 
 
-Or just use the    .Bat files 👍
 
-## Introduction
-As a big fan of deforum, I did this small "Hack" in order to remotely be able to change motion values and others, while deforum is rendering.
 
-The Mediator is running a websocket server that becomes the communication channel between Deforum and deforumation... Altough, any application could communicate with deforum through the Mediator (So go make some video editing applications that look better than mine ;P)
 
 ## How it works
 Watch this video to get a feeling of how to use Deforumation... or read on below.
