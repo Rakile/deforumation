@@ -20,11 +20,12 @@ Table of Contents
 2. [Prerequisites](#prerequisites)
 3. [Key Features](#key-features)
 4. [Installation Guide](#installation-guide)
-5. [Compatibility](#compatibility)
-6. [Usage and Tips](#usage-and-tips)
-7. [Disclaimer](#disclaimer) 
-8. [Discord Channel](#Discord-Channel)
-9. [Ongoing Work](#Ongoing-Work)
+5. [Installation Tutorial](#installation-Tutorial)
+6. [Compatibility](#compatibility)
+7. [Usage and Tips](#usage-and-tips)
+8. [Disclaimer](#disclaimer) 
+9. [Discord Channel](#Discord-Channel)
+10. [Ongoing Work](#Ongoing-Work)
 
 Introduction<a name="introduction"></a>
 ------------
@@ -48,6 +49,11 @@ Installation Guide<a name="installation-guide"></a>
 3. **Replace files** (render.py, animation.py, deforum_mediator.py) in the Automatic1111 path ".\deforumation\deforum-for-automatic1111-webui\scripts\deforum_helpers\" with the downloaded files from Deforumation.
 4. **Install dependencies** by running `python -m pip install -r requirements.txt` or using the `"run_me_first_install_requirements.bat"` file.
 5. **Run the Mediator** (mediator.py) and the **Deforumation GUI** (deforumation.py) in CMD inside deforumation path. Or use the `"Deforumation_start.bat"` file.
+
+
+Installation Tutorial<a name="installation-Tutorial"></a>
+-------------
+[Installation Tutorial](https://youtu.be/7KmtmPlhzNs)
 
 Compatibility<a name="compatibility"></a>
 -------------
