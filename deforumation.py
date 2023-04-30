@@ -3,6 +3,7 @@ import asyncio
 import websockets
 import os
 import time
+import random
 import keyboard
 import pickle
 from threading import *
@@ -28,7 +29,7 @@ Translation_Z = 0.0
 Rotation_3D_X = 0.0
 Rotation_3D_Y = 0.0
 Rotation_3D_Z = 0.0
-tbrY = 500
+tbrY = 500+300
 trbX = 50
 is_fov_locked = False
 is_reverse_fov_locked = False
@@ -53,8 +54,11 @@ zero_pan_active = False
 stepit_pan = 0
 async def sendAsync(value):
     async with websockets.connect("ws://localhost:8765") as websocket:
-        await websocket.send(pickle.dumps(value))
-        message = await websocket.recv()
+        #await websocket.send(pickle.dumps(value))
+        await asyncio.wait_for(websocket.send(pickle.dumps(value)),1)
+        message = await asyncio.wait_for(websocket.recv(), 1)
+
+        #asyncio.ensure_future(message=websocket.recv())
         #print(str(message))
         return message
 def scale_bitmap(bitmap, width, height):
@@ -90,7 +94,15 @@ def changeBitmapWorker(parent):
     if shouldrunthis == True:
         while parent.shouldRun:
             if should_render_live == True:
+                #lock = asyncio.Lock()
+                #try:
                 current_frame = int(asyncio.run(sendAsync([0, "start_frame", 0])))
+                #current_frame = int(asyncio.get_event_loop().run_until_complete(sendAsync([0, "start_frame", 0])))
+                #loop = asyncio.get_event_loop()
+                #task = loop.create_task(sendAsync([0, "start_frame", 0]))
+
+                #finally:
+                #    lock.release()
                 if current_frame == last_rendered:
                     continue
                 last_rendered = current_frame
@@ -201,7 +213,7 @@ class render_window(wx.Frame):
         #print("CLOSING, framer.bitmap is:"+ str(self.bitmap))
 class Mywin(wx.Frame):
     def __init__(self, parent, title):
-        super(Mywin, self).__init__(parent, title=title, size=(1400, 700))
+        super(Mywin, self).__init__(parent, title=title, size=(1400, 1000))
         panel = wx.Panel(self)
         panel.SetBackgroundColour(wx.Colour(100, 100, 100))
         self.Bind(wx.EVT_CLOSE, self.OnExit)
@@ -224,11 +236,34 @@ class Mywin(wx.Frame):
         font = font.Bold()
         self.positivePromtText.SetFont(font)
         sizer.Add(self.positivePromtText, 0, wx.ALL , 5)
+
+        self.positive_prompt_input_ctrl_prio = wx.TextCtrl(panel, size=(20,20))
+        sizer.Add(self.positive_prompt_input_ctrl_prio, 0, wx.ALL, 5)
+        self.positive_prompt_input_ctrl_prio.SetValue("1")
         self.positive_prompt_input_ctrl = wx.TextCtrl(panel, style=wx.TE_MULTILINE, size=(-1,100))
         sizer.Add(self.positive_prompt_input_ctrl, 0, wx.ALL | wx.EXPAND, 5)
         if os.path.isfile(deforumationSettingsPath):
             promptfileRead = open(deforumationSettingsPath, 'r')
             self.positive_prompt_input_ctrl.SetValue(promptfileRead.readline())
+
+        self.positive_prompt_input_ctrl_2_prio = wx.TextCtrl(panel, size=(20,20))
+        sizer.Add(self.positive_prompt_input_ctrl_2_prio, 0, wx.ALL, 5)
+        self.positive_prompt_input_ctrl_2_prio.SetValue("2")
+        self.positive_prompt_input_ctrl_2 = wx.TextCtrl(panel, style=wx.TE_MULTILINE, size=(-1,50))
+        sizer.Add(self.positive_prompt_input_ctrl_2, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.positive_prompt_input_ctrl_3_prio = wx.TextCtrl(panel, size=(20,20))
+        sizer.Add(self.positive_prompt_input_ctrl_3_prio, 0, wx.ALL, 5)
+        self.positive_prompt_input_ctrl_3_prio.SetValue("3")
+        self.positive_prompt_input_ctrl_3 = wx.TextCtrl(panel, style=wx.TE_MULTILINE, size=(-1,50))
+        sizer.Add(self.positive_prompt_input_ctrl_3, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.positive_prompt_input_ctrl_4_prio = wx.TextCtrl(panel, size=(20,20))
+        sizer.Add(self.positive_prompt_input_ctrl_4_prio, 0, wx.ALL, 5)
+        self.positive_prompt_input_ctrl_4_prio.SetValue("4")
+        self.positive_prompt_input_ctrl_4 = wx.TextCtrl(panel, style=wx.TE_MULTILINE, size=(-1,50))
+        sizer.Add(self.positive_prompt_input_ctrl_4, 0, wx.ALL | wx.EXPAND, 5)
+
         #Should use Deforum prompt scheduling?
         self.shouldUseDeforumPromptScheduling_Checkbox = wx.CheckBox(panel, label="Use Deforum prompt scheduling", pos=(trbX+600, 10))
         self.shouldUseDeforumPromptScheduling_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
@@ -618,6 +653,9 @@ class Mywin(wx.Frame):
                     self.pause_rendering.SetLabel("PUSH TO PAUSE RENDERING")
 
                 self.positive_prompt_input_ctrl.SetValue(deforumFile.readline())
+                self.positive_prompt_input_ctrl_2.SetValue(deforumFile.readline())
+                self.positive_prompt_input_ctrl_3.SetValue(deforumFile.readline())
+                self.positive_prompt_input_ctrl_4.SetValue(deforumFile.readline())
                 self.negative_prompt_input_ctrl.SetValue(deforumFile.readline())
                 Strength_Scheduler = float(deforumFile.readline())
                 self.strength_schedule_slider.SetValue(int(Strength_Scheduler*100))
@@ -679,6 +717,9 @@ class Mywin(wx.Frame):
         deforumFile = open(deforumationSettingsPath, 'w')
         deforumFile.write(str(int(is_paused_rendering))+"\n")
         deforumFile.write(self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
+        deforumFile.write(self.positive_prompt_input_ctrl_2.GetValue().strip().replace('\n', '')+"\n")
+        deforumFile.write(self.positive_prompt_input_ctrl_3.GetValue().strip().replace('\n', '')+"\n")
+        deforumFile.write(self.positive_prompt_input_ctrl_4.GetValue().strip().replace('\n', '')+"\n")
         deforumFile.write(self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
         deforumFile.write(str('%.2f' % Strength_Scheduler)+"\n")
         deforumFile.write(str('%.2f' % CFG_Scale)+"\n")
@@ -961,7 +1002,12 @@ class Mywin(wx.Frame):
         elif btn == "SAVE PROMPTS":
             self.saveCurrentPrompt("P")
             self.saveCurrentPrompt("N")
-            asyncio.run(sendAsync([1, "positive_prompt", self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '') + "\n"]))
+            #Arrange the possitive prompts according to priority (now for some lazy programing):
+            positive_prio = {int(self.positive_prompt_input_ctrl_prio.GetValue()):self.positive_prompt_input_ctrl.GetValue(), int(self.positive_prompt_input_ctrl_2_prio.GetValue()):self.positive_prompt_input_ctrl_2.GetValue(), int(self.positive_prompt_input_ctrl_3_prio.GetValue()):self.positive_prompt_input_ctrl_3.GetValue(), int(self.positive_prompt_input_ctrl_4_prio.GetValue()):self.positive_prompt_input_ctrl_4.GetValue()}
+            sortedDict = sorted(positive_prio.items())
+            totalPossitivePromptString = sortedDict[0][1]+","+sortedDict[1][1]+","+sortedDict[2][1]+","+sortedDict[3][1]
+            print(totalPossitivePromptString.strip().replace('\n', '') + "\n")
+            asyncio.run(sendAsync([1, "positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n"]))
             asyncio.run(sendAsync([1, "negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '') + "\n"]))
         elif btn == "PAN_LEFT":
             Translation_X = Translation_X - float(self.pan_step_input_box.GetValue())
@@ -1220,6 +1266,7 @@ if __name__ == '__main__':
     #subprocess.run(["python", "mediator.py"])
     #print("SLEEP")
     #time.sleep(5)
+    blaha = random.randint(0, 2**32 - 1)
     app = wx.App()
     Mywin(None, 'Deforumation @ Rakile & Lainol, 2023')
     app.MainLoop()
