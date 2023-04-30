@@ -1,5 +1,6 @@
-`
+
 `DISCLAIMER!!!`
+===============================================
 `!!!THERE WILL BE NO DEFORUM SUPPORT IF YOU USE THIS EXTENSION!!!`
 ===============================================
 ---------------------------------------------------------------------------------------------------------------------------------------
@@ -25,10 +26,7 @@ Table of Contents
 In-dept Contents
 -----------------
 1. [in-depth information](#in-depth-information)
-2. [Prerequisites](#prerequisites)
-3. [Key Features](#key-features)
-4. [Installation Guide](#installation-guide)
-5. [Installation Tutorial](#installation-Tutorial)
+
 
 Introduction<a name="introduction"></a>
 ------------
