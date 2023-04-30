@@ -29,14 +29,14 @@ Deforumation is an unofficial extension for Deforum that provides a Graphical Us
 
 Key Features<a name="key-features"></a>
 ------------
-- Customizable layout
-- Separate prompting input boxes
-- Support for controlling movements using a joystick or game-pad
+- Separate prompting input boxes with prioritising possibility  
+- Controlling movements while rendering 
+- Live manipulation of key values that effects the animation
 - Pause, rewind, and redo functions
 
 Installation Guide<a name="installation-guide"></a>
 -------------------
-1. **Clone or download** the git repository (https://github.com/Rakile/deforumation) and unpack the zip file.
+1. **Clone or download** the git repository  `git clone https://github.com/Rakile/deforumation`  (https://github.com/Rakile/deforumation) and unpack the zip file.
 2. **Replace files** in the Automatic1111 path with the downloaded files from Deforumation.
 3. **Restart Automatic1111**.
 4. **Install Python 3** if not already installed.
@@ -45,7 +45,8 @@ Installation Guide<a name="installation-guide"></a>
 
 Compatibility<a name="compatibility"></a>
 -------------
-Deforumation may not be compatible with all versions of Deforum. To ensure compatibility, use a working copy of Deforum that is compatible with the latest version of Deforumation.
+Deforumation may not be compatible with all versions of Deforum. For now Deforum does not have the communication module in there core files.
+For now we try to update Deforumation as Deforum is updated.
 
 Usage and Tips<a name="usage-and-tips"></a>
 --------------
