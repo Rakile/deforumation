@@ -7,6 +7,60 @@
 
 Here they are by the way: [Deforum Extension for Automatic1111](https://github.com/deforum-art/deforum-for-automatic1111-webui)
 
+---------------------------------------------------------------------------------------------------------------------------------------
+
+Deforumation: Unofficial Extension for Deforum
+===============================================
+
+**IMPORTANT: No official Deforum support will be provided if you use this extension.**
+
+Table of Contents
+-----------------
+1. [Introduction](#introduction)
+2. [Key Features](#key-features)
+3. [Installation Guide](#installation-guide)
+4. [Compatibility](#compatibility)
+5. [Usage and Tips](#usage-and-tips)
+6. [Disclaimer](#disclaimer)
+
+Introduction<a name="introduction"></a>
+------------
+Deforumation is an unofficial extension for Deforum that provides a Graphical User Interface (GUI) to remotely control Deforum motions, strengths, and prompts in real-time. It also offers rewinding, forwarding, and resuming features to fix any undesired outcomes during the rendering process.
+
+Key Features<a name="key-features"></a>
+------------
+- Customizable layout
+- Separate prompting input boxes
+- Support for controlling movements using a joystick or game-pad
+- Pause, rewind, and redo functions
+
+Installation Guide<a name="installation-guide"></a>
+-------------------
+1. **Clone or download** the git repository (https://github.com/Rakile/deforumation) and unpack the zip file.
+2. **Replace files** in the Automatic1111 path with the downloaded files from Deforumation.
+3. **Restart Automatic1111**.
+4. **Install Python 3** if not already installed.
+5. **Install dependencies** by running `python -m pip install -r requirements.txt`.
+6. **Run the Mediator** (mediator.py) and the **Deforumation GUI** (deforumation.py).
+
+Compatibility<a name="compatibility"></a>
+-------------
+Deforumation may not be compatible with all versions of Deforum. To ensure compatibility, use a working copy of Deforum that is compatible with the latest version of Deforumation.
+
+Usage and Tips<a name="usage-and-tips"></a>
+--------------
+Deforumation is a valuable tool for understanding how different parameters affect the image generation process. However, it is essential to remember that using Deforumation may result in some issues, as it is not an officially supported extension. 
+
+- Make sure the Mediator is running to ensure proper communication between Deforum and Deforumation.
+- Experiment with different settings to find the most effective values for your specific project.
+
+Disclaimer<a name="disclaimer"></a>
+----------
+By using Deforumation, you understand and acknowledge that it is an unofficial, third-party extension for Deforum. There will be no official support provided for Deforum when using this extension. Use it at your own risk.
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 # Discord Channel
 
 [Welcome To Deforumation](https://discord.gg/WrQbnPyc)
