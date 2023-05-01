@@ -111,7 +111,8 @@ Latest version<a name="Latest-version"></a>
 <details>
   <summary>Latest Version Info</summary>
 
-current_version.png
+## Latest Version Info
+  
 ![img](github_images/current_version.png)
 
 </details>
