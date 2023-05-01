@@ -108,6 +108,13 @@ Or whatever your imagination can come up with.
 Latest version<a name="Latest-version"></a>
 ----------
 
+<details>
+  <summary>Latest Version Info</summary>
+
+current_version.png
+![img](github_images/current_version.png)
+
+</details>
 
 
 In-depth information<a name="in-depth-information"></a>
