@@ -111,9 +111,8 @@ Latest version<a name="Latest-version"></a>
 <details>
   <summary>Latest Version Info</summary>
 
-## Latest Version Info  (Including date)
+Date
   
-------------
 - Separate prompting input boxes with prioritising possibility  
   
   Text above yadayadayada
