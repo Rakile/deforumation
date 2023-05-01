@@ -23,6 +23,10 @@ Table of Contents
 9. [Discord Channel](#Discord-Channel)
 10. [Ongoing Work](#Ongoing-Work)
 
+Latest version / features
+-----------------
+[Latest version](#Latest-version)
+
 In-dept Contents
 -----------------
 1. [in-depth information](#in-depth-information)
@@ -101,6 +105,11 @@ Or whatever your imagination can come up with.
 
 ![img](github_images/deforumation_design_01.jpg)
 
+
+
+
+Latest version<a name="Latest-version"></a>
+----------
 
 
 
