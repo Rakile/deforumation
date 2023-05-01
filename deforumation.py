@@ -710,7 +710,15 @@ class Mywin(wx.Frame):
     def writeAllValues(self):
         try:
             if is_paused_rendering:
-                asyncio.run(sendAsync([1, "positive_prompt", self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n"]))
+                # Arrange the possitive prompts according to priority (now for some lazy programing):
+                positive_prio = {
+                    int(self.positive_prompt_input_ctrl_prio.GetValue()): self.positive_prompt_input_ctrl.GetValue(),
+                    int(self.positive_prompt_input_ctrl_2_prio.GetValue()): self.positive_prompt_input_ctrl_2.GetValue(),
+                    int(self.positive_prompt_input_ctrl_3_prio.GetValue()): self.positive_prompt_input_ctrl_3.GetValue(),
+                    int(self.positive_prompt_input_ctrl_4_prio.GetValue()): self.positive_prompt_input_ctrl_4.GetValue()}
+                sortedDict = sorted(positive_prio.items())
+                totalPossitivePromptString = sortedDict[0][1] + "," + sortedDict[1][1] + "," + sortedDict[2][1] + "," + sortedDict[3][1]
+                asyncio.run(sendAsync([1, "positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n"]))
                 asyncio.run(sendAsync([1, "negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n"]))
         except Exception as e:
             print(e)
@@ -791,7 +799,15 @@ class Mywin(wx.Frame):
                     self.negative_prompt_input_ctrl.SetValue(str(promptToShow))
             elif showType == 1:
                 if promptType == "P":
-                    asyncio.run(sendAsync([1, "positive_prompt", promptToShow.strip().replace('\n', '')+"\n"]))
+                    # Arrange the possitive prompts according to priority (now for some lazy programing):
+                    positive_prio = {
+                        int(self.positive_prompt_input_ctrl_prio.GetValue()): self.positive_prompt_input_ctrl.GetValue(),
+                        int(self.positive_prompt_input_ctrl_2_prio.GetValue()): self.positive_prompt_input_ctrl_2.GetValue(),
+                        int(self.positive_prompt_input_ctrl_3_prio.GetValue()): self.positive_prompt_input_ctrl_3.GetValue(),
+                        int(self.positive_prompt_input_ctrl_4_prio.GetValue()): self.positive_prompt_input_ctrl_4.GetValue()}
+                    sortedDict = sorted(positive_prio.items())
+                    totalPossitivePromptString = sortedDict[0][1] + "," + sortedDict[1][1] + "," + sortedDict[2][1] + "," + sortedDict[3][1]
+                    asyncio.run(sendAsync([1, "positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n"]))
                 else:
                     asyncio.run(sendAsync([1, "negative_prompt", promptToShow.strip().replace('\n', '')+"\n"]))
 
@@ -1006,7 +1022,6 @@ class Mywin(wx.Frame):
             positive_prio = {int(self.positive_prompt_input_ctrl_prio.GetValue()):self.positive_prompt_input_ctrl.GetValue(), int(self.positive_prompt_input_ctrl_2_prio.GetValue()):self.positive_prompt_input_ctrl_2.GetValue(), int(self.positive_prompt_input_ctrl_3_prio.GetValue()):self.positive_prompt_input_ctrl_3.GetValue(), int(self.positive_prompt_input_ctrl_4_prio.GetValue()):self.positive_prompt_input_ctrl_4.GetValue()}
             sortedDict = sorted(positive_prio.items())
             totalPossitivePromptString = sortedDict[0][1]+","+sortedDict[1][1]+","+sortedDict[2][1]+","+sortedDict[3][1]
-            print(totalPossitivePromptString.strip().replace('\n', '') + "\n")
             asyncio.run(sendAsync([1, "positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n"]))
             asyncio.run(sendAsync([1, "negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '') + "\n"]))
         elif btn == "PAN_LEFT":
