@@ -26,7 +26,7 @@ Table of Contents
 
 Latest version / features
 -----------------
-[Latest version](#Latest-version)
+[Latest version](#Latest-version)   (DATE)
 
 
 Introduction<a name="introduction"></a>
@@ -111,9 +111,8 @@ Latest version<a name="Latest-version"></a>
 <details>
   <summary>Latest Version Info</summary>
 
-## Latest Version Info
+## Latest Version Info  (Including date)
   
-  Featured News
 ------------
 - Separate prompting input boxes with prioritising possibility  
   
