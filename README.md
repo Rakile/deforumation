@@ -113,7 +113,15 @@ Latest version<a name="Latest-version"></a>
 
 ## Latest Version Info
   
+  Featured News
+------------
+- Separate prompting input boxes with prioritising possibility  
+  
+  Text above yadayadayada
+  
 ![img](github_images/current_version.png)
+  
+  text belowe yada yda ydaa
 
 </details>
 
