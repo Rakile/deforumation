@@ -22,14 +22,11 @@ Table of Contents
 8. [Disclaimer](#disclaimer) 
 9. [Discord Channel](#Discord-Channel)
 10. [Ongoing Work](#Ongoing-Work)
+11. [in-depth information](#in-depth-information)
 
 Latest version / features
 -----------------
 [Latest version](#Latest-version)
-
-In-dept Contents
------------------
-1. [in-depth information](#in-depth-information)
 
 
 Introduction<a name="introduction"></a>
