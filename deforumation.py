@@ -15,6 +15,8 @@ import threading
 deforumationSettingsPath="./deforumation_settings.txt"
 deforumationSettingsPath_Keys = "./deforum_settings_keys.txt"
 deforumationPromptsPath ="./prompts/"
+screenWidth = 1380
+screenHeight = 900
 USE_BUFFERED_DC = True
 should_stay_on_top = False
 frame_path = "gibberish"
@@ -29,7 +31,7 @@ Translation_Z = 0.0
 Rotation_3D_X = 0.0
 Rotation_3D_Y = 0.0
 Rotation_3D_Z = 0.0
-tbrY = 500+300
+tbrY = 500+190
 trbX = 50
 is_fov_locked = False
 is_reverse_fov_locked = False
@@ -213,9 +215,9 @@ class render_window(wx.Frame):
         #print("CLOSING, framer.bitmap is:"+ str(self.bitmap))
 class Mywin(wx.Frame):
     def __init__(self, parent, title):
-        super(Mywin, self).__init__(parent, title=title, size=(1400, 1000))
-        panel = wx.Panel(self)
-        panel.SetBackgroundColour(wx.Colour(100, 100, 100))
+        super(Mywin, self).__init__(parent, title=title, size=(screenWidth, screenHeight))
+        self.panel = wx.Panel(self)
+        self.panel.SetBackgroundColour(wx.Colour(100, 100, 100))
         self.Bind(wx.EVT_CLOSE, self.OnExit)
         self.framer = None
         #self.framer = render_window(None, 'Rendering Image')
@@ -230,98 +232,137 @@ class Mywin(wx.Frame):
 
         #Positive Prompt
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self.positivePromtText = wx.StaticText(panel, label="Positive prompt:", size=(200, 25))
+        sizer.Add((0, 0))
+        sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer3 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer4 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer5 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer6 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer7 = wx.BoxSizer(wx.VERTICAL)
+        self.positivePromtText = wx.StaticText(self.panel, label="Positive prompt:", size=(200, 25))
         font = self.positivePromtText.GetFont()
         font.PointSize += 5
         font = font.Bold()
         self.positivePromtText.SetFont(font)
-        sizer.Add(self.positivePromtText, 0, wx.ALL , 5)
+        sizer.Add(self.positivePromtText, 0, wx.ALL , 0)
 
-        self.positive_prompt_input_ctrl_prio = wx.TextCtrl(panel, size=(20,20))
-        sizer.Add(self.positive_prompt_input_ctrl_prio, 0, wx.ALL, 5)
+        self.positive_prompt_input_ctrl_prio = wx.TextCtrl(self.panel, size=(20,20))
+        sizer2.Add(self.positive_prompt_input_ctrl_prio, 0, wx.ALL, 0)
         self.positive_prompt_input_ctrl_prio.SetValue("1")
-        self.positive_prompt_input_ctrl = wx.TextCtrl(panel, style=wx.TE_MULTILINE, size=(-1,100))
-        sizer.Add(self.positive_prompt_input_ctrl, 0, wx.ALL | wx.EXPAND, 5)
-        if os.path.isfile(deforumationSettingsPath):
-            promptfileRead = open(deforumationSettingsPath, 'r')
-            self.positive_prompt_input_ctrl.SetValue(promptfileRead.readline())
 
-        self.positive_prompt_input_ctrl_2_prio = wx.TextCtrl(panel, size=(20,20))
-        sizer.Add(self.positive_prompt_input_ctrl_2_prio, 0, wx.ALL, 5)
+        self.positive_prompt_input_ctrl_hide_box = wx.CheckBox(self.panel, id=101, label="Hide")
+        self.positive_prompt_input_ctrl_hide_box.Bind(wx.EVT_CHECKBOX, self.OnShouldHide)
+        sizer2.Add(self.positive_prompt_input_ctrl_hide_box, 0, wx.ALL, 0)
+        sizer.Add(sizer2, 0, wx.ALL, 0)
+
+
+        self.positive_prompt_input_ctrl = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(-1,100))
+        sizer.Add(self.positive_prompt_input_ctrl, 0, wx.ALL | wx.EXPAND, 0)
+
+        self.positive_prompt_input_ctrl_2_prio = wx.TextCtrl(self.panel, size=(20,20))
+        sizer3.Add(self.positive_prompt_input_ctrl_2_prio, 0, wx.ALL, 0)
         self.positive_prompt_input_ctrl_2_prio.SetValue("2")
-        self.positive_prompt_input_ctrl_2 = wx.TextCtrl(panel, style=wx.TE_MULTILINE, size=(-1,50))
-        sizer.Add(self.positive_prompt_input_ctrl_2, 0, wx.ALL | wx.EXPAND, 5)
 
-        self.positive_prompt_input_ctrl_3_prio = wx.TextCtrl(panel, size=(20,20))
-        sizer.Add(self.positive_prompt_input_ctrl_3_prio, 0, wx.ALL, 5)
+        self.positive_prompt_input_ctrl_hide_box_2 = wx.CheckBox(self.panel, id=102, label="Hide")
+        self.positive_prompt_input_ctrl_hide_box_2.Bind(wx.EVT_CHECKBOX, self.OnShouldHide)
+        sizer3.Add(self.positive_prompt_input_ctrl_hide_box_2, 0, wx.ALL, 0)
+        sizer.Add(sizer3, 0, wx.ALL, 0)
+
+        self.positive_prompt_input_ctrl_2 = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(-1,50))
+        sizer.Add(self.positive_prompt_input_ctrl_2, 0, wx.ALL | wx.EXPAND, 0)
+
+        self.positive_prompt_input_ctrl_3_prio = wx.TextCtrl(self.panel, size=(20,20))
+        sizer4.Add(self.positive_prompt_input_ctrl_3_prio, 0, wx.ALL, 0)
         self.positive_prompt_input_ctrl_3_prio.SetValue("3")
-        self.positive_prompt_input_ctrl_3 = wx.TextCtrl(panel, style=wx.TE_MULTILINE, size=(-1,50))
-        sizer.Add(self.positive_prompt_input_ctrl_3, 0, wx.ALL | wx.EXPAND, 5)
 
-        self.positive_prompt_input_ctrl_4_prio = wx.TextCtrl(panel, size=(20,20))
-        sizer.Add(self.positive_prompt_input_ctrl_4_prio, 0, wx.ALL, 5)
+        self.positive_prompt_input_ctrl_hide_box_3 = wx.CheckBox(self.panel, id=103, label="Hide")
+        self.positive_prompt_input_ctrl_hide_box_3.Bind(wx.EVT_CHECKBOX, self.OnShouldHide)
+        sizer4.Add(self.positive_prompt_input_ctrl_hide_box_3, 0, wx.ALL, 0)
+        sizer.Add(sizer4, 0, wx.ALL, 0)
+
+
+        self.positive_prompt_input_ctrl_3 = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(-1,50))
+        sizer.Add(self.positive_prompt_input_ctrl_3, 0, wx.ALL | wx.EXPAND, 0)
+
+        self.positive_prompt_input_ctrl_4_prio = wx.TextCtrl(self.panel, size=(20,20))
+        sizer5.Add(self.positive_prompt_input_ctrl_4_prio, 0, wx.ALL, 0)
         self.positive_prompt_input_ctrl_4_prio.SetValue("4")
-        self.positive_prompt_input_ctrl_4 = wx.TextCtrl(panel, style=wx.TE_MULTILINE, size=(-1,50))
-        sizer.Add(self.positive_prompt_input_ctrl_4, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.positive_prompt_input_ctrl_hide_box_4 = wx.CheckBox(self.panel, id=104, label="Hide")
+        self.positive_prompt_input_ctrl_hide_box_4.Bind(wx.EVT_CHECKBOX, self.OnShouldHide)
+        sizer5.Add(self.positive_prompt_input_ctrl_hide_box_4, 0, wx.ALL, 0)
+        sizer.Add(sizer5, 0, wx.ALL, 0)
+
+        self.positive_prompt_input_ctrl_4 = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(-1,50))
+        sizer.Add(self.positive_prompt_input_ctrl_4, 0, wx.ALL | wx.EXPAND, 0)
 
         #Should use Deforum prompt scheduling?
-        self.shouldUseDeforumPromptScheduling_Checkbox = wx.CheckBox(panel, label="Use Deforum prompt scheduling", pos=(trbX+600, 10))
+        self.shouldUseDeforumPromptScheduling_Checkbox = wx.CheckBox(self.panel, label="Use Deforum prompt scheduling", pos=(trbX+600, 10))
         self.shouldUseDeforumPromptScheduling_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
         #Stay On Top
-        self.stayOnTop_Checkbox = wx.CheckBox(panel, label="Stay on top", pos=(trbX+1130, 10))
+        self.stayOnTop_Checkbox = wx.CheckBox(self.panel, label="Stay on top", pos=(trbX+1130, 10))
         self.stayOnTop_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
         #Negative Prompt
-        self.negativePromtText = wx.StaticText(panel, label="Negative prompt:")
+        self.negativePromtText = wx.StaticText(self.panel, label="Negative prompt:")
         font = self.negativePromtText.GetFont()
         font.PointSize += 5
         font = font.Bold()
         self.negativePromtText.SetFont(font)
-        sizer.Add(self.negativePromtText, 0, wx.ALL | wx.EXPAND, 5)
-        self.negative_prompt_input_ctrl = wx.TextCtrl(panel,style=wx.TE_MULTILINE, size=(-1,100))
-        sizer.Add(self.negative_prompt_input_ctrl, 0, wx.ALL | wx.EXPAND, 5)
-        if os.path.isfile(deforumationSettingsPath):
-            self.negative_prompt_input_ctrl.SetValue(promptfileRead.readline())
-            promptfileRead.close()
+        sizer6.Add(self.negativePromtText, 5, wx.ALL | wx.EXPAND, 0)
+        sizer6.AddSpacer(5)
+        sizer7.AddSpacer(5)
+        self.negative_prompt_input_ctrl_hide_box = wx.CheckBox(self.panel, id=105, label="Hide")
+        self.negative_prompt_input_ctrl_hide_box.Bind(wx.EVT_CHECKBOX, self.OnShouldHide)
+        sizer7.Add(self.negative_prompt_input_ctrl_hide_box, 0, wx.ALL, 0)
+        sizer6.Add(sizer7, 0, wx.ALL, 0)
+        sizer.Add(sizer6, 0, wx.ALL, 0)
 
-        panel.SetSizer(sizer)
+
+        self.negative_prompt_input_ctrl = wx.TextCtrl(self.panel,style=wx.TE_MULTILINE, size=(-1,100))
+        sizer.Add(self.negative_prompt_input_ctrl, 0, wx.ALL | wx.EXPAND, 0)
+        #if os.path.isfile(deforumationSettingsPath):
+        #    self.negative_prompt_input_ctrl.SetValue(promptfileRead.readline())
+        #    promptfileRead.close()
+
+        self.panel.SetSizer(sizer)
         #SHOW LIVE RENDER CHECK-BOX
-        self.live_render_checkbox = wx.CheckBox(panel, label="LIVE RENDER", pos=(trbX+1130, tbrY-110))
+        self.live_render_checkbox = wx.CheckBox(self.panel, label="LIVE RENDER", pos=(trbX+1130, tbrY-110))
         self.live_render_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
         #OFF GRID BUTTON FOR KEYBOARD INPUT
         #self.off_grid_input_box = wx.Button(panel, label="", pos=(-1000, -1000))
-        self.off_grid_input_box = wx.TextCtrl(panel, style=wx.TE_MULTILINE, size=(1, 1), pos=(-100,-100))
+        self.off_grid_input_box = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(1, 1), pos=(-100,-100))
         #self.off_grid_button.Bind(wx.EVT_BUTTON, self.OnClicked)
 
         #SHOW CURRENT IMAGE, BUTTON
-        self.show_current_image = wx.Button(panel, label="Show current image", pos=(trbX+992, tbrY-110))
+        self.show_current_image = wx.Button(self.panel, label="Show current image", pos=(trbX+992, tbrY-110))
         self.show_current_image.Bind(wx.EVT_BUTTON, self.OnClicked)
         #REWIND BUTTTON
         bmp = wx.Bitmap("./images/left_arrow.bmp", wx.BITMAP_TYPE_BMP)
-        self.rewind_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1000, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rewind_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1000, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rewind_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rewind_button.SetLabel("REWIND")
         #REWIND CLOSEST BUTTTON
         bmp = wx.Bitmap("./images/rewind_closest.bmp", wx.BITMAP_TYPE_BMP)
-        self.rewind_closest_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+970, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rewind_closest_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+970, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rewind_closest_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rewind_closest_button.SetLabel("REWIND_CLOSEST")
         #SET CURRENT FRAME INPUT BOX
-        self.frame_step_input_box = wx.TextCtrl(panel, 2, size=(48,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+1032, tbrY-74))
+        self.frame_step_input_box = wx.TextCtrl(self.panel, 2, size=(48,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+1032, tbrY-74))
         self.frame_step_input_box.SetLabel("")
         self.frame_step_input_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=2)
         #FORWARD BUTTTON
         bmp = wx.Bitmap("./images/right_arrow.bmp", wx.BITMAP_TYPE_BMP)
-        self.forward_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1080, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.forward_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1080, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.forward_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.forward_button.SetLabel("FORWARD")
         #FORWARD CLOSEST BUTTTON
         bmp = wx.Bitmap("./images/forward_closest.bmp", wx.BITMAP_TYPE_BMP)
-        self.forward_closest_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1110, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.forward_closest_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1110, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.forward_closest_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.forward_closest_button.SetLabel("FORWARD_CLOSEST")
         #SET CURRENT IMAGE, BUTTON
-        self.set_current_image = wx.Button(panel, label="Set current image", pos=(trbX+998, tbrY-40))
+        self.set_current_image = wx.Button(self.panel, label="Set current image", pos=(trbX+998, tbrY-40))
         self.set_current_image.Bind(wx.EVT_BUTTON, self.OnClicked)
 
         #SHOW AN IMAGE
@@ -329,32 +370,34 @@ class Mywin(wx.Frame):
         #self.img = wx.Image("E:\\Tools\\stable-diffusion-webui\\outputs\\img2img-images\\Deforum_20230330002842\\20230330002842_000000082.png", wx.BITMAP_TYPE_ANY)
         #self.imageCtrl = wx.StaticBitmap(panel, wx.ID_ANY, wx.BitmapFromImage(img))
         #self.bitmap = wx.StaticBitmap(panel, -1, self.img, pos=(trbX+700, tbrY-120))
-        self.bitmap = None
+        #self.bitmap = None
+        img = wx.Image(256, 256)
+        self.bitmap = wx.StaticBitmap(self.panel, wx.ID_ANY, wx.Bitmap(img), pos=(trbX + 650, tbrY - 120))
 
         #SAVE PROMPTS BUTTON
-        self.update_prompts = wx.Button(panel, label="SAVE PROMPTS")
+        self.update_prompts = wx.Button(self.panel, label="SAVE PROMPTS")
         sizer.Add(self.update_prompts, 0, wx.ALL | wx.EXPAND, 5)
         self.update_prompts.Bind(wx.EVT_BUTTON, self.OnClicked)
 
         #PAN STEPS INPUT
-        self.pan_step_input_box = wx.TextCtrl(panel, size=(40,20), pos=(trbX-15, 30+tbrY))
+        self.pan_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX-15, 30+tbrY))
         self.pan_step_input_box.SetLabel("1.0")
 
         #LEFT PAN BUTTTON
         bmp = wx.Bitmap("./images/left_arrow.bmp", wx.BITMAP_TYPE_BMP)
-        self.transform_x_left_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(5+trbX, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.transform_x_left_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(5+trbX, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.transform_x_left_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_x_left_button.SetLabel("PAN_LEFT")
 
         #SET PAN VALUE X
-        self.pan_X_Value_Text = wx.StaticText(panel, label=str(Translation_X), pos=(trbX-26, 55+tbrY+5))
+        self.pan_X_Value_Text = wx.StaticText(self.panel, label=str(Translation_X), pos=(trbX-26, 55+tbrY+5))
         font = self.pan_X_Value_Text.GetFont()
         font.PointSize += 1
         font = font.Bold()
         self.pan_X_Value_Text.SetFont(font)
 
         #SET PAN VALUE Y
-        self.pan_Y_Value_Text = wx.StaticText(panel, label=str(Translation_Y), pos=(40+trbX, 5+tbrY))
+        self.pan_Y_Value_Text = wx.StaticText(self.panel, label=str(Translation_Y), pos=(40+trbX, 5+tbrY))
         font = self.pan_Y_Value_Text.GetFont()
         font.PointSize += 1
         font = font.Bold()
@@ -362,124 +405,124 @@ class Mywin(wx.Frame):
 
         #UPP PAN BUTTTON
         bmp = wx.Bitmap("./images/upp_arrow.bmp", wx.BITMAP_TYPE_BMP)
-        self.transform_y_upp_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(35+trbX, 25+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.transform_y_upp_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(35+trbX, 25+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.transform_y_upp_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_y_upp_button.SetLabel("PAN_UP")
 
         #RIGHT PAN BUTTTON
         bmp = wx.Bitmap("./images/right_arrow.bmp", wx.BITMAP_TYPE_BMP)
-        self.transform_x_right_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(65+trbX, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.transform_x_right_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(65+trbX, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.transform_x_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_x_right_button.SetLabel("PAN_RIGHT")
         #DOWN PAN BUTTTON
         bmp = wx.Bitmap("./images/down_arrow.bmp", wx.BITMAP_TYPE_BMP)
-        self.transform_y_down_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(35+trbX, 85+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.transform_y_down_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(35+trbX, 85+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.transform_y_down_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_y_down_button.SetLabel("PAN_DOWN")
 
         #ZERO PAN BUTTTON
         bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
         bmp = scale_bitmap(bmp, 22, 22)
-        self.transform_zero_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(35+trbX, 56+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.transform_zero_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(35+trbX, 56+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.transform_zero_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_zero_button.SetLabel("ZERO PAN")
 
         #ZERO PAN STEP INPUT BOX STRING
-        self.zero_pan_step_input_box_text = wx.StaticText(panel, label="0-Steps", pos=(trbX+74, tbrY+14))
+        self.zero_pan_step_input_box_text = wx.StaticText(self.panel, label="0-Steps", pos=(trbX+74, tbrY+14))
         #ZERO PAN STEP INPUT BOX
-        self.zero_pan_step_input_box = wx.TextCtrl(panel, size=(40,20), pos=(trbX+70, tbrY+30))
+        self.zero_pan_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX+70, tbrY+30))
         self.zero_pan_step_input_box.SetLabel("0")
 
         #ZOOM SLIDER
-        self.zoom_slider = wx.Slider(panel, id=wx.ID_ANY, value=0, minValue=-10, maxValue=10, pos = (110+trbX, tbrY-5), size = (40, 150), style = wx.SL_VERTICAL | wx.SL_AUTOTICKS | wx.SL_LABELS | wx.SL_INVERSE )
+        self.zoom_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=0, minValue=-10, maxValue=10, pos = (110+trbX, tbrY-5), size = (40, 150), style = wx.SL_VERTICAL | wx.SL_AUTOTICKS | wx.SL_LABELS | wx.SL_INVERSE )
         self.zoom_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.zoom_slider.SetTickFreq(1)
         self.zoom_slider.SetLabel("ZOOM")
-        self.ZOOM_X_Text = wx.StaticText(panel, label="Z", pos=(170+trbX, tbrY+40))
-        self.ZOOM_X_Text2 = wx.StaticText(panel, label="O", pos=(170+trbX, tbrY+60))
-        self.ZOOM_X_Text3 = wx.StaticText(panel, label="O", pos=(170+trbX, tbrY+80))
-        self.ZOOM_X_Text4 = wx.StaticText(panel, label="M", pos=(169+trbX, tbrY+100))
+        self.ZOOM_X_Text = wx.StaticText(self.panel, label="Z", pos=(170+trbX, tbrY+40))
+        self.ZOOM_X_Text2 = wx.StaticText(self.panel, label="O", pos=(170+trbX, tbrY+60))
+        self.ZOOM_X_Text3 = wx.StaticText(self.panel, label="O", pos=(170+trbX, tbrY+80))
+        self.ZOOM_X_Text4 = wx.StaticText(self.panel, label="M", pos=(169+trbX, tbrY+100))
 
         #FOV SLIDER
-        self.fov_slider = wx.Slider(panel, id=wx.ID_ANY, value=70, minValue=20, maxValue=120, pos = (190+trbX, tbrY-5), size = (40, 150), style = wx.SL_VERTICAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.fov_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=70, minValue=20, maxValue=120, pos = (190+trbX, tbrY-5), size = (40, 150), style = wx.SL_VERTICAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.fov_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.fov_slider.SetTickFreq(1)
         self.fov_slider.SetLabel("FOV")
-        self.FOV_Text = wx.StaticText(panel, label="F", pos=(250+trbX, tbrY+40))
-        self.FOV_Text2 = wx.StaticText(panel, label="O", pos=(249+trbX, tbrY+60))
-        self.FOV_Text3 = wx.StaticText(panel, label="V", pos=(250+trbX, tbrY+80))
+        self.FOV_Text = wx.StaticText(self.panel, label="F", pos=(250+trbX, tbrY+40))
+        self.FOV_Text2 = wx.StaticText(self.panel, label="O", pos=(249+trbX, tbrY+60))
+        self.FOV_Text3 = wx.StaticText(self.panel, label="V", pos=(250+trbX, tbrY+80))
 
         #LOCK FOV TO ZOOM BUTTON
         bmp = wx.Bitmap("./images/lock_off.bmp", wx.BITMAP_TYPE_BMP)
-        self.fov_lock_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(172+trbX, tbrY-5), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.fov_lock_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(172+trbX, tbrY-5), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.fov_lock_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.fov_lock_button.SetLabel("LOCK FOV")
 
         #REVERSE FOV TO ZOOM BUTTON
         bmp = wx.Bitmap("./images/reverse_fov_off.bmp", wx.BITMAP_TYPE_BMP)
-        self.fov_reverse_lock_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(172+trbX, tbrY+120), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.fov_reverse_lock_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(172+trbX, tbrY+120), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.fov_reverse_lock_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.fov_reverse_lock_button.SetLabel("REVERSE FOV")
 
         #STRENGTH SCHEDULE SLIDER
-        self.strength_schedule_slider = wx.Slider(panel, id=wx.ID_ANY, value=65, minValue=1, maxValue=100, pos = (trbX-25, tbrY-50), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.strength_schedule_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=65, minValue=1, maxValue=100, pos = (trbX-25, tbrY-50), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.strength_schedule_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.strength_schedule_slider.SetTickFreq(1)
         self.strength_schedule_slider.SetLabel("STRENGTH SCHEDULE")
-        self.strength_schedule_Text = wx.StaticText(panel, label="Strength Value (divided by 100)", pos=(trbX-25, tbrY-70))
+        self.step_schedule_Text = wx.StaticText(self.panel, label="Strength Value (divided by 100)", pos=(trbX-25, tbrY-70))
 
         #SHOULD USE DEFORUMATION STRENGTH VALUES? CHECK-BOX
-        self.should_use_deforumation_strength_checkbox = wx.CheckBox(panel, label="USE DEFORUMATION", pos=(trbX+160, tbrY-66))
+        self.should_use_deforumation_strength_checkbox = wx.CheckBox(self.panel, label="USE DEFORUMATION", pos=(trbX+160, tbrY-66))
         self.should_use_deforumation_strength_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
         #SAMPLE STEP SLIDER
-        self.sample_schedule_slider = wx.Slider(panel, id=wx.ID_ANY, value=25, minValue=1, maxValue=200, pos = (trbX-25, tbrY-50-70), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.sample_schedule_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=25, minValue=1, maxValue=200, pos = (trbX-25, tbrY-50-70), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.sample_schedule_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.sample_schedule_slider.SetTickFreq(1)
         self.sample_schedule_slider.SetLabel("STEPS")
-        self.strength_schedule_Text = wx.StaticText(panel, label="Steps", pos=(trbX-25, tbrY-70-64))
+        self.strength_schedule_Text = wx.StaticText(self.panel, label="Steps", pos=(trbX-25, tbrY-70-64))
 
         #SEED INPUT BOX
-        self.seed_schedule_Text = wx.StaticText(panel, label="Seed", pos=(trbX+340, tbrY-50-80))
-        self.seed_input_box = wx.TextCtrl(panel, 3, size=(300,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+340, tbrY-50-60))
+        self.seed_schedule_Text = wx.StaticText(self.panel, label="Seed", pos=(trbX+340, tbrY-50-80))
+        self.seed_input_box = wx.TextCtrl(self.panel, 3, size=(300,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+340, tbrY-50-60))
         self.seed_input_box.SetLabel("-1")
         self.seed_input_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=3)
 
 
 
         #CFG SCHEDULE SLIDER
-        self.cfg_schedule_slider = wx.Slider(panel, id=wx.ID_ANY, value=7, minValue=1, maxValue=30, pos = (trbX+340, tbrY-50), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.cfg_schedule_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=7, minValue=1, maxValue=30, pos = (trbX+340, tbrY-50), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.cfg_schedule_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.cfg_schedule_slider.SetTickFreq(1)
         self.cfg_schedule_slider.SetLabel("CFG SCALE")
-        self.CFG_scale_Text = wx.StaticText(panel, label="CFG Scale", pos=(trbX+340, tbrY-70))
+        self.CFG_scale_Text = wx.StaticText(self.panel, label="CFG Scale", pos=(trbX+340, tbrY-70))
 
 
         #LOOK LEFT BUTTTON
         bmp = wx.Bitmap("./images/look_left.bmp", wx.BITMAP_TYPE_BMP)
-        self.rotation_3d_x_left_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+80, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_x_left_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+80, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_x_left_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_x_left_button.SetLabel("LOOK_LEFT")
 
         #SET ROTATION VALUE X
-        self.rotation_3d_x_Value_Text = wx.StaticText(panel, label=str(Rotation_3D_X), pos=(240+trbX-30+80, 55+tbrY+5))
+        self.rotation_3d_x_Value_Text = wx.StaticText(self.panel, label=str(Rotation_3D_X), pos=(240+trbX-30+80, 55+tbrY+5))
         font = self.rotation_3d_x_Value_Text.GetFont()
         font.PointSize += 1
         font = font.Bold()
         self.rotation_3d_x_Value_Text.SetFont(font)
 
         #ROTATE STEPS INPUT
-        self.rotate_step_input_box = wx.TextCtrl(panel, size=(40,20), pos=(240+trbX-15+80, 30+tbrY))
+        self.rotate_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(240+trbX-15+80, 30+tbrY))
         self.rotate_step_input_box.SetLabel("1.0")
 
         #LOOK UPP BUTTTON
         bmp = wx.Bitmap("./images/look_upp.bmp", wx.BITMAP_TYPE_BMP)
-        self.rotation_3d_y_up_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30+80, 55+tbrY-30), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_y_up_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30+80, 55+tbrY-30), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_y_up_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_y_up_button.SetLabel("LOOK_UP")
 
         #SET ROTATION VALUE Y
-        self.rotation_3d_y_Value_Text = wx.StaticText(panel, label=str(Rotation_3D_Y), pos=(240+trbX+35+80, 55+tbrY-48))
+        self.rotation_3d_y_Value_Text = wx.StaticText(self.panel, label=str(Rotation_3D_Y), pos=(240+trbX+35+80, 55+tbrY-48))
         font = self.rotation_3d_y_Value_Text.GetFont()
         font.PointSize += 1
         font = font.Bold()
@@ -487,37 +530,37 @@ class Mywin(wx.Frame):
 
         #LOOK RIGHT BUTTTON
         bmp = wx.Bitmap("./images/look_right.bmp", wx.BITMAP_TYPE_BMP)
-        self.rotation_3d_x_right_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+57+80, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_x_right_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+57+80, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_x_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_x_right_button.SetLabel("LOOK_RIGHT")
 
         #LOOK UPP BUTTTON
         bmp = wx.Bitmap("./images/look_down.bmp", wx.BITMAP_TYPE_BMP)
-        self.rotation_3d_y_down_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30+80, 55+tbrY+30), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_y_down_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30+80, 55+tbrY+30), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_y_down_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_y_down_button.SetLabel("LOOK_DOWN")
 
         #ROTATE LEFT BUTTTON
         bmp = wx.Bitmap("./images/rotate_left.bmp", wx.BITMAP_TYPE_BMP)
-        self.rotation_3d_z_right_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(300+trbX+57+80, 50+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
-        self.rotation_3d_z_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
-        self.rotation_3d_z_right_button.SetLabel("ROTATE_LEFT")
+        self.rotation_3d_z_left_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(300+trbX+57+80, 50+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_z_left_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.rotation_3d_z_left_button.SetLabel("ROTATE_LEFT")
 
         #ZERO ROTATE BUTTTON
         bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
         bmp = scale_bitmap(bmp, 20, 20)
-        self.rotate_zero_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30+80, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotate_zero_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30+80, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotate_zero_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotate_zero_button.SetLabel("ZERO ROTATE")
 
         #ROTATE RIGHT BUTTTON
         bmp = wx.Bitmap("./images/rotate_right.bmp", wx.BITMAP_TYPE_BMP)
-        self.rotation_3d_z_right_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(380+trbX+57+80, 50+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_z_right_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(380+trbX+57+80, 50+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_z_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_z_right_button.SetLabel("ROTATE_RIGHT")
 
         #SET ROTATION VALUE Z
-        self.rotation_Z_Value_Text = wx.StaticText(panel, label=str(Rotation_3D_Z), pos=(360+trbX+46+80, 60+tbrY))
+        self.rotation_Z_Value_Text = wx.StaticText(self.panel, label=str(Rotation_3D_Z), pos=(360+trbX+46+80, 60+tbrY))
         font = self.rotation_Z_Value_Text.GetFont()
         font.PointSize += 1
         font = font.Bold()
@@ -526,28 +569,28 @@ class Mywin(wx.Frame):
         #ZERO TILT BUTTTON
         bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
         bmp = scale_bitmap(bmp, 32, 32)
-        self.tilt_zero_button = wx.BitmapButton(panel, id=wx.ID_ANY, bitmap=bmp, pos=(360+trbX+36+80, 88+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.tilt_zero_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(360+trbX+36+80, 88+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.tilt_zero_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.tilt_zero_button.SetLabel("ZERO TILT")
 
         #TILT STEPS INPUT
-        self.tilt_step_input_box = wx.TextCtrl(panel, size=(40,20), pos=(360+trbX+38+80, 30+tbrY))
+        self.tilt_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(360+trbX+38+80, 30+tbrY))
         self.tilt_step_input_box.SetLabel("1.0")
 
         #PAUSE VIDEO RENDERING
         if is_paused_rendering:
-            self.pause_rendering = wx.Button(panel, label="PUSH TO RESUME RENDERING")
+            self.pause_rendering = wx.Button(self.panel, label="PUSH TO RESUME RENDERING")
         else:
-            self.pause_rendering = wx.Button(panel, label="PUSH TO PAUSE RENDERING")
+            self.pause_rendering = wx.Button(self.panel, label="PUSH TO PAUSE RENDERING")
         sizer.Add(self.pause_rendering, 0, wx.ALL | wx.EXPAND, 5)
         self.pause_rendering.Bind(wx.EVT_BUTTON, self.OnClicked)
 
         #CADENCE SLIDER
-        self.cadence_slider = wx.Slider(panel, id=wx.ID_ANY, value=int(Cadence_Schedule), minValue=1, maxValue=20, pos = (trbX+1000, tbrY+20), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.cadence_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(Cadence_Schedule), minValue=1, maxValue=20, pos = (trbX+1000, tbrY+20), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.cadence_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.cadence_slider.SetTickFreq(1)
         self.cadence_slider.SetLabel("CADENCE")
-        self.CFG_scale_Text = wx.StaticText(panel, label="Cadence Scale", pos=(trbX+1000, tbrY))
+        self.cadence_slider_Text = wx.StaticText(self.panel, label="Cadence Scale", pos=(trbX+1000, tbrY))
 
         self.Centre()
         self.Show()
@@ -557,7 +600,145 @@ class Mywin(wx.Frame):
         #KEYBOARD INPUT EVNTG HANDLER
         self.off_grid_input_box.Bind(wx.EVT_KEY_DOWN, self.KeyDown)
         self.off_grid_input_box.SetFocus()
-        panel.Bind(wx.EVT_LEFT_DOWN, self.PanelClicked)
+
+        self.Layout()
+        self.Bind(wx.EVT_SIZING, self.OnResize)
+        self.panel.Bind(wx.EVT_LEFT_DOWN, self.PanelClicked)
+
+    def OnShouldHide(self, event):
+        global tbrY
+        global screenWidth
+        global screenHeight
+        eventID = event.GetId()
+        if eventID == 101:
+            if self.positive_prompt_input_ctrl.IsShown():
+                self.positive_prompt_input_ctrl.Hide()
+                self.positive_prompt_input_ctrl_hide_box.SetLabel("Show")
+                tbrY = tbrY - 100
+                screenHeight = screenHeight - 100
+            else:
+                self.positive_prompt_input_ctrl.Show()
+                self.positive_prompt_input_ctrl_hide_box.SetLabel("Hide")
+                tbrY = tbrY + 100
+                screenHeight = screenHeight + 100
+        elif eventID == 102:
+            if self.positive_prompt_input_ctrl_2.IsShown():
+                self.positive_prompt_input_ctrl_2.Hide()
+                self.positive_prompt_input_ctrl_hide_box_2.SetLabel("Show")
+                tbrY = tbrY - 50
+                screenHeight = screenHeight - 50
+            else:
+                self.positive_prompt_input_ctrl_2.Show()
+                self.positive_prompt_input_ctrl_hide_box_2.SetLabel("Hide")
+                tbrY = tbrY + 50
+                screenHeight = screenHeight + 50
+        elif eventID == 103:
+            if self.positive_prompt_input_ctrl_3.IsShown():
+                self.positive_prompt_input_ctrl_3.Hide()
+                self.positive_prompt_input_ctrl_hide_box_3.SetLabel("Show")
+                tbrY = tbrY - 50
+                screenHeight = screenHeight - 50
+            else:
+                self.positive_prompt_input_ctrl_3.Show()
+                self.positive_prompt_input_ctrl_hide_box_3.SetLabel("Hide")
+                tbrY = tbrY + 50
+                screenHeight = screenHeight + 50
+        elif eventID == 104:
+            if self.positive_prompt_input_ctrl_4.IsShown():
+                self.positive_prompt_input_ctrl_4.Hide()
+                self.positive_prompt_input_ctrl_hide_box_4.SetLabel("Show")
+                tbrY = tbrY - 50
+                screenHeight = screenHeight - 50
+            else:
+                self.positive_prompt_input_ctrl_4.Show()
+                self.positive_prompt_input_ctrl_hide_box_4.SetLabel("Hide")
+                tbrY = tbrY + 50
+                screenHeight = screenHeight + 50
+        elif eventID == 105:
+            if self.negative_prompt_input_ctrl.IsShown():
+                self.negative_prompt_input_ctrl.Hide()
+                self.negative_prompt_input_ctrl_hide_box.SetLabel("Show")
+                tbrY = tbrY - 100
+                screenHeight = screenHeight - 100
+            else:
+                self.negative_prompt_input_ctrl.Show()
+                self.negative_prompt_input_ctrl_hide_box.SetLabel("Hide")
+                tbrY = tbrY + 100
+                screenHeight = screenHeight + 50
+
+        self.SetSize(screenWidth, screenHeight)
+        self.updateComponents()
+        self.panel.Refresh()
+        self.panel.Layout()
+
+    def updateComponents(self):
+        self.shouldUseDeforumPromptScheduling_Checkbox.SetPosition((trbX + 600, 10))
+        self.stayOnTop_Checkbox.SetPosition((trbX + 1130, 10))
+        self.live_render_checkbox.SetPosition((trbX + 1130, tbrY - 110))
+        self.show_current_image.SetPosition((trbX + 992, tbrY - 110))
+        self.rewind_button.SetPosition((trbX + 1000, tbrY - 80))
+        self.rewind_closest_button.SetPosition((trbX + 970, tbrY - 80))
+        self.frame_step_input_box.SetPosition((trbX + 1032, tbrY - 74))
+        self.forward_button.SetPosition((trbX + 1080, tbrY - 80))
+        self.forward_closest_button.SetPosition((trbX + 1110, tbrY - 80))
+        self.set_current_image.SetPosition((trbX + 998, tbrY - 40))
+        self.bitmap.SetPosition((trbX + 650, tbrY - 120))
+        self.pan_step_input_box.SetPosition((trbX - 15, 30 + tbrY))
+        self.transform_x_left_button.SetPosition((5 + trbX, 55 + tbrY))
+        self.pan_X_Value_Text.SetPosition((trbX - 26, 55 + tbrY + 5))
+        self.pan_Y_Value_Text.SetPosition((40 + trbX, 5 + tbrY))
+        self.transform_y_upp_button.SetPosition((35 + trbX, 25 + tbrY))
+        self.transform_x_right_button.SetPosition((65 + trbX, 55 + tbrY))
+        self.transform_y_down_button.SetPosition((35 + trbX, 85 + tbrY))
+        self.transform_zero_button.SetPosition((35 + trbX, 56 + tbrY))
+        self.zero_pan_step_input_box_text.SetPosition((trbX + 74, tbrY + 14))
+        self.zero_pan_step_input_box.SetPosition((trbX + 70, tbrY + 30))
+        self.zoom_slider.SetPosition((110 + trbX, tbrY - 5))
+        self.ZOOM_X_Text.SetPosition((170 + trbX, tbrY + 40))
+        self.ZOOM_X_Text2.SetPosition((170 + trbX, tbrY + 60))
+        self.ZOOM_X_Text3.SetPosition((170 + trbX, tbrY + 80))
+        self.ZOOM_X_Text4.SetPosition((169 + trbX, tbrY + 100))
+        self.fov_slider.SetPosition((190 + trbX, tbrY - 5))
+        self.FOV_Text.SetPosition((250 + trbX, tbrY + 40))
+        self.FOV_Text2.SetPosition((249 + trbX, tbrY + 60))
+        self.FOV_Text3.SetPosition((250 + trbX, tbrY + 80))
+        self.fov_lock_button.SetPosition((172 + trbX, tbrY - 5))
+        self.fov_reverse_lock_button.SetPosition((172 + trbX, tbrY + 120))
+        self.strength_schedule_slider.SetPosition((trbX - 25, tbrY - 50))
+        self.step_schedule_Text.SetPosition((trbX - 25, tbrY - 70))
+        self.should_use_deforumation_strength_checkbox.SetPosition((trbX + 160, tbrY - 66))
+        self.sample_schedule_slider.SetPosition((trbX - 25, tbrY - 50 - 70))
+        self.strength_schedule_Text.SetPosition((trbX - 25, tbrY - 70 - 64))
+        self.seed_schedule_Text.SetPosition((trbX + 340, tbrY - 50 - 80))
+        self.seed_input_box.SetPosition((trbX + 340, tbrY - 50 - 60))
+        self.cfg_schedule_slider.SetPosition((trbX + 340, tbrY - 50))
+        self.CFG_scale_Text.SetPosition((trbX + 340, tbrY - 70))
+        self.rotation_3d_x_left_button.SetPosition((240 + trbX + 80, 55 + tbrY))
+        self.rotation_3d_x_Value_Text.SetPosition((240 + trbX - 30 + 80, 55 + tbrY + 5))
+        self.rotate_step_input_box.SetPosition((240 + trbX - 15 + 80, 30 + tbrY))
+        self.rotation_3d_y_up_button.SetPosition((240 + trbX + 30 + 80, 55 + tbrY - 30))
+        self.rotation_3d_y_Value_Text.SetPosition((240 + trbX + 35 + 80, 55 + tbrY - 48))
+        self.rotation_3d_x_right_button.SetPosition((240 + trbX + 57 + 80, 55 + tbrY))
+        self.rotation_3d_y_down_button.SetPosition((240 + trbX + 30 + 80, 55 + tbrY + 30))
+        self.rotation_3d_z_left_button.SetPosition((300 + trbX + 57 + 80, 50 + tbrY))
+        self.rotate_zero_button.SetPosition((240 + trbX + 30 + 80, 55 + tbrY))
+        self.rotation_3d_z_right_button.SetPosition((380 + trbX + 57 + 80, 50 + tbrY))
+        self.rotation_Z_Value_Text.SetPosition((360 + trbX + 46 + 80, 60 + tbrY))
+        self.tilt_zero_button.SetPosition((360 + trbX + 36 + 80, 88 + tbrY))
+        self.tilt_step_input_box.SetPosition((360 + trbX + 38 + 80, 30 + tbrY))
+        self.cadence_slider.SetPosition((trbX + 1000, tbrY + 20))
+        self.cadence_slider_Text.SetPosition((trbX + 1000, tbrY))
+
+    def OnResize(self, evt):
+        self.current_width, self.current_height = self.GetSize()
+        #self.positive_prompt_input_ctrl.SetSize(-1, 40)
+        #self.positive_prompt_input_ctrl.SetMinSize(size=(-1,20))
+        #self.positive_prompt_input_ctrl.Hide()
+        #self.positive_prompt_input_ctrl.Redo()
+        #self.panel.Layout()
+        #self.panel.resize(self.current_width, self.current_height)
+        #print("width=" + str(self.current_width))
+        #print("height=" + str(self.current_height))
 
     def PanelClicked(self, event):
         #print("Pushed pannel %s" % (event))
@@ -1191,15 +1372,26 @@ class Mywin(wx.Frame):
                     break
             #print(str("Loaded:"+imagePath))
             if os.path.isfile(imagePath):
-                if self.bitmap != None:
-                    self.bitmap.Destroy()
-                    self.bitmap = None
+                #if self.bitmap != None:
+                #    self.bitmap.Destroy()
+                #    self.bitmap = None
                 self.img = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
                 imgWidth = self.img.GetWidth()
                 imgHeight = self.img.GetHeight()
                 self.img = self.img.Scale(int(imgWidth / 2), int(imgHeight / 2), wx.IMAGE_QUALITY_HIGH)
-                self.bitmap = wx.StaticBitmap(self, -1, self.img, pos=(trbX + 650, tbrY - 120))
+                #bitmap = wx.StaticBitmap(self, wx.ID_ANY, self.img, pos=(trbX + 650, tbrY - 120))
+                bitmap = wx.Bitmap(self.img)
+                #bitmap = wx.ArtProvider.GetBitmap(wx.ART_GO_HOME, wx.ART_OTHER,(256, 256))
+                #self.bitmap = wx.StaticBitmap(self, wx.ID_ANY, self.img, pos=(trbX + 650, tbrY - 120))
+                self.bitmap.SetBitmap(bitmap)
                 self.frame_step_input_box.SetValue(str(int(current_render_frame)))
+
+                #self.bitmap = wx.Bitmap(imagePath)
+                #imgWidth = self.bitmap.GetWidth()
+                #imgHeight = self.bitmap.GetHeight()
+                #self.bitmap = scale_bitmap(self.bitmap, int(imgWidth / 2), int(imgHeight / 2))
+                #self.bitmap
+                self.panel.Layout()
                 self.Refresh()
                 #Destroy and repaint image
                 #print(str(self.framer.bitmap))
