@@ -43,7 +43,7 @@ Key Features<a name="key-features"></a>
 Prerequisites<a name="prerequisites"></a>
 ------------
 1. Local instance of SD ([AUTOMATIC1111/stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui)) 
-2. Installed Deforum Extension for AUTOMATIC1111 ([deforum-art/deforum-stable-diffusion](https://github.com/deforum-art/deforum-stable-diffusion)) 
+2. Installed Deforum Extension for AUTOMATIC1111 ([deforum-art/deforum-for-automatic1111-webui](https://github.com/deforum-art/deforum-for-automatic1111-webui)) 
 
 Installation Guide<a name="installation-guide"></a>
 -------------------
