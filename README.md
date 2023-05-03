@@ -26,7 +26,7 @@ Table of Contents
 
 Latest version / features
 -----------------
-[Latest version](#Latest-version)   (DATE)
+[Latest version](#Latest-version)   (2023-05-03)
 
 
 Introduction<a name="introduction"></a>
@@ -115,11 +115,11 @@ Date
   
 - Separate prompting input boxes with prioritising possibility  
   
-  Text above yadayadayada
+- All prompts can now be minimized, making the window smaller, 
+  and maybe some people will find this easier to work with.
   
 ![img](github_images/current_version.png)
   
-  text belowe yada yda ydaa
 
 </details>
 
