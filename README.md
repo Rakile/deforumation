@@ -111,7 +111,7 @@ Latest version<a name="Latest-version"></a>
 <details>
   <summary>Latest Version Info</summary>
 
-Date
+   2023-05-03
   
 - Separate prompting input boxes with prioritising possibility  
   
