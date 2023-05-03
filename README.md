@@ -107,6 +107,17 @@ Or whatever your imagination can come up with.
 
 Latest version<a name="Latest-version"></a>
 ----------
+<details>
+  <summary>Latest Version Info</summary>
+
+   2023-05-03 (later in the evening)
+  
+- Introducing another "Gentle Zero" for rotation. It works separate from "Gentle Zero" for panning.  
+  
+![img](github_images/current_version_gentle_zero_rotation.png)
+  
+
+</details>
 
 <details>
   <summary>Latest Version Info</summary>
