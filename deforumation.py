@@ -131,7 +131,7 @@ def changeBitmapWorker(parent):
                         #print("Image_Nr:"+str(current_frame).zfill(9))
                     else:
                         imageFound = True
-                time.sleep(0.10)
+                time.sleep(0.25)
             #elif if should_render_live == True:
     print("Thread destroyed")
 class MyPanel(wx.Panel):
@@ -1203,7 +1203,7 @@ class Mywin(wx.Frame):
                 self.writeValue(parameter_value, Rotation_3D_Y)
                 self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
                 print("ROTATION_Y:" + str(Rotation_3D_Y))
-            time.sleep(0.10)
+            time.sleep(0.25)
         self.writeAllValues()
         zero_pan_active = False
         zero_rotate_active = False
