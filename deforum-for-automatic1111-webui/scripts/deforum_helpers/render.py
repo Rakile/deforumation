@@ -1,23 +1,19 @@
 import os
-import json
 import pandas as pd
 import cv2
-import re
 import numpy as np
-import itertools
 import numexpr
 import gc
 import random
 import PIL
 import time
 from PIL import Image, ImageOps
-from .rich import console
 from .generate import generate, isJson
 from .noise import add_noise
-from .animation import sample_from_cv2, sample_to_cv2, anim_frame_warp
+from .animation import anim_frame_warp
 from .animation_key_frames import DeformAnimKeys, LooperAnimKeys
 from .video_audio_utilities import get_frame_name, get_next_frame
-from .depth import MidasModel, AdaBinsModel
+from .depth import DepthModel
 from .colors import maintain_colors
 from .parseq_adapter import ParseqAnimKeys
 from .seed import next_seed
@@ -37,8 +33,6 @@ from .prompt import prepare_prompt
 from modules.shared import opts, cmd_opts, state, sd_model
 from modules import lowvram, devices, sd_hijack
 from .RAFT import RAFT
-from .ZoeDepth import ZoeDepth
-import torch
 #Deforumation_mediator imports/settings
 from .deforum_mediator import mediator_getValue, mediator_setValue
 usingDeforumation = True
@@ -119,13 +113,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         keep_in_vram = opts.data.get("deforum_keep_3d_models_in_vram")
         
         device = ('cpu' if cmd_opts.lowvram or cmd_opts.medvram else root.device)
-        depth_model = MidasModel(root.models_path, device, root.half_precision, keep_in_vram=keep_in_vram, use_zoe_depth=anim_args.use_zoe_depth, Width=args.W, Height=args.H)
-        
-        if anim_args.midas_weight < 1.0:
-            if DEBUG_MODE:
-                print("Engaging AdaBins, as MiDaS < 1")
-            adabins_model = AdaBinsModel(root.models_path, keep_in_vram=keep_in_vram)
-            depth_model.adabins_helper = adabins_model.adabins_helper
+        depth_model = DepthModel(root.models_path, device, root.half_precision, keep_in_vram=keep_in_vram, depth_algorithm=anim_args.depth_algorithm, Width=args.W, Height=args.H, midas_weight=anim_args.midas_weight)
             
         # depth-based hybrid composite mask requires saved depth maps
         if anim_args.hybrid_composite != 'None' and anim_args.hybrid_comp_mask_type =='Depth':
@@ -168,7 +156,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         
         # advance start_frame to next frame
         start_frame = next_frame + 1
-        
+
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to write the current resume frame properties?
         mediator_setValue("should_resume", 0)
         print("DEFORUM, SETTING STARTFRAME:"+str(start_frame))
@@ -181,7 +169,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         else:
             mediator_setValue("resume_timestring", args.timestring)               
         connectedToServer = True
-        
+
     args.n_samples = 1
     frame_idx = start_frame
 
@@ -226,7 +214,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     while frame_idx < (anim_args.max_frames if not anim_args.use_mask_video else anim_args.max_frames - 1):
         #Webui
-        connectedToServer = False                
+        
         state.job = f"frame {frame_idx + 1}/{anim_args.max_frames}"
         state.job_no = frame_idx + 1
         
@@ -274,14 +262,14 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             connectedToServer = True
 
         print(f"\033[36mAnimation frame: \033[0m{frame_idx}/{anim_args.max_frames}  ")
+
+        noise = keys.noise_schedule_series[frame_idx]
         if usingDeforumation: #Should we Connect to the Deforumation websocket server and get seed_changed == new seed?
             if int(mediator_getValue("seed_changed")):
                 args.seed = int(mediator_getValue("seed"))
                 if args.seed == -1:
                     args.seed = random.randint(0, 2**32 - 1)
                 connectedToServer = True
-                
-        noise = keys.noise_schedule_series[frame_idx]
         if usingDeforumation: #Should we Connect to the Deforumation websocket server to get strength values?            
             if int(mediator_getValue("should_use_deforumation_strength")) == 1: #Should we use manual or deforum's strength scheduling?
                 deforumation_strength = float(mediator_getValue("strength"))
@@ -297,6 +285,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             scale = deforumation_cfg
         if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             scale = keys.cfg_scale_schedule_series[frame_idx]
+
         contrast = keys.contrast_schedule_series[frame_idx]
         kernel = int(keys.kernel_schedule_series[frame_idx])
         sigma = keys.sigma_schedule_series[frame_idx]
@@ -370,6 +359,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             tween_frame_start_idx = max(start_frame, frame_idx-turbo_steps)
             cadence_flow = None
             for tween_frame_idx in range(tween_frame_start_idx, frame_idx):
+                # update progress during cadence
+                state.job = f"frame {tween_frame_idx + 1}/{anim_args.max_frames}"
+                state.job_no = tween_frame_idx + 1
+                # cadence vars
                 tween = float(tween_frame_idx - tween_frame_start_idx + 1) / float(frame_idx - tween_frame_start_idx)
                 advance_prev = turbo_prev_image is not None and tween_frame_idx > turbo_prev_frame_idx
                 advance_next = tween_frame_idx > turbo_next_frame_idx
@@ -399,16 +392,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
                 # do optical flow cadence after animation warping
                 if cadence_flow is not None:
-                    # scale down relative flow for 2D to avoid warping function's effect on relative flow
-                    scale_factor = 1000 if anim_args.animation_mode == '2D' else 1
-                    cadence_flow = abs_flow_to_rel_flow(cadence_flow, scale_factor)
-                    # store sampling mode and restore after (for 3D cadence, does nothing in 2D)
-                    current_sampling_mode = anim_args.sampling_mode
-                    anim_args.sampling_mode = "nearest"
+                    cadence_flow = abs_flow_to_rel_flow(cadence_flow, args.W, args.H)
                     cadence_flow, _ = anim_frame_warp(cadence_flow, args, anim_args, keys, tween_frame_idx, depth_model, depth=depth, device=root.device, half_precision=root.half_precision)
-                    anim_args.sampling_mode = current_sampling_mode
-                    # determing flow increment and apply
-                    cadence_flow_inc = rel_flow_to_abs_flow(cadence_flow, scale_factor) * tween
+                    cadence_flow_inc = rel_flow_to_abs_flow(cadence_flow, args.W, args.H) * tween
                     if advance_prev:
                         turbo_prev_image = image_transform_optical_flow(turbo_prev_image, cadence_flow_inc, cadence_flow_factor)
                     if advance_next:
@@ -431,14 +417,14 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                                 turbo_next_image = image_transform_ransac(turbo_next_image, matrix, anim_args.hybrid_motion)
                     if anim_args.hybrid_motion in ['Optical Flow']:
                         if anim_args.hybrid_motion_use_prev_img:
-                            flow = get_flow_for_hybrid_motion_prev(tween_frame_idx-1, (args.W, args.H), inputfiles, hybrid_frame_path, prev_flow, prev_img, anim_args.hybrid_flow_method, raft_model, anim_args.hybrid_comp_save_extra_frames)                            
+                            flow = get_flow_for_hybrid_motion_prev(tween_frame_idx-1, (args.W, args.H), inputfiles, hybrid_frame_path, prev_flow, prev_img, anim_args.hybrid_flow_method, raft_model, anim_args.hybrid_flow_consistency, anim_args.hybrid_consistency_blur, anim_args.hybrid_comp_save_extra_frames)                            
                             if advance_prev:
                                 turbo_prev_image = image_transform_optical_flow(turbo_prev_image, flow, hybrid_comp_schedules['flow_factor'])
                             if advance_next:
                                 turbo_next_image = image_transform_optical_flow(turbo_next_image, flow, hybrid_comp_schedules['flow_factor'])
                             prev_flow = flow
                         else:
-                            flow = get_flow_for_hybrid_motion(tween_frame_idx-1, (args.W, args.H), inputfiles, hybrid_frame_path, prev_flow, anim_args.hybrid_flow_method, raft_model, anim_args.hybrid_comp_save_extra_frames)
+                            flow = get_flow_for_hybrid_motion(tween_frame_idx-1, (args.W, args.H), inputfiles, hybrid_frame_path, prev_flow, anim_args.hybrid_flow_method, raft_model, anim_args.hybrid_flow_consistency, anim_args.hybrid_consistency_blur, anim_args.hybrid_comp_save_extra_frames)
                             if advance_prev:
                                 turbo_prev_image = image_transform_optical_flow(turbo_prev_image, flow, hybrid_comp_schedules['flow_factor'])
                             if advance_next:
@@ -464,6 +450,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 # get prev_img during cadence
                 prev_img = img
 
+                # current image update for cadence frames (left commented because it doesn't currently update the preview)
+                # state.current_image = Image.fromarray(cv2.cvtColor(img.astype(np.uint8), cv2.COLOR_BGR2RGB))
+
                 # saving cadence frames
                 filename = f"{args.timestring}_{tween_frame_idx:09}.png"
                 cv2.imwrite(os.path.join(args.outdir, filename), img)
@@ -471,7 +460,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     mediator_setValue("start_frame", tween_frame_idx)
                 if anim_args.save_depth_maps:
                     depth_model.save(os.path.join(args.outdir, f"{args.timestring}_depth_{tween_frame_idx:09}.png"), depth)
-                    # depth_model.save_colored_depth(depth, os.path.join(args.outdir, f"{args.timestring}_depth_{tween_frame_idx:09}.png"))
 
         # get color match for video outside of prev_img conditional
         hybrid_available = anim_args.hybrid_composite != 'None' or anim_args.hybrid_motion in ['Optical Flow', 'Affine', 'Perspective']
@@ -500,9 +488,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 prev_img = image_transform_ransac(prev_img, matrix, anim_args.hybrid_motion)    
             if anim_args.hybrid_motion in ['Optical Flow']:
                 if anim_args.hybrid_motion_use_prev_img:
-                    flow = get_flow_for_hybrid_motion_prev(frame_idx-1, (args.W, args.H), inputfiles, hybrid_frame_path, prev_flow, prev_img, anim_args.hybrid_flow_method, raft_model, anim_args.hybrid_comp_save_extra_frames)
+                    flow = get_flow_for_hybrid_motion_prev(frame_idx-1, (args.W, args.H), inputfiles, hybrid_frame_path, prev_flow, prev_img, anim_args.hybrid_flow_method, raft_model, anim_args.hybrid_flow_consistency, anim_args.hybrid_consistency_blur, anim_args.hybrid_comp_save_extra_frames)
                 else:
-                    flow = get_flow_for_hybrid_motion(frame_idx-1, (args.W, args.H), inputfiles, hybrid_frame_path, prev_flow, anim_args.hybrid_flow_method, raft_model,anim_args.hybrid_comp_save_extra_frames)
+                    flow = get_flow_for_hybrid_motion(frame_idx-1, (args.W, args.H), inputfiles, hybrid_frame_path, prev_flow, anim_args.hybrid_flow_method, raft_model, anim_args.hybrid_flow_consistency, anim_args.hybrid_consistency_blur, anim_args.hybrid_comp_save_extra_frames)
                 prev_img = image_transform_optical_flow(prev_img, flow, hybrid_comp_schedules['flow_factor'])
                 prev_flow = flow
 
@@ -558,7 +546,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
         if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             args.prompt = prompt_series[frame_idx]
-      
+                  
         if args.seed_behavior == 'schedule' or use_parseq:
             args.seed = int(keys.seed_schedule_series[frame_idx])
 
@@ -579,7 +567,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             args.subseed_strength = keys.subseed_strength_schedule_series[frame_idx]
 
         # set value back into the prompt - prepare and report prompt and seed
-        args.prompt = prepare_prompt(args.prompt, anim_args.max_frames, args.seed)
+        args.prompt = prepare_prompt(args.prompt, anim_args.max_frames, args.seed, frame_idx)
 
         # grab init image for current frame
         if using_vid_init:
@@ -713,9 +701,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         args.seed = next_seed(args)
         
     if predict_depths and not keep_in_vram:
-        depth_model.delete_model()
-        if anim_args.midas_weight < 1.0:
-            adabins_model.delete_model()
+        depth_model.delete_model() # handles adabins too
             
-    if load_raft: # TODO: add to keep_in_vram? only 22MB...
+    if load_raft:
         raft_model.delete_model()
