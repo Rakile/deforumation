@@ -84,7 +84,7 @@ By using Deforumation, you understand and acknowledge that it is an unofficial, 
 Discord Channel<a name="Discord-Channel"></a>
 ----------
 
-[Welcome To Deforumation](https://discord.gg/7rVNyX6w) 
+[Welcome To Deforumation] (https://discord.gg/rbKFVh9v87) 
 
 
 Ongoing Work<a name="Ongoing-Work"></a>
