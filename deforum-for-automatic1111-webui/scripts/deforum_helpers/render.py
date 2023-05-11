@@ -34,7 +34,7 @@ from modules.shared import opts, cmd_opts, state, sd_model
 from modules import lowvram, devices, sd_hijack
 from .RAFT import RAFT
 #Deforumation_mediator imports/settings
-from .deforum_mediator import mediator_getValue, mediator_setValue
+from .deforum_mediator import mediator_getValue, mediator_setValue, mediator_set_anim_args
 usingDeforumation = True
 #End settings
 
@@ -158,9 +158,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         start_frame = next_frame + 1
 
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to write the current resume frame properties?
+        mediator_set_anim_args(anim_args, args)
         mediator_setValue("should_resume", 0)
         print("DEFORUM, SETTING STARTFRAME:"+str(start_frame))
-        mediator_setValue("start_frame", start_frame)
+        mediator_setValue("start_frame", -1) #We set this in order to help third party know, that no image has been produced yet.
         print("DEFORUM, SETTING OUTDIR:"+args.outdir)
         mediator_setValue("frame_outdir", args.outdir)
         print("DEFORUM, SETTING RESUMESTRING:"+str(anim_args.resume_timestring))
@@ -231,7 +232,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 if ispaused == 0:
                     print("\n** PAUSED **")
                     ispaused = 1
-                time.sleep(0.1)
+                time.sleep(0.5)
             if ispaused:
                 print("** RESUMING **")
             shouldResume = int(mediator_getValue("should_resume"))  #should_resume should be set when third party chooses another frame (rewinding forward, etc), it doesn't need to happen in paused mode       
