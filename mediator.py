@@ -1,7 +1,12 @@
 import asyncio
+import time
+
 import websockets
 import pickle
-
+#Server-stuff
+stop = None
+server = None
+serverShutDown = False
 #Run/Steps
 steps = 25
 #Keyframes/Strength
@@ -32,6 +37,7 @@ doVerbose2 = False
 should_use_deforumation_strength = 1
 cadence = 2
 async def echo(websocket):
+    global serverShutDown
     global Prompt_Positive
     global Prompt_Negative
     global rotation_x
@@ -120,6 +126,8 @@ async def echo(websocket):
             elif str(parameter) == "rotation_x":
                 if shouldWrite:
                     rotation_x = float(value)
+                    #print("writing rotation_x:" + str(rotation_x))
+                    #time.sleep(20)
                 else:
                     if doVerbose:
                         print("sending rotation_x:"+str(rotation_x))
@@ -236,17 +244,51 @@ async def echo(websocket):
                     if doVerbose2:
                         print("sending cadence:"+str(cadence))
                     await websocket.send(str(cadence))
-
-
+            elif str(parameter) == "shutdown":
+                serverShutDown = True
             if shouldWrite: #Return an "OK" if the writes went OK
                 await websocket.send("OK")
         else: #Array was not a length of 3 [True/False,<parameter value>,<value>
             if doVerbose:
                 await websocket.send("ERROR")
-
+        #asyncio.get_event_loop().stop()
+        #await websocket.close()
+        #loop = asyncio.get_event_loop()
+        #loop.stop()
 
 async def main():
-    async with websockets.serve(echo, "localhost", 8765):
-        await asyncio.Future()  # run forever
+    global stop
+    global server
+    try:
+        stop = asyncio.Future()  # run forever
+        server = await websockets.serve(echo, "localhost", 8765)
+        #loop = asyncio.get_event_loop()
 
-asyncio.run(main())
+        while True:
+            if serverShutDown:
+                print("Shutting down Server")
+                #pending = asyncio.Task.all_tasks()
+                #group = asyncio.gather(*pending, return_exceptions=True)
+                server.close()
+                #server. run_until_complete(server)
+                #loop.close()
+                #server.close()
+                break
+            await asyncio.sleep(5)
+    except KeyboardInterrupt:
+        server.close()
+        print("Ctrl-c :)")
+    #await stop
+    #await server.close()
+    #async with websockets.serve(echo, "localhost", 8765):
+    #    await stop
+
+if __name__ == '__main__':
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        serverShutDown = True
+        #server.close()
+        print("Shutting down Server")
+
+
