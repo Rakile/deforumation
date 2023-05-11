@@ -59,8 +59,13 @@ stepit_rotate = 0
 async def sendAsync(value):
     async with websockets.connect("ws://localhost:8765") as websocket:
         #await websocket.send(pickle.dumps(value))
-        await asyncio.wait_for(websocket.send(pickle.dumps(value)),1)
-        message = await asyncio.wait_for(websocket.recv(), 1)
+        try:
+            await asyncio.wait_for(websocket.send(pickle.dumps(value)), timeout=10.0)
+            message = await asyncio.wait_for(websocket.recv(), timeout=10.0)
+        except TimeoutError:
+            print('timeout!')
+        if message == None:
+            message = "-NO CONNECTION-"
 
         #asyncio.ensure_future(message=websocket.recv())
         #print(str(message))
@@ -72,22 +77,49 @@ def scale_bitmap(bitmap, width, height):
     return result
 
 def get_current_image_path():
-    outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('\\', '/').replace('\n', '')
-    resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
+    outdir = str(readValue("frame_outdir")).replace('\\', '/').replace('\n', '')
+    resume_timestring = str(readValue("resume_timestring"))
     imagePath = outdir + "/" + resume_timestring + "_" + str(current_frame).zfill(9) + ".png"
     return imagePath
 
 def get_current_image_path_paused():
-    outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('\\', '/').replace('\n', '')
-    resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
+    outdir = str(readValue("frame_outdir")).replace('\\', '/').replace('\n', '')
+    resume_timestring = str(readValue("resume_timestring"))
     imagePath = outdir + "/" + resume_timestring + "_" + str(current_render_frame).zfill(9) + ".png"
     return imagePath
 
 def get_current_image_path_f(frame_num):
-    outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('\\', '/').replace('\n', '')
-    resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
+    outdir = str(readValue("frame_outdir")).replace('\\', '/').replace('\n', '')
+    resume_timestring = str(readValue("resume_timestring"))
     imagePath = outdir + "/" + resume_timestring + "_" + str(frame_num).zfill(9) + ".png"
     return imagePath
+
+def writeValue(param, value):
+    checkerrorConnecting = True
+    while checkerrorConnecting:
+        try:
+            asyncio.run(sendAsync([1, param, value]))
+            checkerrorConnecting = False
+        except Exception as e:
+            print("Deforumation Mediator Error:" + str(e))
+            print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)")
+            time.sleep(5)
+
+def readValue(param):
+    checkerrorConnecting = True
+    while checkerrorConnecting:
+        try:
+            return_value = asyncio.run(sendAsync([0, param, 0]))
+            if return_value != None:
+            #    if str(return_value) == "-NO CONNECTION-":
+            #        print("Mediator.py is running? Were getting a time out, when trying to read a value. Waiting 5 seconds before trying to connect again.")
+            #        time.sleep(5)
+            #        continue
+                return return_value
+        except Exception as e:
+            print("Deforumation Mediator Error:" + str(e))
+            print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)")
+            time.sleep(5)
 
 def changeBitmapWorker(parent):
     #global current_render_frame
@@ -100,7 +132,7 @@ def changeBitmapWorker(parent):
             if should_render_live == True:
                 #lock = asyncio.Lock()
                 #try:
-                current_frame = int(asyncio.run(sendAsync([0, "start_frame", 0])))
+                current_frame = int(readValue("start_frame"))
                 #current_frame = int(asyncio.get_event_loop().run_until_complete(sendAsync([0, "start_frame", 0])))
                 #loop = asyncio.get_event_loop()
                 #task = loop.create_task(sendAsync([0, "start_frame", 0]))
@@ -110,13 +142,14 @@ def changeBitmapWorker(parent):
                 if current_frame == last_rendered:
                     continue
                 last_rendered = current_frame
-                is_paused = asyncio.run(sendAsync([0, "is_paused_rendering", 0]))
+                is_paused = readValue("is_paused_rendering")
                 #if current_render_frame < current_frame or int(is_paused) == 0:
                 if int(is_paused) == 0:
                     imagePath = get_current_image_path_f(current_frame)
                     maxBackTrack = 10
                     while not os.path.isfile(imagePath):
-                        if (current_frame == 0):
+                        if (current_frame <= 0):
+                            imageFound = False
                             break
                         current_frame = int(current_frame) - 1
                         imagePath = get_current_image_path_f(current_frame)
@@ -879,25 +912,55 @@ class Mywin(wx.Frame):
 
             except Exception as e:
                 print(e)
-            asyncio.run(sendAsync([1, "is_paused_rendering", is_paused_rendering]))
-            asyncio.run(sendAsync([1, "positive_prompt", self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n"]))
-            asyncio.run(sendAsync([1, "negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n"]))
-            asyncio.run(sendAsync([1, "strength", Strength_Scheduler]))
-            asyncio.run(sendAsync([1, "cfg", CFG_Scale]))
-            asyncio.run(sendAsync([1, "steps", STEP_Schedule]))
-            asyncio.run(sendAsync([1, "fov", FOV_Scale]))
-            asyncio.run(sendAsync([1, "translation_x", Translation_X]))
-            asyncio.run(sendAsync([1, "translation_y", Translation_Y]))
-            asyncio.run(sendAsync([1, "translation_z", Translation_Z]))
-            asyncio.run(sendAsync([1, "rotation_x", Rotation_3D_X]))
-            asyncio.run(sendAsync([1, "rotation_y", Rotation_3D_Y]))
-            asyncio.run(sendAsync([1, "rotation_z", Rotation_3D_Z]))
-            asyncio.run(sendAsync([1, "rotation_z", Rotation_3D_Z]))
-            asyncio.run(sendAsync([1, "should_use_deforumation_strength", int(should_use_deforumation_strength)]))
-            asyncio.run(sendAsync([1, "cadence", int(Cadence_Schedule)]))
+            self.writeValue("is_paused_rendering", is_paused_rendering)
+            positive_prio = {
+                int(self.positive_prompt_input_ctrl_prio.GetValue()): self.positive_prompt_input_ctrl.GetValue(),
+                int(self.positive_prompt_input_ctrl_2_prio.GetValue()): self.positive_prompt_input_ctrl_2.GetValue(),
+                int(self.positive_prompt_input_ctrl_3_prio.GetValue()): self.positive_prompt_input_ctrl_3.GetValue(),
+                int(self.positive_prompt_input_ctrl_4_prio.GetValue()): self.positive_prompt_input_ctrl_4.GetValue()}
+            sortedDict = sorted(positive_prio.items())
+            totalPossitivePromptString = sortedDict[0][1] + "," + sortedDict[1][1] + "," + sortedDict[2][1] + "," + \
+                                         sortedDict[3][1]
+            self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n")
+            self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '') + "\n")
+            #self.writeValue("positive_prompt", self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
+            #self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
+            self.writeValue("strength", Strength_Scheduler)
+            self.writeValue("cfg", CFG_Scale)
+            self.writeValue("steps", STEP_Schedule)
+            self.writeValue("fov", FOV_Scale)
+            self.writeValue("translation_x", Translation_X)
+            self.writeValue("translation_y", Translation_Y)
+            self.writeValue("translation_z", Translation_Z)
+            self.writeValue("rotation_x", Rotation_3D_X)
+            self.writeValue("rotation_y", Rotation_3D_Y)
+            self.writeValue("rotation_z", Rotation_3D_Z)
+            self.writeValue("rotation_z", Rotation_3D_Z)
+            self.writeValue("should_use_deforumation_strength", int(should_use_deforumation_strength))
+            self.writeValue("cadence", int(Cadence_Schedule))
 
     def writeValue(self, param, value):
-        asyncio.run(sendAsync([1, param, value]))
+        checkerrorConnecting = True
+        while checkerrorConnecting:
+            try:
+                asyncio.run(sendAsync([1, param, value]))
+                checkerrorConnecting = False
+            except Exception as e:
+                print("Deforumation Mediator Error:" + str(e))
+                print("The XDeforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)...writing:"+str(param))
+                time.sleep(5)
+
+    def readValue(self, param):
+        checkerrorConnecting = True
+        while checkerrorConnecting:
+            try:
+                return_value = asyncio.run(sendAsync([0, param, 0]))
+                #print("All good reading:" + str(param))
+                return return_value
+            except Exception as e:
+                print("Deforumation Mediator Error:" + str(e))
+                print("The XDeforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)...ererror:reading:"+str(param))
+                time.sleep(5)
 
     def writeAllValues(self):
         try:
@@ -910,8 +973,8 @@ class Mywin(wx.Frame):
                     int(self.positive_prompt_input_ctrl_4_prio.GetValue()): self.positive_prompt_input_ctrl_4.GetValue()}
                 sortedDict = sorted(positive_prio.items())
                 totalPossitivePromptString = sortedDict[0][1] + "," + sortedDict[1][1] + "," + sortedDict[2][1] + "," + sortedDict[3][1]
-                asyncio.run(sendAsync([1, "positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n"]))
-                asyncio.run(sendAsync([1, "negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n"]))
+                self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n")
+                self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
         except Exception as e:
             print(e)
         deforumFile = open(deforumationSettingsPath, 'w')
@@ -937,12 +1000,12 @@ class Mywin(wx.Frame):
         deforumFile.write(self.rotate_step_input_box.GetValue().strip().replace('\n', '')+"\n")
         deforumFile.write(self.tilt_step_input_box.GetValue().strip().replace('\n', '')+"\n")
         deforumFile.write(str(self.cadence_slider.GetValue())+"\n")
-        deforumFile.write(str(self.zero_pan_step_input_box.GetValue()))
-        deforumFile.write(str(self.zero_rotate_step_input_box.GetValue()))
+        deforumFile.write(str(self.zero_pan_step_input_box.GetValue().strip().replace('\n', '')+"\n"))
+        deforumFile.write(str(self.zero_rotate_step_input_box.GetValue().strip().replace('\n', '')))
         deforumFile.close()
 
     def getClosestPrompt(self, forwardrewindType, p_current_frame):
-        resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
+        resume_timestring = str(readValue("resume_timestring"))
         returnFrame = str(p_current_frame)
         if os.path.isfile(deforumationPromptsPath + resume_timestring + "_P" + ".txt") and os.path.isfile(deforumationPromptsPath + resume_timestring + "_N" + ".txt"):
             promptFile_positive = open(deforumationPromptsPath + resume_timestring + "_P" + ".txt", 'r')
@@ -971,7 +1034,7 @@ class Mywin(wx.Frame):
         return str(returnFrame)
 
     def loadCurrentPrompt(self, promptType, frame_start,showType):
-        resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
+        resume_timestring = str(readValue("resume_timestring"))
         if os.path.isfile(deforumationPromptsPath + resume_timestring + "_" + promptType + ".txt"):
             promptFile = open(deforumationPromptsPath + resume_timestring + "_" + promptType + ".txt", 'r')
             old_lines = promptFile.readlines()
@@ -1000,13 +1063,13 @@ class Mywin(wx.Frame):
                         int(self.positive_prompt_input_ctrl_4_prio.GetValue()): self.positive_prompt_input_ctrl_4.GetValue()}
                     sortedDict = sorted(positive_prio.items())
                     totalPossitivePromptString = sortedDict[0][1] + "," + sortedDict[1][1] + "," + sortedDict[2][1] + "," + sortedDict[3][1]
-                    asyncio.run(sendAsync([1, "positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n"]))
+                    self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n")
                 else:
-                    asyncio.run(sendAsync([1, "negative_prompt", promptToShow.strip().replace('\n', '')+"\n"]))
+                    self.writeValue("negative_prompt", promptToShow.strip().replace('\n', '')+"\n")
 
 
     def saveCurrentPrompt(self, promptType):
-        resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
+        resume_timestring = str(readValue("resume_timestring"))
         fileAlreadyExists = True
         if not os.path.exists(deforumationPromptsPath):
             print("Folder doesn't exist.... creating.")
@@ -1097,7 +1160,7 @@ class Mywin(wx.Frame):
         zero_frame_steps = frame_steps
         if zero_frame_steps == 0:
             return
-        now_frame = int(asyncio.run(sendAsync([0, "start_frame", 0])))
+        now_frame = int(readValue("start_frame"))
         zero_frame_steps_n_frame = 0
         if parameter_value == "translation_x":
             stepit_pan = 1
@@ -1124,9 +1187,9 @@ class Mywin(wx.Frame):
                 if Rotation_3D_Y < 0:
                     is_negative = 1
 
-        print("Stepper")
+        #print("Stepper thread activated")
         while (stepit_pan or stepit_rotate) and zero_frame_steps_n_frame != 0:
-            current_step_frame = int(asyncio.run(sendAsync([0, "start_frame", 0])))
+            current_step_frame = int(readValue("start_frame"))
             if (int(current_step_frame) > int(now_frame)):
                 now_frame = current_step_frame
                 if parameter_value == "translation_x":
@@ -1198,11 +1261,11 @@ class Mywin(wx.Frame):
             elif parameter_value == "rotation_x":
                 self.writeValue(parameter_value, Rotation_3D_X)
                 self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
-                print("ROTATION_X:" + str(Rotation_3D_X))
+                print("Rotaion_X:" + str(Rotation_3D_X))
             elif parameter_value == "rotation_y":
                 self.writeValue(parameter_value, Rotation_3D_Y)
                 self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
-                print("ROTATION_Y:" + str(Rotation_3D_Y))
+                print("Rotaion_Y:" + str(Rotation_3D_Y))
             time.sleep(0.25)
         self.writeAllValues()
         zero_pan_active = False
@@ -1272,8 +1335,8 @@ class Mywin(wx.Frame):
             positive_prio = {int(self.positive_prompt_input_ctrl_prio.GetValue()):self.positive_prompt_input_ctrl.GetValue(), int(self.positive_prompt_input_ctrl_2_prio.GetValue()):self.positive_prompt_input_ctrl_2.GetValue(), int(self.positive_prompt_input_ctrl_3_prio.GetValue()):self.positive_prompt_input_ctrl_3.GetValue(), int(self.positive_prompt_input_ctrl_4_prio.GetValue()):self.positive_prompt_input_ctrl_4.GetValue()}
             sortedDict = sorted(positive_prio.items())
             totalPossitivePromptString = sortedDict[0][1]+","+sortedDict[1][1]+","+sortedDict[2][1]+","+sortedDict[3][1]
-            asyncio.run(sendAsync([1, "positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n"]))
-            asyncio.run(sendAsync([1, "negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '') + "\n"]))
+            self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n")
+            self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '') + "\n")
         elif btn == "PAN_LEFT":
             Translation_X = Translation_X - float(self.pan_step_input_box.GetValue())
             self.writeValue("translation_x", Translation_X)
@@ -1325,7 +1388,7 @@ class Mywin(wx.Frame):
             self.writeValue("strength", Strength_Scheduler)
         elif event.GetId() == 3: #Seed Input Box
             seedValue = int(self.seed_input_box.GetValue())
-            print("SeedValue:"+str(seedValue))
+            #print("SeedValue:"+str(seedValue))
             self.writeValue("seed", seedValue)
         elif btn == "LOOK_LEFT":
             Rotation_3D_Y = Rotation_3D_Y - float(self.rotate_step_input_box.GetValue())
@@ -1418,10 +1481,10 @@ class Mywin(wx.Frame):
             Cadence_Schedule = int(self.cadence_slider.GetValue())
             self.writeValue("cadence", Cadence_Schedule)
         elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2 or btn == "REWIND_CLOSEST" or btn == "FORWARD_CLOSEST":
-            current_frame = str(int(asyncio.run(sendAsync([0, "start_frame", 0]))))
+            current_frame = str(self.readValue("start_frame"))
             current_render_frame = int(current_frame)
-            outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('\\', '/').replace('\n', '')
-            resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
+            outdir = str(readValue("frame_outdir")).replace('\\', '/').replace('\n', '')
+            resume_timestring = str(readValue("resume_timestring"))
             if btn == "REWIND_CLOSEST":
                 current_render_frame = self.frame_step_input_box.GetValue()
                 if current_render_frame == "":
@@ -1496,25 +1559,25 @@ class Mywin(wx.Frame):
             current_render_frame = int(current_frame)
             self.loadCurrentPrompt("P", current_frame, 1)
             self.loadCurrentPrompt("N", current_frame, 1)
-            asyncio.run(sendAsync([1, "start_frame", int(current_frame)]))
-            asyncio.run(sendAsync([1, "should_resume", 1]))
+            self.writeValue("start_frame", int(current_frame))
+            self.writeValue("should_resume", 1)
         elif btn == "USE DEFORUMATION":
-            print("CURRENT IS:"+str(should_use_deforumation_strength))
+            #print("CURRENT IS:"+str(should_use_deforumation_strength))
             if should_use_deforumation_strength == 0:
-                asyncio.run(sendAsync([1, "should_use_deforumation_strength", 1]))
+                self.writeValue("should_use_deforumation_strength", 1)
                 should_use_deforumation_strength = 1
-                print("NOW IT IS:"+str(should_use_deforumation_strength))
+                #print("NOW IT IS:"+str(should_use_deforumation_strength))
             else:
-                asyncio.run(sendAsync([1, "should_use_deforumation_strength", 0]))
+                self.readValue("should_use_deforumation_strength")
                 should_use_deforumation_strength = 0
-                print("NOW IT IS:"+str(should_use_deforumation_strength))
+                #print("NOW IT IS:"+str(should_use_deforumation_strength))
         elif btn == "LIVE RENDER":
-            current_frame = str(int(asyncio.run(sendAsync([0, "start_frame", 0]))))
+            current_frame = str(self.readValue("start_frame"))
             #print("should_render_live: "+str(should_render_live))
             if should_render_live == False:
                 should_render_live = True
-                outdir = str(asyncio.run(sendAsync([0, "frame_outdir", 0]))).replace('\\', '/').replace('\n', '')
-                resume_timestring = str(asyncio.run(sendAsync([0, "resume_timestring", 0])))
+                outdir = str(self.readValue("frame_outdir")).replace('\\', '/').replace('\n', '')
+                resume_timestring = str(self.readValue("resume_timestring"))
                 current_frame = current_frame.zfill(9)
                 imagePath = outdir + "/" + resume_timestring + "_" + current_frame + ".png"
                 imagePath = get_current_image_path()
