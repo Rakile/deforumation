@@ -238,25 +238,76 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             shouldResume = int(mediator_getValue("should_resume"))  #should_resume should be set when third party chooses another frame (rewinding forward, etc), it doesn't need to happen in paused mode       
             if shouldResume == 1: #If shouldResume == 1, then third party has choosen to jump to a non continues frame
                 start_frame = int(mediator_getValue("start_frame"))
+                turbo_steps = int(mediator_getValue("cadence"))
+                if start_frame == 0:
+                    start_frame = start_frame + turbo_steps
                 print("\n** RESUMING FROM FRAME: " + str(start_frame)+" **")
-                # resume animation
-                prev_img = None
-                color_match_sample = None
-                #if anim_args.resume_from_timestring:
-                last_frame = start_frame-1
-                if turbo_steps > 1:
-                    last_frame -= last_frame%turbo_steps
-                path = os.path.join(args.outdir,f"{args.timestring}_{last_frame:09}.png")
-                img = cv2.imread(path)
-                prev_img = img
-                if anim_args.color_coherence != 'None':
-                    color_match_sample = img
-                if turbo_steps > 1:
-                    turbo_next_image, turbo_next_frame_idx = prev_img, last_frame
-                    turbo_prev_image, turbo_prev_frame_idx = turbo_next_image, turbo_next_frame_idx
-                    start_frame = last_frame+turbo_steps
-                args.n_samples = 1
+                # resume animation (requires at least two frames - see function)
+                # determine last frame and frame to start on
+                # get last frame from frame count corrected for any trailing cadence frames
+                last_frame = start_frame - (start_frame % turbo_steps)
+
+                # calculate previous actual frame
+                prev_frame = last_frame - turbo_steps
+
+                # calculate next actual frame
+                next_frame = last_frame - 1
+
+                path = os.path.join(args.outdir, f"{args.timestring}_{prev_frame:09}.png")  
+                prev_img = cv2.imread(path)
+                path = os.path.join(args.outdir, f"{args.timestring}_{next_frame:09}.png")  
+                next_img = cv2.imread(path)
+
+                # set up turbo step vars (We temporarily set turbo_steps to 1)
+                turbo_prev_image, turbo_prev_frame_idx = prev_img, prev_frame
+                turbo_next_image, turbo_next_frame_idx = next_img, next_frame
+                # advance start_frame to next frame
+                start_frame = last_frame
                 frame_idx = start_frame
+
+                color_match_sample = None
+                #if turbo_steps > 1:
+                #    last_frame -= last_frame%turbo_steps
+                #path = os.path.join(args.outdir,f"{args.timestring}_{last_frame:09}.png")
+                #img = cv2.imread(path)
+                #prev_img = img
+                #if anim_args.color_coherence != 'None':
+                #    color_match_sample = img
+
+                args.n_samples = 1
+                #frame_idx = start_frame + 1
+                #frame_idx += turbo_steps
+
+                # reset the mask vals as they are overwritten in the compose_mask algorithm
+                #mask_vals = {}
+                #noise_mask_vals = {}
+
+                #mask_vals['everywhere'] = Image.new('1', (args.W, args.H), 1)
+                #noise_mask_vals['everywhere'] = Image.new('1', (args.W, args.H), 1)
+                #mask_image = None
+                #_, mask_image = load_img(path, shape=(args.W, args.H), use_alpha_as_mask=args.use_alpha_as_mask)
+                #mask_vals['video_mask'] = mask_image
+                #noise_mask_vals['video_mask'] = mask_image
+                
+                # Grab the first frame masks since they wont be provided until next frame    
+                # Video mask overrides the init image mask, also, won't be searching for init_mask if use_mask_video is set
+                # Made to solve https://github.com/deforum-art/deforum-for-automatic1111-webui/issues/386
+                #if anim_args.use_mask_video:
+
+                 #   args.mask_file = get_mask_from_file(get_next_frame(args.outdir, anim_args.video_mask_path, frame_idx, True), args)
+                 #   args.noise_mask = get_mask_from_file(get_next_frame(args.outdir, anim_args.video_mask_path, frame_idx, True), args)
+
+                  #  mask_vals['video_mask'] = get_mask_from_file(get_next_frame(args.outdir, anim_args.video_mask_path, frame_idx, True), args)
+                  #  noise_mask_vals['video_mask'] = get_mask_from_file(get_next_frame(args.outdir, anim_args.video_mask_path, frame_idx, True), args)
+                #elif mask_image is None and args.use_mask:
+                 #   mask_vals['video_mask'] = get_mask(args)
+                  #  noise_mask_vals['video_mask'] = get_mask(args) # TODO?: add a different default noisc mask
+
+                # get color match for 'Image' color coherence only once, before loop
+                #if anim_args.color_coherence == 'Image':
+                #    color_match_sample = load_image(anim_args.color_coherence_image_path)
+                #    color_match_sample = color_match_sample.resize((args.W, args.H), PIL.Image.LANCZOS)
+                #    color_match_sample = cv2.cvtColor(np.array(color_match_sample), cv2.COLOR_RGB2BGR)                
                 mediator_setValue("should_resume", 0)
             else:
                 donothing = 0
@@ -458,7 +509,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 filename = f"{args.timestring}_{tween_frame_idx:09}.png"
                 cv2.imwrite(os.path.join(args.outdir, filename), img)
                 if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell 3:d parties what frame we are on currently?
-                    mediator_setValue("start_frame", tween_frame_idx)
+                    shouldResume = int(mediator_getValue("should_resume"))  #If the user pushed "Set current image" in Deforumation, we can't just overwrite the new start_frame  
+                    if not shouldResume:
+                        mediator_setValue("start_frame", tween_frame_idx)
                 if anim_args.save_depth_maps:
                     depth_model.save(os.path.join(args.outdir, f"{args.timestring}_depth_{tween_frame_idx:09}.png"), depth)
 
@@ -680,7 +733,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             filename = f"{args.timestring}_{frame_idx:09}.png"
             save_image(image, 'PIL', filename, args, video_args, root)
             if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell 3:d parties what frame_idx we are on currently?
-                mediator_setValue("start_frame", frame_idx)
+                shouldResume = int(mediator_getValue("should_resume"))  #If the user pushed "Set current image" in Deforumation, we can't just overwrite the new start_frame  
+                if not shouldResume:
+                    mediator_setValue("start_frame", frame_idx)
 
             if anim_args.save_depth_maps:
                 if cmd_opts.lowvram or cmd_opts.medvram:
