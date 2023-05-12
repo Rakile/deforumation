@@ -842,6 +842,7 @@ class Mywin(wx.Frame):
         global is_fov_locked
         global is_reverse_fov_locked
         global STEP_Schedule
+        global Cadence_Schedule
         global is_paused_rendering
         global should_use_deforumation_strength
         global pan_left_key,pan_right_key,pan_up_key,pan_down_key,zoom_up_key,zoom_down_key
@@ -907,6 +908,7 @@ class Mywin(wx.Frame):
                 self.rotate_step_input_box.SetValue(deforumFile.readline())
                 self.tilt_step_input_box.SetValue(deforumFile.readline())
                 self.cadence_slider.SetValue(int(deforumFile.readline()))
+                Cadence_Schedule = int(self.cadence_slider.GetValue())
                 self.zero_pan_step_input_box.SetValue(deforumFile.readline())
                 self.zero_rotate_step_input_box.SetValue(deforumFile.readline())
 
@@ -1356,6 +1358,8 @@ class Mywin(wx.Frame):
                 if frame_steps == 0:
                     Translation_X = 0
                     Translation_Y = 0
+                    self.writeValue("translation_x", Translation_X)
+                    self.writeValue("translation_y", Translation_Y)
                 elif Translation_X == 0 and Translation_Y == 0:
                     zero_pan_active = False
                 else:
@@ -1414,6 +1418,8 @@ class Mywin(wx.Frame):
                 if frame_steps == 0:
                     Rotation_3D_X = 0
                     Rotation_3D_Y = 0
+                    self.writeValue("rotation_x", Rotation_3D_X)
+                    self.writeValue("rotation_y", Rotation_3D_Y)
                 elif Rotation_3D_X == 0 and Rotation_3D_Y == 0:
                     zero_rotate_active = False
                 else:
@@ -1559,8 +1565,8 @@ class Mywin(wx.Frame):
             current_render_frame = int(current_frame)
             self.loadCurrentPrompt("P", current_frame, 1)
             self.loadCurrentPrompt("N", current_frame, 1)
-            self.writeValue("start_frame", int(current_frame))
             self.writeValue("should_resume", 1)
+            self.writeValue("start_frame", int(current_frame))
         elif btn == "USE DEFORUMATION":
             #print("CURRENT IS:"+str(should_use_deforumation_strength))
             if should_use_deforumation_strength == 0:
