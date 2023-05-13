@@ -36,6 +36,11 @@ doVerbose = False
 doVerbose2 = False
 should_use_deforumation_strength = 1
 cadence = 2
+cn_weight = 1.00
+cn_stepstart = 0.0
+cn_stepend = 1.0
+cn_lowt = 0
+cn_hight = 255
 async def echo(websocket):
     global serverShutDown
     global Prompt_Positive
@@ -60,6 +65,11 @@ async def echo(websocket):
     global should_use_deforumation_strength
     global cadence
     global should_use_deforum_prompt_scheduling
+    global cn_weight
+    global cn_stepstart
+    global cn_stepend
+    global cn_lowt
+    global cn_hight
     async for message in websocket:
         #print("Incomming message:"+str(message))
         arr = pickle.loads(message)
@@ -173,6 +183,51 @@ async def echo(websocket):
                     if doVerbose:
                         print("sending STRENGTH:"+str(strength_value))
                     await websocket.send(str(strength_value))
+            #ControlNet Weight Params
+            ###########################################################################
+            elif str(parameter) == "cn_weight":
+                if shouldWrite:
+                    cn_weight = float(value)
+                else:
+                    if doVerbose:
+                        print("sending cn_weight:"+str(cn_weight))
+                    await websocket.send(str(cn_weight))
+            #ControlNet step start Params
+            ###########################################################################
+            elif str(parameter) == "cn_stepstart":
+                if shouldWrite:
+                    cn_stepstart = float(value)
+                else:
+                    if doVerbose:
+                        print("sending cn_stepstart:"+str(cn_stepstart))
+                    await websocket.send(str(cn_stepstart))
+            #ControlNet step end Params
+            ###########################################################################
+            elif str(parameter) == "cn_stepend":
+                if shouldWrite:
+                    cn_stepend = float(value)
+                else:
+                    if doVerbose:
+                        print("sending cn_stepend:"+str(cn_stepend))
+                    await websocket.send(str(cn_stepend))
+            #ControlNet low threshold Params
+            ###########################################################################
+            elif str(parameter) == "cn_lowt":
+                if shouldWrite:
+                    cn_lowt = int(value)
+                else:
+                    if doVerbose:
+                        print("sending cn_lowt:"+str(cn_lowt))
+                    await websocket.send(str(cn_lowt))
+            #ControlNet high threshold Params
+            ###########################################################################
+            elif str(parameter) == "cn_hight":
+                if shouldWrite:
+                    cn_hight = int(value)
+                else:
+                    if doVerbose:
+                        print("sending cn_hight:"+str(cn_hight))
+                    await websocket.send(str(cn_hight))
             #Seed Params
             ###########################################################################
             elif str(parameter) == "seed":
