@@ -462,8 +462,8 @@ class Mywin(wx.Frame):
         self.replay_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX + 1145, tbrY -135), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.replay_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.replay_button.SetLabel("REPLAY")
-        #REPLAY FPX BOX
-        self.replay_input_box_text = wx.StaticText(self.panel, label="fps", pos=(trbX+1180, tbrY-130))
+        #REPLAY FPS BOX
+        self.fps_input_box_text = wx.StaticText(self.panel, label="fps", pos=(trbX+1180, tbrY-130))
         self.replay_fps_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX+1200, tbrY-131))
         self.replay_fps_input_box.SetValue("30")
 
@@ -818,7 +818,7 @@ class Mywin(wx.Frame):
         self.forward_button.SetPosition((trbX + 1080-340, tbrY - 80))
         self.forward_closest_button.SetPosition((trbX + 1110-340, tbrY - 80))
         self.set_current_image.SetPosition((trbX + 998-340, tbrY - 40))
-        self.bitmap.SetPosition((trbX + 650+340, tbrY - 120))
+        self.bitmap.SetPosition((trbX + 650 +340, tbrY - 100))
         self.pan_step_input_box.SetPosition((trbX - 15, 30 + tbrY))
         self.transform_x_left_button.SetPosition((5 + trbX, 55 + tbrY))
         self.pan_X_Value_Text.SetPosition((trbX - 26, 55 + tbrY + 5))
@@ -876,7 +876,13 @@ class Mywin(wx.Frame):
         self.control_net_lowt_slider_Text.SetPosition((trbX-40, tbrY+240))
         self.control_net_hight_slider.SetPosition((trbX+300, tbrY+260))
         self.control_net_hight_slider_Text.SetPosition((trbX+300, tbrY+240))
-
+        self.replay_input_box_text.SetPosition((trbX+990, tbrY-130))
+        self.replay_from_input_box.SetPosition((trbX+1030, tbrY-131))
+        self.replay_to_input_box.SetPosition((trbX+1090, tbrY-131))
+        self.replay_input_divider_box_text.SetPosition((trbX+1077, tbrY-130))
+        self.replay_button.SetPosition((trbX + 1145, tbrY -135))
+        self.fps_input_box_text.SetPosition((trbX+1180, tbrY-130))
+        self.replay_fps_input_box.SetPosition((trbX+1200, tbrY-131))
     def OnResize(self, evt):
         global screenHeight
         global screenWidth
