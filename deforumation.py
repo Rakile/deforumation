@@ -15,8 +15,8 @@ import threading
 deforumationSettingsPath="./deforumation_settings.txt"
 deforumationSettingsPath_Keys = "./deforum_settings_keys.txt"
 deforumationPromptsPath ="./prompts/"
-screenWidth = 1380
-screenHeight = 900
+screenWidth = 1500
+screenHeight = 1050
 USE_BUFFERED_DC = True
 should_stay_on_top = False
 frame_path = "gibberish"
@@ -44,6 +44,12 @@ current_render_frame = -1
 current_frame = 0
 should_use_deforumation_strength = 1
 should_use_deforum_prompt_scheduling = 0
+#ControlNet
+CN_Weight = 0
+CN_StepStart = 0
+CN_StepEnd = 100
+CN_LowT = 0
+CN_HighT = 255
 #KEYBOARD KEYS
 pan_left_key = 0
 pan_right_key = 0
@@ -56,6 +62,11 @@ zero_pan_active = False
 zero_rotate_active = False
 stepit_pan = 0
 stepit_rotate = 0
+isReplaying = 0
+replayFrom = 0
+replayTo = 0
+replayFPS = 30
+
 async def sendAsync(value):
     async with websockets.connect("ws://localhost:8765") as websocket:
         #await websocket.send(pickle.dumps(value))
@@ -124,12 +135,15 @@ def readValue(param):
 def changeBitmapWorker(parent):
     #global current_render_frame
     global should_render_live
+    global isReplaying
+    global current_frame
+    global current_render_frame
     imageFound = True
     last_rendered = -1
     shouldrunthis = True
     if shouldrunthis == True:
         while parent.shouldRun:
-            if should_render_live == True:
+            if (should_render_live == True) and (isReplaying == 0):
                 #lock = asyncio.Lock()
                 #try:
                 current_frame = int(readValue("start_frame"))
@@ -165,7 +179,35 @@ def changeBitmapWorker(parent):
                     else:
                         imageFound = True
                 time.sleep(0.25)
-            #elif if should_render_live == True:
+            elif isReplaying == 1:
+                imagePath = get_current_image_path_f(replayFrom)
+                #print("Looking for:"+imagePath)
+                for index in range(replayFrom, replayTo, 1):
+                    if isReplaying == 0 or not parent.shouldRun:
+                        break
+                    imagePath = get_current_image_path_f(index)
+                    if os.path.isfile(imagePath):
+                        parent.bitmap = wx.Bitmap(imagePath)
+                        if isReplaying == 0 or not parent.shouldRun:
+                            break
+                        bitmap_width, bitmap_height = parent.parent.GetSize()
+                        if isReplaying == 0 or not parent.shouldRun:
+                            break
+                        parent.bitmap = scale_bitmap(parent.bitmap, bitmap_width, bitmap_height)
+                        parent.Refresh()
+                        current_frame = str(index)
+                        current_frame = current_frame.zfill(9)
+                        current_render_frame = int(current_frame)
+                        time.sleep(float(1/replayFPS))
+                isReplaying = 0
+                bmp = wx.Bitmap("./images/play.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 18, 18)
+                parent.parent.parent.replay_button.SetBitmap(bmp)
+                #print("Done Replaying")
+    bmp = wx.Bitmap("./images/play.bmp", wx.BITMAP_TYPE_BMP)
+    bmp = scale_bitmap(bmp, 18, 18)
+    parent.parent.parent.replay_button.SetBitmap(bmp)
+    isReplaying = 0
     print("Thread destroyed")
 class MyPanel(wx.Panel):
 
@@ -361,7 +403,7 @@ class Mywin(wx.Frame):
 
         self.panel.SetSizer(sizer)
         #SHOW LIVE RENDER CHECK-BOX
-        self.live_render_checkbox = wx.CheckBox(self.panel, label="LIVE RENDER", pos=(trbX+1130, tbrY-110))
+        self.live_render_checkbox = wx.CheckBox(self.panel, label="LIVE RENDER", pos=(trbX+1130-340, tbrY-110))
         self.live_render_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
         #OFF GRID BUTTON FOR KEYBOARD INPUT
@@ -370,34 +412,34 @@ class Mywin(wx.Frame):
         #self.off_grid_button.Bind(wx.EVT_BUTTON, self.OnClicked)
 
         #SHOW CURRENT IMAGE, BUTTON
-        self.show_current_image = wx.Button(self.panel, label="Show current image", pos=(trbX+992, tbrY-110))
+        self.show_current_image = wx.Button(self.panel, label="Show current image", pos=(trbX+992-340, tbrY-110))
         self.show_current_image.Bind(wx.EVT_BUTTON, self.OnClicked)
         #REWIND BUTTTON
         bmp = wx.Bitmap("./images/left_arrow.bmp", wx.BITMAP_TYPE_BMP)
-        self.rewind_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1000, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rewind_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1000-340, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rewind_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rewind_button.SetLabel("REWIND")
         #REWIND CLOSEST BUTTTON
         bmp = wx.Bitmap("./images/rewind_closest.bmp", wx.BITMAP_TYPE_BMP)
-        self.rewind_closest_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+970, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rewind_closest_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+970-340, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rewind_closest_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rewind_closest_button.SetLabel("REWIND_CLOSEST")
         #SET CURRENT FRAME INPUT BOX
-        self.frame_step_input_box = wx.TextCtrl(self.panel, 2, size=(48,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+1032, tbrY-74))
+        self.frame_step_input_box = wx.TextCtrl(self.panel, 2, size=(48,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+1032-340, tbrY-74))
         self.frame_step_input_box.SetLabel("")
         self.frame_step_input_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=2)
         #FORWARD BUTTTON
         bmp = wx.Bitmap("./images/right_arrow.bmp", wx.BITMAP_TYPE_BMP)
-        self.forward_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1080, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.forward_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1080-340, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.forward_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.forward_button.SetLabel("FORWARD")
         #FORWARD CLOSEST BUTTTON
         bmp = wx.Bitmap("./images/forward_closest.bmp", wx.BITMAP_TYPE_BMP)
-        self.forward_closest_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1110, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.forward_closest_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1110-340, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.forward_closest_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.forward_closest_button.SetLabel("FORWARD_CLOSEST")
         #SET CURRENT IMAGE, BUTTON
-        self.set_current_image = wx.Button(self.panel, label="Set current image", pos=(trbX+998, tbrY-40))
+        self.set_current_image = wx.Button(self.panel, label="Set current image", pos=(trbX+998-340, tbrY-40))
         self.set_current_image.Bind(wx.EVT_BUTTON, self.OnClicked)
 
         #SHOW AN IMAGE
@@ -407,7 +449,23 @@ class Mywin(wx.Frame):
         #self.bitmap = wx.StaticBitmap(panel, -1, self.img, pos=(trbX+700, tbrY-120))
         #self.bitmap = None
         img = wx.Image(256, 256)
-        self.bitmap = wx.StaticBitmap(self.panel, wx.ID_ANY, wx.Bitmap(img), pos=(trbX + 650, tbrY - 120))
+        self.bitmap = wx.StaticBitmap(self.panel, wx.ID_ANY, wx.Bitmap(img), pos=(trbX + 650 +340, tbrY - 100))
+        #REPLAY BUTTON
+        self.replay_input_box_text = wx.StaticText(self.panel, label="Replay", pos=(trbX+990, tbrY-130))
+        self.replay_from_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX+1030, tbrY-131))
+        self.replay_from_input_box.SetValue("0")
+        self.replay_to_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX+1090, tbrY-131))
+        self.replay_to_input_box.SetValue("0")
+        self.replay_input_divider_box_text = wx.StaticText(self.panel, label="-", pos=(trbX+1077, tbrY-130))
+        bmp = wx.Bitmap("./images/play.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = scale_bitmap(bmp, 18, 18)
+        self.replay_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX + 1145, tbrY -135), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.replay_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.replay_button.SetLabel("REPLAY")
+        #REPLAY FPX BOX
+        self.replay_input_box_text = wx.StaticText(self.panel, label="fps", pos=(trbX+1180, tbrY-130))
+        self.replay_fps_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX+1200, tbrY-131))
+        self.replay_fps_input_box.SetValue("30")
 
         #SAVE PROMPTS BUTTON
         self.update_prompts = wx.Button(self.panel, label="SAVE PROMPTS")
@@ -627,11 +685,48 @@ class Mywin(wx.Frame):
         self.pause_rendering.Bind(wx.EVT_BUTTON, self.OnClicked)
 
         #CADENCE SLIDER
-        self.cadence_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(Cadence_Schedule), minValue=1, maxValue=20, pos = (trbX+1000, tbrY+20), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.cadence_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(Cadence_Schedule), minValue=1, maxValue=20, pos = (trbX+1000-340, tbrY+20), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.cadence_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.cadence_slider.SetTickFreq(1)
         self.cadence_slider.SetLabel("CADENCE")
-        self.cadence_slider_Text = wx.StaticText(self.panel, label="Cadence Scale", pos=(trbX+1000, tbrY))
+        self.cadence_slider_Text = wx.StaticText(self.panel, label="Cadence Scale", pos=(trbX+1000-340, tbrY))
+
+        #ControlNet Sliders
+        ###############################################################
+        #CONTROLNET WEIGHT
+        self.control_net_weight_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_Weight), minValue=0, maxValue=200, pos = (trbX-40, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.control_net_weight_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
+        self.control_net_weight_slider.SetTickFreq(1)
+        self.control_net_weight_slider.SetLabel("CN WEIGHT")
+        self.control_net_weight_slider_Text = wx.StaticText(self.panel, label="ControlNet - Weight", pos=(trbX-40, tbrY+160))
+
+        #CONTROLNET STARTING CONTROL STEP
+        self.control_net_stepstart_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_StepStart), minValue=0, maxValue=100, pos = (trbX+300, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.control_net_stepstart_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
+        self.control_net_stepstart_slider.SetTickFreq(1)
+        self.control_net_stepstart_slider.SetLabel("CN STEPSTART")
+        self.control_net_stepstart_slider_Text = wx.StaticText(self.panel, label="ControlNet - Starting Control Step", pos=(trbX+300, tbrY+160))
+
+        #CONTROLNET ENDING CONTROL STEP
+        self.control_net_stepend_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_StepEnd), minValue=0, maxValue=100, pos = (trbX+640, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.control_net_stepend_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
+        self.control_net_stepend_slider.SetTickFreq(1)
+        self.control_net_stepend_slider.SetLabel("CN STEPEND")
+        self.control_net_stepend_slider_Text = wx.StaticText(self.panel, label="ControlNet - Ending Control Step", pos=(trbX+640, tbrY+160))
+
+        #CONTROLNET LOW THRESHOLD
+        self.control_net_lowt_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_LowT), minValue=0, maxValue=255, pos = (trbX-40, tbrY+260), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.control_net_lowt_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
+        self.control_net_lowt_slider.SetTickFreq(1)
+        self.control_net_lowt_slider.SetLabel("CN LOWT")
+        self.control_net_lowt_slider_Text = wx.StaticText(self.panel, label="ControlNet - Low Threshold", pos=(trbX-40, tbrY+240))
+
+        #CONTROLNET HIGH THRESHOLD
+        self.control_net_hight_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_HighT), minValue=0, maxValue=255, pos = (trbX+300, tbrY+260), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.control_net_hight_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
+        self.control_net_hight_slider.SetTickFreq(1)
+        self.control_net_hight_slider.SetLabel("CN HIGHT")
+        self.control_net_hight_slider_Text = wx.StaticText(self.panel, label="ControlNet - High Threshold", pos=(trbX+300, tbrY+240))
 
         self.Centre()
         self.Show()
@@ -715,15 +810,15 @@ class Mywin(wx.Frame):
     def updateComponents(self):
         self.shouldUseDeforumPromptScheduling_Checkbox.SetPosition((trbX + 600, 10))
         self.stayOnTop_Checkbox.SetPosition((trbX + 1130, 10))
-        self.live_render_checkbox.SetPosition((trbX + 1130, tbrY - 110))
-        self.show_current_image.SetPosition((trbX + 992, tbrY - 110))
-        self.rewind_button.SetPosition((trbX + 1000, tbrY - 80))
-        self.rewind_closest_button.SetPosition((trbX + 970, tbrY - 80))
-        self.frame_step_input_box.SetPosition((trbX + 1032, tbrY - 74))
-        self.forward_button.SetPosition((trbX + 1080, tbrY - 80))
-        self.forward_closest_button.SetPosition((trbX + 1110, tbrY - 80))
-        self.set_current_image.SetPosition((trbX + 998, tbrY - 40))
-        self.bitmap.SetPosition((trbX + 650, tbrY - 120))
+        self.live_render_checkbox.SetPosition((trbX + 1130-340, tbrY - 110))
+        self.show_current_image.SetPosition((trbX + 992-340, tbrY - 110))
+        self.rewind_button.SetPosition((trbX + 1000-340, tbrY - 80))
+        self.rewind_closest_button.SetPosition((trbX + 970-340, tbrY - 80))
+        self.frame_step_input_box.SetPosition((trbX + 1032-340, tbrY - 74))
+        self.forward_button.SetPosition((trbX + 1080-340, tbrY - 80))
+        self.forward_closest_button.SetPosition((trbX + 1110-340, tbrY - 80))
+        self.set_current_image.SetPosition((trbX + 998-340, tbrY - 40))
+        self.bitmap.SetPosition((trbX + 650+340, tbrY - 120))
         self.pan_step_input_box.SetPosition((trbX - 15, 30 + tbrY))
         self.transform_x_left_button.SetPosition((5 + trbX, 55 + tbrY))
         self.pan_X_Value_Text.SetPosition((trbX - 26, 55 + tbrY + 5))
@@ -769,11 +864,24 @@ class Mywin(wx.Frame):
         self.rotation_Z_Value_Text.SetPosition((360 + trbX + 46 + 80, 60 + tbrY))
         self.tilt_zero_button.SetPosition((360 + trbX + 36 + 80, 88 + tbrY))
         self.tilt_step_input_box.SetPosition((360 + trbX + 38 + 80, 30 + tbrY))
-        self.cadence_slider.SetPosition((trbX + 1000, tbrY + 20))
-        self.cadence_slider_Text.SetPosition((trbX + 1000, tbrY))
+        self.cadence_slider.SetPosition((trbX + 1000-340, tbrY + 20))
+        self.cadence_slider_Text.SetPosition((trbX + 1000-340, tbrY))
+        self.control_net_weight_slider.SetPosition((trbX-40, tbrY+180))
+        self.control_net_weight_slider_Text.SetPosition((trbX-40, tbrY+160))
+        self.control_net_stepstart_slider.SetPosition((trbX+300, tbrY+180))
+        self.control_net_stepstart_slider_Text.SetPosition((trbX+640, tbrY+160))
+        self.control_net_stepend_slider.SetPosition((trbX+640, tbrY+180))
+        self.control_net_stepend_slider_Text.SetPosition((trbX+300, tbrY+160))
+        self.control_net_lowt_slider.SetPosition((trbX-40, tbrY+260))
+        self.control_net_lowt_slider_Text.SetPosition((trbX-40, tbrY+240))
+        self.control_net_hight_slider.SetPosition((trbX+300, tbrY+260))
+        self.control_net_hight_slider_Text.SetPosition((trbX+300, tbrY+240))
 
     def OnResize(self, evt):
+        global screenHeight
+        global screenWidth
         self.current_width, self.current_height = self.GetSize()
+        screenWidth, screenHeight = self.GetSize()
         #self.positive_prompt_input_ctrl.SetSize(-1, 40)
         #self.positive_prompt_input_ctrl.SetMinSize(size=(-1,20))
         #self.positive_prompt_input_ctrl.Hide()
@@ -846,6 +954,12 @@ class Mywin(wx.Frame):
         global is_paused_rendering
         global should_use_deforumation_strength
         global pan_left_key,pan_right_key,pan_up_key,pan_down_key,zoom_up_key,zoom_down_key
+        global CN_Weight
+        global CN_StepStart
+        global CN_StepEnd
+        global CN_LowT
+        global CN_HighT
+
         if os.path.isfile(deforumationSettingsPath_Keys):
             deforumFile = open(deforumationSettingsPath_Keys, 'r')
             lines = deforumFile.readlines()
@@ -911,7 +1025,16 @@ class Mywin(wx.Frame):
                 Cadence_Schedule = int(self.cadence_slider.GetValue())
                 self.zero_pan_step_input_box.SetValue(deforumFile.readline())
                 self.zero_rotate_step_input_box.SetValue(deforumFile.readline())
-
+                CN_Weight = float(deforumFile.readline())
+                self.control_net_weight_slider.SetValue(int(CN_Weight*100))
+                CN_StepStart = float(deforumFile.readline())
+                self.control_net_stepstart_slider.SetValue(int(CN_StepStart*100))
+                CN_StepEnd = float(deforumFile.readline())
+                self.control_net_stepend_slider.SetValue(int(CN_StepEnd*100))
+                CN_LowT = int(deforumFile.readline())
+                self.control_net_lowt_slider.SetValue(CN_LowT)
+                CN_HighT = int(deforumFile.readline())
+                self.control_net_hight_slider.SetValue(CN_HighT)
             except Exception as e:
                 print(e)
             self.writeValue("is_paused_rendering", is_paused_rendering)
@@ -940,6 +1063,11 @@ class Mywin(wx.Frame):
             self.writeValue("rotation_z", Rotation_3D_Z)
             self.writeValue("should_use_deforumation_strength", int(should_use_deforumation_strength))
             self.writeValue("cadence", int(Cadence_Schedule))
+            self.writeValue("cn_weight", float(CN_Weight))
+            self.writeValue("cn_stepstart", float(CN_StepStart))
+            self.writeValue("cn_stepend", float(CN_StepEnd))
+            self.writeValue("cn_lowt", float(CN_LowT))
+            self.writeValue("cn_hight", float(CN_HighT))
 
     def writeValue(self, param, value):
         checkerrorConnecting = True
@@ -1003,7 +1131,12 @@ class Mywin(wx.Frame):
         deforumFile.write(self.tilt_step_input_box.GetValue().strip().replace('\n', '')+"\n")
         deforumFile.write(str(self.cadence_slider.GetValue())+"\n")
         deforumFile.write(str(self.zero_pan_step_input_box.GetValue().strip().replace('\n', '')+"\n"))
-        deforumFile.write(str(self.zero_rotate_step_input_box.GetValue().strip().replace('\n', '')))
+        deforumFile.write(str(self.zero_rotate_step_input_box.GetValue().strip().replace('\n', ''))+"\n")
+        deforumFile.write(str('%.2f' % CN_Weight)+"\n")
+        deforumFile.write(str('%.2f' % CN_StepStart)+"\n")
+        deforumFile.write(str('%.2f' % CN_StepEnd)+"\n")
+        deforumFile.write(str(CN_LowT)+"\n")
+        deforumFile.write(str(CN_HighT))
         deforumFile.close()
 
     def getClosestPrompt(self, forwardrewindType, p_current_frame):
@@ -1300,6 +1433,14 @@ class Mywin(wx.Frame):
         global zero_rotate_active
         global stepit_pan
         global stepit_rotate
+        global CN_Weight
+        global CN_StepStart
+        global CN_StepEnd
+        global CN_LowT
+        global CN_HighT
+        global isReplaying
+        global replayFrom
+        global replayTo
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
@@ -1385,7 +1526,7 @@ class Mywin(wx.Frame):
                 else:
                     FOV_Scale = 70 + (Translation_Z * 5)
                 self.fov_slider.SetValue(FOV_Scale)
-                self.writeValue("fow", FOV_Scale)
+                self.writeValue("fov", FOV_Scale)
 
         elif btn == "STRENGTH SCHEDULE":
             Strength_Scheduler = float(self.strength_schedule_slider.GetValue())*0.01
@@ -1450,7 +1591,7 @@ class Mywin(wx.Frame):
             self.writeValue("cfg", CFG_Scale)
         elif btn == "FOV":
             FOV_Scale = float(self.fov_slider.GetValue())
-            self.writeValue("fow", FOV_Scale)
+            self.writeValue("fov", FOV_Scale)
         elif btn == "LOCK FOV":
             if is_fov_locked:
                 is_fov_locked = False
@@ -1464,7 +1605,7 @@ class Mywin(wx.Frame):
                 else:
                     FOV_Scale = float(70+(Translation_Z*5))
                     self.fov_slider.SetValue(int(FOV_Scale))
-                self.writeValue("fow", FOV_Scale)
+                self.writeValue("fov", FOV_Scale)
         elif btn == "REVERSE FOV":
             if is_reverse_fov_locked:
                 is_reverse_fov_locked = False
@@ -1472,20 +1613,35 @@ class Mywin(wx.Frame):
                 if is_fov_locked:
                     FOV_Scale = float(70+(Translation_Z*5))
                     self.fov_slider.SetValue(int(FOV_Scale))
-                    self.writeValue("fow", FOV_Scale)
+                    self.writeValue("fov", FOV_Scale)
             else:
                 is_reverse_fov_locked = True
                 self.fov_reverse_lock_button.SetBitmap(wx.Bitmap("./images/reverse_fov_on.bmp"))
                 if is_fov_locked:
                     FOV_Scale = float(70+(Translation_Z*-5))
                     self.fov_slider.SetValue(int(FOV_Scale))
-                    self.writeValue("fow", FOV_Scale)
+                    self.writeValue("fov", FOV_Scale)
         elif btn == "STEPS":
             STEP_Schedule = int(self.sample_schedule_slider.GetValue())
             self.writeValue("steps", STEP_Schedule)
         elif btn == "CADENCE":
             Cadence_Schedule = int(self.cadence_slider.GetValue())
             self.writeValue("cadence", Cadence_Schedule)
+        elif btn == "CN WEIGHT":
+            CN_Weight = float(self.control_net_weight_slider.GetValue())*0.01
+            self.writeValue("cn_weight", CN_Weight)
+        elif btn == "CN STEPSTART":
+            CN_StepStart = float(self.control_net_stepstart_slider.GetValue()) * 0.01
+            self.writeValue("cn_stepstart", CN_StepStart)
+        elif btn == "CN STEPEND":
+            CN_StepEnd = float(self.control_net_stepend_slider.GetValue()) * 0.01
+            self.writeValue("cn_stepend", CN_StepEnd)
+        elif btn == "CN LOWT":
+            CN_LowT = int(self.control_net_lowt_slider.GetValue())
+            self.writeValue("cn_lowt", CN_LowT)
+        elif btn == "CN HIGHT":
+            CN_HighT = int(self.control_net_hight_slider.GetValue())
+            self.writeValue("cn_hight", CN_HighT)
         elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2 or btn == "REWIND_CLOSEST" or btn == "FORWARD_CLOSEST":
             current_frame = str(self.readValue("start_frame"))
             current_render_frame = int(current_frame)
@@ -1577,6 +1733,37 @@ class Mywin(wx.Frame):
                 self.readValue("should_use_deforumation_strength")
                 should_use_deforumation_strength = 0
                 #print("NOW IT IS:"+str(should_use_deforumation_strength))
+        elif btn == "REPLAY":
+            if isReplaying == 0:
+                #print("Starting Replay")
+                replayFrom = int(self.replay_from_input_box.GetValue())
+                replayTo = int(self.replay_to_input_box.GetValue())
+                if (replayFrom >= 0) and (replayFrom < replayTo):
+                    should_render_live = True
+                    self.live_render_checkbox.SetValue(1)
+                    imagePath = get_current_image_path_f(replayFrom)
+                    if os.path.isfile(imagePath):
+                        current_frame = str(replayFrom)
+                        current_frame = current_frame.zfill(9)
+                        self.img_render = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
+                        imgWidth = self.img_render.GetWidth()
+                        imgHeight = self.img_render.GetHeight()
+                        if self.framer == None:
+                            self.framer = render_window(self, 'Render Image')
+                            self.framer.Show()
+                            self.framer.SetSize(imgWidth + 18, imgHeight + 40)
+                            self.framer.bitmap = wx.StaticBitmap(self.framer, -1, self.img_render)
+                            self.framer.Refresh()
+                            current_render_frame = int(current_frame)
+                    isReplaying = 1
+                    bmp = wx.Bitmap("./images/stop.bmp", wx.BITMAP_TYPE_BMP)
+                    bmp = scale_bitmap(bmp, 18, 18)
+                    self.replay_button.SetBitmap(bmp)
+            else:
+                isReplaying = 0
+                bmp = wx.Bitmap("./images/play.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 18, 18)
+                self.replay_button.SetBitmap(bmp)
         elif btn == "LIVE RENDER":
             current_frame = str(self.readValue("start_frame"))
             #print("should_render_live: "+str(should_render_live))
@@ -1607,6 +1794,7 @@ class Mywin(wx.Frame):
                         self.framer.SetSize(imgWidth + 18, imgHeight + 40)
                         self.framer.bitmap = wx.StaticBitmap(self.framer, -1, self.img_render)
                         self.framer.Refresh()
+                        current_render_frame = int(current_frame)
             else:
                 should_render_live = False
                 if self.framer != None:
