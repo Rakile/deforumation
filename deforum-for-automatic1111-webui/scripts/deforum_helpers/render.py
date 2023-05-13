@@ -434,8 +434,14 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 print(f"Creating in-between {'' if cadence_flow is None else anim_args.optical_flow_cadence + ' optical flow '}cadence frame: {tween_frame_idx}; tween:{tween:0.2f};")
 
                 if depth_model is not None:
-                    assert(turbo_next_image is not None)
-                    depth = depth_model.predict(turbo_next_image, anim_args.midas_weight, root.half_precision)
+                    #assert(turbo_next_image is not None)
+                    if turbo_next_image is not None:
+                        depth = depth_model.predict(turbo_next_image, anim_args.midas_weight, root.half_precision)
+                    else:
+                        break
+                    #else:
+                    #    turbo_next_image = image
+                    #    depth = depth_model.predict(turbo_next_image, anim_args.midas_weight, root.half_precision)
                     
                 if advance_prev:
                     turbo_prev_image, _ = anim_frame_warp(turbo_prev_image, args, anim_args, keys, tween_frame_idx, depth_model, depth=depth, device=root.device, half_precision=root.half_precision)
@@ -659,6 +665,24 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             devices.torch_gc()
             lowvram.setup_for_low_vram(sd_model, cmd_opts.medvram)
             sd_hijack.model_hijack.hijack(sd_model)
+
+        #If controlnet is being used, get the values from Deforumation
+        #setattr(controlnet_args, f'cn_1_threshold_b', 20)
+        #print(str(getattr(controlnet_args, f'cn_1_threshold_b')))
+        if usingDeforumation and connectedToServer:
+            if is_controlnet_enabled(controlnet_args):
+                setattr(controlnet_args, f'cn_1_weight', "0:(" + str(mediator_getValue("cn_weight")) + ")" )
+                #print(str(getattr(controlnet_args, f'cn_1_weight')))
+                setattr(controlnet_args, f'cn_1_guidance_start', "0:(" + str(mediator_getValue("cn_stepstart")) + ")" )
+                #print(str(getattr(controlnet_args, f'cn_1_guidance_start')))
+                setattr(controlnet_args, f'cn_1_guidance_end', "0:(" + str(mediator_getValue("cn_stepend")) + ")" )
+                #print(str(getattr(controlnet_args, f'cn_1_guidance_end')))
+                setattr(controlnet_args, f'cn_1_threshold_a', int(mediator_getValue("cn_lowt")))
+                #print(str(getattr(controlnet_args, f'cn_1_threshold_a')))
+                setattr(controlnet_args, f'cn_1_threshold_b', int(mediator_getValue("cn_hight")))
+                #print(str(getattr(controlnet_args, f'cn_1_threshold_b')))
+
+
 
         # optical flow redo before generation
         if anim_args.optical_flow_redo_generation != 'None' and prev_img is not None and strength > 0:
