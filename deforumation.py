@@ -11,7 +11,7 @@ from pathlib import Path
 import wx.lib.newevent
 import threading
 #import subprocess
-
+cadenceArray = {}
 deforumationSettingsPath="./deforumation_settings.txt"
 deforumationSettingsPath_Keys = "./deforum_settings_keys.txt"
 deforumationPromptsPath ="./prompts/"
@@ -426,7 +426,7 @@ class Mywin(wx.Frame):
         self.rewind_closest_button.SetLabel("REWIND_CLOSEST")
         #SET CURRENT FRAME INPUT BOX
         self.frame_step_input_box = wx.TextCtrl(self.panel, 2, size=(48,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+1032-340, tbrY-74))
-        self.frame_step_input_box.SetLabel("")
+        self.frame_step_input_box.SetLabel("0")
         self.frame_step_input_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=2)
         #FORWARD BUTTTON
         bmp = wx.Bitmap("./images/right_arrow.bmp", wx.BITMAP_TYPE_BMP)
@@ -690,7 +690,8 @@ class Mywin(wx.Frame):
         self.cadence_slider.SetTickFreq(1)
         self.cadence_slider.SetLabel("CADENCE")
         self.cadence_slider_Text = wx.StaticText(self.panel, label="Cadence Scale", pos=(trbX+1000-340, tbrY))
-
+        #CADENCE SUGGESTION
+        self.cadence_suggestion = wx.StaticText(self.panel, label="(hist cad: ??)", pos=(trbX+1000-140, tbrY))
         #ControlNet Sliders
         ###############################################################
         #CONTROLNET WEIGHT
@@ -1447,12 +1448,14 @@ class Mywin(wx.Frame):
         global isReplaying
         global replayFrom
         global replayTo
+        global cadenceArray
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
             self.pause_rendering.SetLabel("PUSH TO RESUME RENDERING")
             is_paused_rendering = True
             self.writeValue("is_paused_rendering", is_paused_rendering)
+            #print(dict(sorted(cadenceArray.items())))
         elif btn == "PUSH TO RESUME RENDERING":
             self.pause_rendering.SetLabel("PUSH TO PAUSE RENDERING")
             self.loadCurrentPrompt("P", current_frame, 1)
@@ -1633,6 +1636,7 @@ class Mywin(wx.Frame):
         elif btn == "CADENCE":
             Cadence_Schedule = int(self.cadence_slider.GetValue())
             self.writeValue("cadence", Cadence_Schedule)
+            cadenceArray[int(self.readValue("start_frame"))] = Cadence_Schedule
         elif btn == "CN WEIGHT":
             CN_Weight = float(self.control_net_weight_slider.GetValue())*0.01
             self.writeValue("cn_weight", CN_Weight)
@@ -1730,6 +1734,14 @@ class Mywin(wx.Frame):
             self.loadCurrentPrompt("N", current_frame, 1)
             self.writeValue("should_resume", 1)
             self.writeValue("start_frame", int(current_frame))
+            proposedCadence = Cadence_Schedule
+            for key, value in sorted(cadenceArray.items()):
+                if int(current_frame) >= key:
+                    proposedCadence = value
+                else:
+                    break
+            #print("Suggest you use cadence:"+str(proposedCadence))
+            self.cadence_suggestion.SetLabel("(hist cad: " + str(proposedCadence) + ")")
         elif btn == "USE DEFORUMATION":
             #print("CURRENT IS:"+str(should_use_deforumation_strength))
             if should_use_deforumation_strength == 0:
@@ -1831,5 +1843,5 @@ if __name__ == '__main__':
     #time.sleep(5)
     blaha = random.randint(0, 2**32 - 1)
     app = wx.App()
-    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.1)')
+    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.1.1)')
     app.MainLoop()
