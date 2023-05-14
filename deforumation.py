@@ -31,6 +31,12 @@ Translation_Z = 0.0
 Rotation_3D_X = 0.0
 Rotation_3D_Y = 0.0
 Rotation_3D_Z = 0.0
+Translation_X_ARMED = 0.0
+Translation_Y_ARMED = 0.0
+Translation_Z_ARMED = 0.0
+Rotation_3D_X_ARMED = 0.0
+Rotation_3D_Y_ARMED = 0.0
+Rotation_3D_Z_ARMED = 0.0
 tbrY = 500+190
 trbX = 50
 is_fov_locked = False
@@ -66,6 +72,8 @@ isReplaying = 0
 replayFrom = 0
 replayTo = 0
 replayFPS = 30
+armed_rotation = False
+armed_pan = False
 
 async def sendAsync(value):
     async with websockets.connect("ws://localhost:8765") as websocket:
@@ -472,6 +480,13 @@ class Mywin(wx.Frame):
         sizer.Add(self.update_prompts, 0, wx.ALL | wx.EXPAND, 5)
         self.update_prompts.Bind(wx.EVT_BUTTON, self.OnClicked)
 
+        #ARM PAN VALUE BUTTON
+        bmp = wx.Bitmap("./images/arm_off.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = scale_bitmap(bmp, 10, 10)
+        self.arm_pan_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX-15, tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.arm_pan_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.arm_pan_button.SetLabel("ARM_PAN")
+
         #PAN STEPS INPUT
         self.pan_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX-15, 30+tbrY))
         self.pan_step_input_box.SetLabel("1.0")
@@ -626,6 +641,12 @@ class Mywin(wx.Frame):
         font.PointSize += 1
         font = font.Bold()
         self.rotation_3d_y_Value_Text.SetFont(font)
+        #ARM ROTATION VALUE BUTTON
+        bmp = wx.Bitmap("./images/arm_off.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = scale_bitmap(bmp, 10, 10)
+        self.arm_rotation_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+80, tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.arm_rotation_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.arm_rotation_button.SetLabel("ARM_ROTATION")
 
         #LOOK RIGHT BUTTTON
         bmp = wx.Bitmap("./images/look_right.bmp", wx.BITMAP_TYPE_BMP)
@@ -1288,7 +1309,7 @@ class Mywin(wx.Frame):
                 promptFile.write(str(new_lines[0]) + "\n")
                 promptFile.write(str(new_lines[1]))
             promptFile.close()
-    def ZeroStepper(self, parameter_value, frame_steps):
+    def ZeroStepper(self, parameter_value, frame_steps, want_value):
         global Translation_X
         global Translation_Y
         global Rotation_3D_X
@@ -1300,32 +1321,34 @@ class Mywin(wx.Frame):
         print("Zero stepper thread started for:"+str(parameter_value))
         is_negative = 0
         zero_frame_steps = frame_steps
-        if zero_frame_steps == 0:
+        if zero_frame_steps == want_value:
             return
         now_frame = int(readValue("start_frame"))
-        zero_frame_steps_n_frame = 0
+        zero_frame_steps_n_frame = want_value
         if parameter_value == "translation_x":
             stepit_pan = 1
-            if Translation_X != 0:
-                zero_frame_steps_n_frame = float(Translation_X / zero_frame_steps)
+            if Translation_X != want_value:
+                zero_frame_steps_n_frame = float((want_value - Translation_X) / zero_frame_steps)
             if Translation_X < 0:
                 is_negative = 1
         elif parameter_value == "translation_y":
             stepit_pan = 1
-            if Translation_Y != 0:
-                zero_frame_steps_n_frame = float(Translation_Y / zero_frame_steps)
+            if Translation_Y != want_value:
+                zero_frame_steps_n_frame = float((want_value - Translation_Y) / zero_frame_steps)
                 if Translation_Y < 0:
                     is_negative = 1
         elif parameter_value == "rotation_x":
             stepit_rotate = 1
-            if Rotation_3D_X != 0:
-                zero_frame_steps_n_frame = float(Rotation_3D_X / zero_frame_steps)
-                if Rotation_3D_X < 0:
+            if Rotation_3D_X != want_value:
+                zero_frame_steps_n_frame = float((want_value-Rotation_3D_X) / zero_frame_steps)
+                #print("zero_frame_steps:" + str(zero_frame_steps_n_frame))
+                if Rotation_3D_Y < 0:
                     is_negative = 1
         elif parameter_value == "rotation_y":
             stepit_rotate = 1
-            if Rotation_3D_Y != 0:
-                zero_frame_steps_n_frame = float(Rotation_3D_Y / zero_frame_steps)
+            if Rotation_3D_Y != want_value:
+                zero_frame_steps_n_frame = float((want_value-Rotation_3D_Y) / zero_frame_steps)
+                #print("zero_frame_steps:" + str(zero_frame_steps_n_frame))
                 if Rotation_3D_Y < 0:
                     is_negative = 1
 
@@ -1335,79 +1358,83 @@ class Mywin(wx.Frame):
             if (int(current_step_frame) > int(now_frame)):
                 now_frame = current_step_frame
                 if parameter_value == "translation_x":
-                    Translation_X = Translation_X - float(zero_frame_steps_n_frame)
+                    Translation_X = Translation_X + float(zero_frame_steps_n_frame)
                 elif parameter_value == "translation_y":
-                    Translation_Y = Translation_Y - float(zero_frame_steps_n_frame)
+                    Translation_Y = Translation_Y + float(zero_frame_steps_n_frame)
                 elif parameter_value == "rotation_x":
-                    Rotation_3D_X = Rotation_3D_X - float(zero_frame_steps_n_frame)
+                    Rotation_3D_X = Rotation_3D_X + float(zero_frame_steps_n_frame)
                 elif parameter_value == "rotation_y":
-                    Rotation_3D_Y = Rotation_3D_Y - float(zero_frame_steps_n_frame)
+                    Rotation_3D_Y = Rotation_3D_Y + float(zero_frame_steps_n_frame)
 
                 if parameter_value == "translation_x":
-                    if is_negative:
-                        if Translation_X >= 0:
-                            Translation_X = 0
+                    if zero_frame_steps_n_frame > 0:
+                        if Translation_X >= want_value:
+                            Translation_X = want_value
                             self.writeValue(parameter_value, Translation_X)
                             self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
                             break
-                    elif Translation_X <= 0:
-                        Translation_X = 0
-                        self.writeValue(parameter_value, Translation_X)
-                        self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
-                        break
+                    elif zero_frame_steps_n_frame < 0:
+                        if Translation_X <= want_value:
+                            Translation_X = want_value
+                            self.writeValue(parameter_value, Translation_X)
+                            self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+                            break
                 elif parameter_value == "translation_y":
-                    if is_negative:
-                        if Translation_Y >= 0:
-                            Translation_Y = 0
+                    if zero_frame_steps_n_frame > 0:
+                        if Translation_Y >= want_value:
+                            Translation_Y = want_value
                             self.writeValue(parameter_value, Translation_Y)
                             self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
                             break
-                    elif Translation_Y <= 0:
-                        Translation_Y = 0
-                        self.writeValue(parameter_value, Translation_Y)
-                        self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
-                        break
+                    elif zero_frame_steps_n_frame < 0:
+                        if Translation_Y <= want_value:
+                            Translation_Y = want_value
+                            self.writeValue(parameter_value, Translation_Y)
+                            self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+                            break
                 elif parameter_value == "rotation_x":
-                    if is_negative:
-                        if Rotation_3D_X >= 0:
-                            Rotation_3D_X = 0
+                    if zero_frame_steps_n_frame > 0:
+                        if Rotation_3D_X >= want_value:
+                            Rotation_3D_X = want_value
                             self.writeValue(parameter_value, Rotation_3D_X)
                             self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
                             break
-                    elif Rotation_3D_X <= 0:
-                        Rotation_3D_X = 0
-                        self.writeValue(parameter_value, Rotation_3D_X)
-                        self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
-                        break
+                    elif zero_frame_steps_n_frame < 0:
+                        if Rotation_3D_X <= want_value:
+                            Rotation_3D_X = want_value
+                            self.writeValue(parameter_value, Rotation_3D_X)
+                            self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
+                            break
                 elif parameter_value == "rotation_y":
-                    if is_negative:
-                        if Rotation_3D_Y >= 0:
-                            Rotation_3D_Y = 0
+                    if zero_frame_steps_n_frame > 0:
+                        if Rotation_3D_Y >= want_value:
+                            Rotation_3D_Y = want_value
                             self.writeValue(parameter_value, Rotation_3D_Y)
                             self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
                             break
-                    elif Rotation_3D_Y <= 0:
-                        Rotation_3D_Y = 0
-                        self.writeValue(parameter_value, Rotation_3D_Y)
-                        self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
-                        break
+                    elif zero_frame_steps_n_frame < 0:
+                        if Rotation_3D_Y <= want_value:
+                            Rotation_3D_Y = want_value
+                            self.writeValue(parameter_value, Rotation_3D_Y)
+                            self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
+                            break
 
             if parameter_value == "translation_x":
                 self.writeValue(parameter_value, Translation_X)
                 self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
-                print("Translation_X:" + str(Translation_X))
+                #print("Translation_X:" + str(Translation_X))
             elif parameter_value == "translation_y":
                 self.writeValue(parameter_value, Translation_Y)
                 self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
-                print("Translation_Y:" + str(Translation_Y))
+                #print("Translation_Y:" + str(Translation_Y))
             elif parameter_value == "rotation_x":
                 self.writeValue(parameter_value, Rotation_3D_X)
                 self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
-                print("Rotaion_X:" + str(Rotation_3D_X))
+                #print("Rotaion_X:" + str(Rotation_3D_X))
             elif parameter_value == "rotation_y":
                 self.writeValue(parameter_value, Rotation_3D_Y)
                 self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
-                print("Rotaion_Y:" + str(Rotation_3D_Y))
+                #print("Rotaion_Y:" + str(Rotation_3D_Y))
             time.sleep(0.25)
         self.writeAllValues()
         zero_pan_active = False
@@ -1449,6 +1476,14 @@ class Mywin(wx.Frame):
         global replayFrom
         global replayTo
         global cadenceArray
+        global armed_rotation
+        global armed_pan
+        global Translation_X_ARMED
+        global Translation_Y_ARMED
+        global Translation_Z_ARMED
+        global Rotation_3D_X_ARMED
+        global Rotation_3D_Y_ARMED
+        global Rotation_3D_Z_ARMED
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
@@ -1490,17 +1525,29 @@ class Mywin(wx.Frame):
             self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n")
             self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '') + "\n")
         elif btn == "PAN_LEFT":
-            Translation_X = Translation_X - float(self.pan_step_input_box.GetValue())
-            self.writeValue("translation_x", Translation_X)
+            if not armed_pan:
+                Translation_X = Translation_X - float(self.pan_step_input_box.GetValue())
+                self.writeValue("translation_x", Translation_X)
+            else:
+                Translation_X_ARMED = Translation_X_ARMED - float(self.pan_step_input_box.GetValue())
         elif btn == "PAN_RIGHT":
-            Translation_X = Translation_X + float(self.pan_step_input_box.GetValue())
-            self.writeValue("translation_x", Translation_X)
+            if not armed_pan:
+                Translation_X = Translation_X + float(self.pan_step_input_box.GetValue())
+                self.writeValue("translation_x", Translation_X)
+            else:
+                Translation_X_ARMED = Translation_X_ARMED + float(self.pan_step_input_box.GetValue())
         elif btn == "PAN_UP":
-            Translation_Y = Translation_Y + float(self.pan_step_input_box.GetValue())
-            self.writeValue("translation_y", Translation_Y)
+            if not armed_pan:
+                Translation_Y = Translation_Y + float(self.pan_step_input_box.GetValue())
+                self.writeValue("translation_y", Translation_Y)
+            else:
+                Translation_Y_ARMED = Translation_Y_ARMED + float(self.pan_step_input_box.GetValue())
         elif btn == "PAN_DOWN":
-            Translation_Y = Translation_Y - float(self.pan_step_input_box.GetValue())
-            self.writeValue("translation_y", Translation_Y)
+            if not armed_pan:
+                Translation_Y = Translation_Y - float(self.pan_step_input_box.GetValue())
+                self.writeValue("translation_y", Translation_Y)
+            else:
+                Translation_Y_ARMED = Translation_Y_ARMED - float(self.pan_step_input_box.GetValue())
         elif btn == "ZERO PAN":
             if not zero_pan_active:
                 #Start a ZERO step thread.
@@ -1510,16 +1557,16 @@ class Mywin(wx.Frame):
                     Translation_Y = 0
                     self.writeValue("translation_x", Translation_X)
                     self.writeValue("translation_y", Translation_Y)
-                elif Translation_X == 0 and Translation_Y == 0:
+                elif Translation_X == 0 and Translation_Y == 0 and Translation_X_ARMED == 0 and Translation_Y_ARMED == 0:
                     zero_pan_active = False
                 else:
                     zero_pan_active = True
-                    if Translation_X != 0:
-                        self.zero_step_thread_x = threading.Thread(target=self.ZeroStepper, args=("translation_x", frame_steps))
+                    if Translation_X != 0 or Translation_X_ARMED != 0:
+                        self.zero_step_thread_x = threading.Thread(target=self.ZeroStepper, args=("translation_x", frame_steps, Translation_X_ARMED))
                         self.zero_step_thread_x.daemon = True
                         self.zero_step_thread_x.start()
-                    if Translation_Y != 0:
-                        self.zero_step_thread_y = threading.Thread(target=self.ZeroStepper, args=("translation_y", frame_steps))
+                    if Translation_Y != 0 or Translation_Y_ARMED != 0:
+                        self.zero_step_thread_y = threading.Thread(target=self.ZeroStepper, args=("translation_y", frame_steps, Translation_Y_ARMED))
                         self.zero_step_thread_y.daemon = True
                         self.zero_step_thread_y.start()
             else:
@@ -1545,23 +1592,30 @@ class Mywin(wx.Frame):
             #print("SeedValue:"+str(seedValue))
             self.writeValue("seed", seedValue)
         elif btn == "LOOK_LEFT":
-            Rotation_3D_Y = Rotation_3D_Y - float(self.rotate_step_input_box.GetValue())
-            self.writeValue("rotation_y", Rotation_3D_Y)
+            if not armed_rotation:
+                Rotation_3D_Y = Rotation_3D_Y - float(self.rotate_step_input_box.GetValue())
+                self.writeValue("rotation_y", Rotation_3D_Y)
+            else:
+                Rotation_3D_Y_ARMED = Rotation_3D_Y_ARMED - float(self.rotate_step_input_box.GetValue())
         elif btn == "LOOK_RIGHT":
-            Rotation_3D_Y = Rotation_3D_Y + float(self.rotate_step_input_box.GetValue())
-            self.writeValue("rotation_y", Rotation_3D_Y)
+            if not armed_rotation:
+                Rotation_3D_Y = Rotation_3D_Y + float(self.rotate_step_input_box.GetValue())
+                self.writeValue("rotation_y", Rotation_3D_Y)
+            else:
+                Rotation_3D_Y_ARMED = Rotation_3D_Y_ARMED + float(self.rotate_step_input_box.GetValue())
         elif btn == "LOOK_UP":
-            Rotation_3D_X = Rotation_3D_X + float(self.rotate_step_input_box.GetValue())
-            self.writeValue("rotation_x", Rotation_3D_X)
+            if not armed_rotation:
+                Rotation_3D_X = Rotation_3D_X + float(self.rotate_step_input_box.GetValue())
+                self.writeValue("rotation_x", Rotation_3D_X)
+            else:
+                Rotation_3D_X_ARMED = Rotation_3D_X_ARMED + float(self.rotate_step_input_box.GetValue())
         elif btn == "LOOK_DOWN":
-            Rotation_3D_X = Rotation_3D_X - float(self.rotate_step_input_box.GetValue())
-            self.writeValue("rotation_x", Rotation_3D_X)
+            if not armed_rotation:
+                Rotation_3D_X = Rotation_3D_X - float(self.rotate_step_input_box.GetValue())
+                self.writeValue("rotation_x", Rotation_3D_X)
+            else:
+                Rotation_3D_X_ARMED = Rotation_3D_X_ARMED - float(self.rotate_step_input_box.GetValue())
         elif btn == "ZERO ROTATE":
-            #Rotation_3D_X = 0
-            #Rotation_3D_Y = 0
-            #self.writeValue("rotation_x", Rotation_3D_X)
-            #self.writeValue("rotation_y", Rotation_3D_Y)
-
             if not zero_rotate_active:
                 #Start a ZERO step thread.
                 frame_steps = int(self.zero_rotate_step_input_box.GetValue())
@@ -1570,16 +1624,16 @@ class Mywin(wx.Frame):
                     Rotation_3D_Y = 0
                     self.writeValue("rotation_x", Rotation_3D_X)
                     self.writeValue("rotation_y", Rotation_3D_Y)
-                elif Rotation_3D_X == 0 and Rotation_3D_Y == 0:
+                elif Rotation_3D_X == 0 and Rotation_3D_Y == 0 and Rotation_3D_X_ARMED == 0 and Rotation_3D_Y_ARMED == 0:
                     zero_rotate_active = False
                 else:
                     zero_rotate_active = True
-                    if Rotation_3D_X != 0:
-                        self.zero_rotate_thread_x = threading.Thread(target=self.ZeroStepper, args=("rotation_x", frame_steps))
+                    if Rotation_3D_X != 0 or Rotation_3D_X_ARMED !=0:
+                        self.zero_rotate_thread_x = threading.Thread(target=self.ZeroStepper, args=("rotation_x", frame_steps, Rotation_3D_X_ARMED))
                         self.zero_rotate_thread_x.daemon = True
                         self.zero_rotate_thread_x.start()
-                    if Rotation_3D_Y != 0:
-                        self.zero_rotate_thread_y = threading.Thread(target=self.ZeroStepper, args=("rotation_y", frame_steps))
+                    if Rotation_3D_Y != 0 or Rotation_3D_Y_ARMED != 0:
+                        self.zero_rotate_thread_y = threading.Thread(target=self.ZeroStepper, args=("rotation_y", frame_steps, Rotation_3D_Y_ARMED))
                         self.zero_rotate_thread_y.daemon = True
                         self.zero_rotate_thread_y.start()
             else:
@@ -1598,6 +1652,32 @@ class Mywin(wx.Frame):
         elif btn == "CFG SCALE":
             CFG_Scale = float(self.cfg_schedule_slider.GetValue())
             self.writeValue("cfg", CFG_Scale)
+        elif btn == "ARM_ROTATION":
+            if armed_rotation:
+                armed_rotation = False
+                bmp = wx.Bitmap("./images/arm_off.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 10, 10)
+                self.arm_rotation_button.SetBitmap(bmp)
+                self.arm_rotation_button.SetSize(bmp.GetWidth()+10, bmp.GetHeight()+10)
+            else:
+                armed_rotation = True
+                bmp = wx.Bitmap("./images/arm_on.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 10, 10)
+                self.arm_rotation_button.SetBitmap(bmp)
+                self.arm_rotation_button.SetSize(bmp.GetWidth()+10, bmp.GetHeight()+10)
+        elif btn == "ARM_PAN":
+            if armed_pan:
+                armed_pan = False
+                bmp = wx.Bitmap("./images/arm_off.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 10, 10)
+                self.arm_pan_button.SetBitmap(bmp)
+                self.arm_pan_button.SetSize(bmp.GetWidth()+10, bmp.GetHeight()+10)
+            else:
+                armed_pan = True
+                bmp = wx.Bitmap("./images/arm_on.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 10, 10)
+                self.arm_pan_button.SetBitmap(bmp)
+                self.arm_pan_button.SetSize(bmp.GetWidth()+10, bmp.GetHeight()+10)
         elif btn == "FOV":
             FOV_Scale = float(self.fov_slider.GetValue())
             self.writeValue("fov", FOV_Scale)
@@ -1821,10 +1901,20 @@ class Mywin(wx.Frame):
                     self.framer.Close()
                     self.framer = None
                 current_render_frame = -1
-        self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
-        self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
-        self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
-        self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' %Rotation_3D_X))
+
+        if armed_pan:
+            self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
+            self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
+        else:
+            self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+            self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+        if armed_rotation:
+            self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
+            self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' %Rotation_3D_X_ARMED))
+        else:
+            self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
+            self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' %Rotation_3D_X))
+
         self.rotation_Z_Value_Text.SetLabel(str('%.2f' %Rotation_3D_Z))
 
         self.writeAllValues()
@@ -1843,5 +1933,5 @@ if __name__ == '__main__':
     #time.sleep(5)
     blaha = random.randint(0, 2**32 - 1)
     app = wx.App()
-    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.1.1)')
+    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.1.2)')
     app.MainLoop()
