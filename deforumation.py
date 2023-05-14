@@ -1831,5 +1831,5 @@ if __name__ == '__main__':
     #time.sleep(5)
     blaha = random.randint(0, 2**32 - 1)
     app = wx.App()
-    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023')
+    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.1)')
     app.MainLoop()
