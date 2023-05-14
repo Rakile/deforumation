@@ -136,7 +136,7 @@ def changeBitmapWorker(parent):
     #global current_render_frame
     global should_render_live
     global isReplaying
-    global current_frame
+    #global current_frame
     global current_render_frame
     imageFound = True
     last_rendered = -1
@@ -1650,6 +1650,7 @@ class Mywin(wx.Frame):
             self.writeValue("cn_hight", CN_HighT)
         elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2 or btn == "REWIND_CLOSEST" or btn == "FORWARD_CLOSEST":
             current_frame = str(self.readValue("start_frame"))
+            #print("Got current start frame:" + current_frame)
             current_render_frame = int(current_frame)
             outdir = str(readValue("frame_outdir")).replace('\\', '/').replace('\n', '')
             resume_timestring = str(readValue("resume_timestring"))
