@@ -110,6 +110,18 @@ Latest version<a name="Latest-version"></a>
 <details>
   <summary>Latest Version Info</summary>
 
+   2023-05-15
+  Lots of added stuff
+- Gentle Zero can now go from any motion to any other motion in panning and rotation values
+- ControlNet in Deforum, can now be controlled by Deforumation
+- Live Render can now replay a range of images (no stitching), to get a fast view of how the animation is going to look
+   
+
+</details>
+
+<details>
+  <summary>Latest Version Info</summary>
+
    2023-05-03 (later in the evening)
   
 - Introducing another "Gentle Zero" for rotation. It works separate from "Gentle Zero" for panning.  
@@ -174,7 +186,7 @@ Deforumation now adds the values to any scheduled motion. That means that if you
   <summary>Interface</summary>
   
  ## Interface
-![img](github_images/newinterface4.png)
+![img](github_images/newinterface5.png)
 
 As we talked about before, all motion scheduled values in Deforum are added to the manual motions done through Deforumation... with one exception, and that is the "Strength Value". This value has a specific check box ("USE DEFORUMATION"), which can be turned on and off during rendering to switch between full Deforum controll or Deforumation strength controll. This means, that if you are using Deforum to schedule a beat/pulse throughout your video, you can choose to go manual (overriding the the Deforum strength schedule, and vice versa).
 
