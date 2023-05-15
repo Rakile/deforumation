@@ -888,6 +888,7 @@ class Mywin(wx.Frame):
         self.tilt_step_input_box.SetPosition((360 + trbX + 38 + 80, 30 + tbrY))
         self.cadence_slider.SetPosition((trbX + 1000-340, tbrY + 20))
         self.cadence_slider_Text.SetPosition((trbX + 1000-340, tbrY))
+        self.cadence_suggestion.SetPosition((trbX+1000-140, tbrY))
         self.control_net_weight_slider.SetPosition((trbX-40, tbrY+180))
         self.control_net_weight_slider_Text.SetPosition((trbX-40, tbrY+160))
         self.control_net_stepstart_slider.SetPosition((trbX+300, tbrY+180))
@@ -905,6 +906,9 @@ class Mywin(wx.Frame):
         self.replay_button.SetPosition((trbX + 1145, tbrY -135))
         self.fps_input_box_text.SetPosition((trbX+1180, tbrY-130))
         self.replay_fps_input_box.SetPosition((trbX+1200, tbrY-131))
+        self.arm_pan_button.SetPosition((trbX-15, tbrY))
+        self.arm_rotation_button.SetPosition((240+trbX+80, tbrY))
+
     def OnResize(self, evt):
         global screenHeight
         global screenWidth
