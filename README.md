@@ -191,7 +191,8 @@ Deforumation now adds the values to any scheduled motion. That means that if you
 As we talked about before, all motion scheduled values in Deforum are added to the manual motions done through Deforumation... with one exception, and that is the "Strength Value". This value has a specific check box ("USE DEFORUMATION"), which can be turned on and off during rendering to switch between full Deforum controll or Deforumation strength controll. This means, that if you are using Deforum to schedule a beat/pulse throughout your video, you can choose to go manual (overriding the the Deforum strength schedule, and vice versa).
 
 There are alot of controls, but here comes the basics:
-Panning:
+
+**Panning**
 
 ![img](github_images/panning.PNG)
 
@@ -201,11 +202,13 @@ Think of yourself being the eyes (the camera view)  and the image that you see..
 
 The "0.2" box decides how much of the value will be applied when you push a button.
 
+**Rotation**
 ![img](github_images/rotation.PNG)
 
 Think of yourself being the eyes (the camera view)  and the image that you see... so if you push the left button, then you'r head will turn left... etc
-The panning buttons have 2 modes, "ARMED" or "NOT ARMED", which can be switched between by pushing the small button above the "0.2 box":
 
+**Arming On and Off**
+The panning buttons have 2 modes, "ARMED" or "NOT ARMED", which can be switched between by pushing the small button above the "0.2 box":
 
   ARMED: ![img](github_images/arm_on.bmp)
 
@@ -218,8 +221,7 @@ When you then push the big ZERO-icon in the middle:
   
 Your current NOT ARMED values will go towards your ARMED values. And they will do it in the number of frames that you have specified in the "0-Steps" input box.
   
-
-
+**Tilt**
 The "0.2" box decides how much of the value will be applied when you push a button.
 
 ![img](github_images/tilt.PNG)
