@@ -199,13 +199,16 @@ The buttons will move the camera. So if you push the left arrow, the camera will
 
 Think of yourself being the eyes (the camera view)  and the image that you see... so if you push the left button, then it's like YOU are sidestepping left... etc
 
-The "1.0" box decides how much of the value will be applied when you push a button.
+The "0.2" box decides how much of the value will be applied when you push a button.
 
 ![img](github_images/rotation.PNG)
 
 Think of yourself being the eyes (the camera view)  and the image that you see... so if you push the left button, then you'r head will turn left... etc
+The panning buttons have 2 modes, "ARMED" or "NOT ARMED", which can be switched between by pushing the small button above the "0.2 box":
+![img](github_images/arm_on.bmp) 
+![img](github_images/arm_off.bmp) 
 
-The "1.0" box decides how much of the value will be applied when you push a button.
+The "0.2" box decides how much of the value will be applied when you push a button.
 
 ![img](github_images/tilt.PNG)
 
