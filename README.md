@@ -314,7 +314,10 @@ One way to achieve this is to have No motion at all, and make every render not g
   <summary>Tips and tricks</summary>
   
   ## Tips and tricks
-When you push "Interupt", sometimes Deforum buggs out and it doesn't stich up your video correctly. An easy way to avoid/bypass this with the help of Deforumation, is to first push the "PUSH TO PAUS RENDERING OPTION", and after the rendering has paused, then push the "Interrupt"-button. Then in Deforumation resume the flow again by pushing the "PUSH TO RESUME BUTTON" in Deforum. This will mostly get Deforum to get the stitching correctly started.
+
+- Make good use of the PAUS and REWIND functionality. If something is not being generated correctly, you can always redo.
+
+- Experiment with all the values, in order to understand what happens... That is the best way of learning.
 
 
 </details>
