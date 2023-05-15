@@ -214,7 +214,7 @@ NOT ARMED: ![img](github_images/arm_off.bmp)
 In ARMED mode, the values that you choose through the pann buttons, will be a guide for the "NOT ARMED" values. So the ARMED and the NOT ARMED mode can have totally separate values.
 When you then push the big ZERO-icon in the middle:
 
-![img](github_images/current_version_gentle_zero_rotation.png)
+![img](github_images/zero.bmp)
   
 Your current NOT ARMED values will go towards your ARMED values. And they will do it in the number of frames that you have specified in the "0-Steps" input box.
   
