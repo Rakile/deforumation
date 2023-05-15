@@ -209,6 +209,7 @@ The "0.2" box decides how much of the value will be applied when you push a butt
 Think of yourself being the eyes (the camera view)  and the image that you see... so if you push the left button, then you'r head will turn left... etc
 
 **Arming On and Off**
+  
 The panning buttons have 2 modes, "ARMED" or "NOT ARMED", which can be switched between by pushing the small button above the "0.2 box":
 
   ARMED: ![img](github_images/arm_on.bmp)
@@ -223,6 +224,7 @@ When you then push the big ZERO-icon in the middle:
 Your current NOT ARMED values will go towards your ARMED values. And they will do it in the number of frames that you have specified in the "0-Steps" input box.
   
 **Tilt**
+  
 The "0.2" box decides how much of the value will be applied when you push a button.
 
 ![img](github_images/tilt.PNG)
