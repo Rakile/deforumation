@@ -95,7 +95,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         prompt_series = keys.prompts
     else:
         prompt_series = pd.Series([np.nan for a in range(anim_args.max_frames)])
-        max_f = anim_args.max_frames - 1
         for i, prompt in animation_prompts.items():
             if str(i).isdigit():
                 prompt_series[int(i)] = prompt
@@ -213,7 +212,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     #Webui
     state.job_count = anim_args.max_frames
 
-    while frame_idx < (anim_args.max_frames if not anim_args.use_mask_video else anim_args.max_frames - 1):
+    while frame_idx < anim_args.max_frames:
         #Webui
         
         state.job = f"frame {frame_idx + 1}/{anim_args.max_frames}"
@@ -356,6 +355,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         scheduled_sampler_name = None
         scheduled_clipskip = None
         scheduled_noise_multiplier = None
+        scheduled_ddim_eta = None
+        scheduled_ancestral_eta = None
         mask_seq = None
         noise_mask_seq = None
         if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
@@ -374,6 +375,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             scheduled_clipskip = int(keys.clipskip_schedule_series[frame_idx])
         if anim_args.enable_noise_multiplier_scheduling and keys.noise_multiplier_schedule_series[frame_idx] is not None:
             scheduled_noise_multiplier = float(keys.noise_multiplier_schedule_series[frame_idx])
+        if anim_args.enable_ddim_eta_scheduling and keys.ddim_eta_schedule_series[frame_idx] is not None:
+            scheduled_ddim_eta = float(keys.ddim_eta_schedule_series[frame_idx])
+        if anim_args.enable_ancestral_eta_scheduling and keys.ancestral_eta_schedule_series[frame_idx] is not None:
+            scheduled_ancestral_eta = float(keys.ancestral_eta_schedule_series[frame_idx])            
         if args.use_mask and keys.mask_schedule_series[frame_idx] is not None:
             mask_seq = keys.mask_schedule_series[frame_idx]
         if anim_args.use_noise_mask and keys.noise_mask_schedule_series[frame_idx] is not None:
@@ -421,10 +426,19 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
                 # optical flow cadence setup before animation warping
                 if anim_args.animation_mode in ['2D', '3D'] and anim_args.optical_flow_cadence != 'None':
-                    if keys.strength_schedule_series[tween_frame_start_idx] > 0:
-                        if cadence_flow is None and turbo_prev_image is not None and turbo_next_image is not None:
-                            cadence_flow = get_flow_from_images(turbo_prev_image, turbo_next_image, anim_args.optical_flow_cadence, raft_model) / 2
-                            turbo_next_image = image_transform_optical_flow(turbo_next_image, -cadence_flow, 1)
+                    if usingDeforumation: #Should we Connect to the Deforumation websocket server to get strength values?            
+                        if int(mediator_getValue("should_use_deforumation_strength")) == 1: #Should we use manual or deforum's strength scheduling?
+                            deforumation_strength = float(mediator_getValue("strength"))
+                            if deforumation_strength > 0:
+                                if cadence_flow is None and turbo_prev_image is not None and turbo_next_image is not None:
+                                    cadence_flow = get_flow_from_images(turbo_prev_image, turbo_next_image, anim_args.optical_flow_cadence, raft_model) / 2
+                                    turbo_next_image = image_transform_optical_flow(turbo_next_image, -cadence_flow, 1)
+                        else:
+                            if keys.strength_schedule_series[tween_frame_start_idx] > 0:
+                                if cadence_flow is None and turbo_prev_image is not None and turbo_next_image is not None:
+                                    cadence_flow = get_flow_from_images(turbo_prev_image, turbo_next_image, anim_args.optical_flow_cadence, raft_model) / 2
+                                    turbo_next_image = image_transform_optical_flow(turbo_next_image, -cadence_flow, 1)
+                              
 
                 if opts.data.get("deforum_save_gen_info_as_srt"):
                     params_string = format_animation_params(keys, tween_frame_idx)
@@ -447,16 +461,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     turbo_prev_image, _ = anim_frame_warp(turbo_prev_image, args, anim_args, keys, tween_frame_idx, depth_model, depth=depth, device=root.device, half_precision=root.half_precision)
                 if advance_next:
                     turbo_next_image, _ = anim_frame_warp(turbo_next_image, args, anim_args, keys, tween_frame_idx, depth_model, depth=depth, device=root.device, half_precision=root.half_precision)
-
-                # do optical flow cadence after animation warping
-                if cadence_flow is not None:
-                    cadence_flow = abs_flow_to_rel_flow(cadence_flow, args.W, args.H)
-                    cadence_flow, _ = anim_frame_warp(cadence_flow, args, anim_args, keys, tween_frame_idx, depth_model, depth=depth, device=root.device, half_precision=root.half_precision)
-                    cadence_flow_inc = rel_flow_to_abs_flow(cadence_flow, args.W, args.H) * tween
-                    if advance_prev:
-                        turbo_prev_image = image_transform_optical_flow(turbo_prev_image, cadence_flow_inc, cadence_flow_factor)
-                    if advance_next:
-                        turbo_next_image = image_transform_optical_flow(turbo_next_image, cadence_flow_inc, cadence_flow_factor)
 
                 # hybrid video motion - warps turbo_prev_image or turbo_next_image to match motion
                 if tween_frame_idx > 0:
@@ -488,6 +492,16 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                             if advance_next:
                                 turbo_next_image = image_transform_optical_flow(turbo_next_image, flow, hybrid_comp_schedules['flow_factor'])
                             prev_flow = flow
+
+                # do optical flow cadence after animation warping
+                if cadence_flow is not None:
+                    cadence_flow = abs_flow_to_rel_flow(cadence_flow, args.W, args.H)
+                    cadence_flow, _ = anim_frame_warp(cadence_flow, args, anim_args, keys, tween_frame_idx, depth_model, depth=depth, device=root.device, half_precision=root.half_precision)
+                    cadence_flow_inc = rel_flow_to_abs_flow(cadence_flow, args.W, args.H) * tween
+                    if advance_prev:
+                        turbo_prev_image = image_transform_optical_flow(turbo_prev_image, cadence_flow_inc, cadence_flow_factor)
+                    if advance_next:
+                        turbo_next_image = image_transform_optical_flow(turbo_next_image, cadence_flow_inc, cadence_flow_factor)
 
                 turbo_prev_frame_idx = turbo_next_frame_idx = tween_frame_idx
 
@@ -525,7 +539,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         hybrid_available = anim_args.hybrid_composite != 'None' or anim_args.hybrid_motion in ['Optical Flow', 'Affine', 'Perspective']
         if anim_args.color_coherence == 'Video Input' and hybrid_available:
             if int(frame_idx) % int(anim_args.color_coherence_video_every_N_frames) == 0:
-                prev_vid_img = Image.open(os.path.join(args.outdir, 'inputframes', get_frame_name(anim_args.video_init_path) + f"{frame_idx+1:09}.jpg"))
+                prev_vid_img = Image.open(os.path.join(args.outdir, 'inputframes', get_frame_name(anim_args.video_init_path) + f"{frame_idx:09}.jpg"))
                 prev_vid_img = prev_vid_img.resize((args.W, args.H), PIL.Image.LANCZOS)
                 color_match_sample = np.asarray(prev_vid_img)
                 color_match_sample = cv2.cvtColor(color_match_sample, cv2.COLOR_RGB2BGR)
@@ -659,6 +673,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             opts.data["CLIP_stop_at_last_layers"] = scheduled_clipskip
         if scheduled_noise_multiplier is not None:
             opts.data["initial_noise_multiplier"] = scheduled_noise_multiplier
+        if scheduled_ddim_eta is not None:
+            opts.data["eta_ddim"] = scheduled_ddim_eta
+        if scheduled_ancestral_eta is not None:
+            opts.data["eta_ancestral"] = scheduled_ancestral_eta
         
         if anim_args.animation_mode == '3D' and (cmd_opts.lowvram or cmd_opts.medvram):
             if predict_depths: depth_model.to('cpu')

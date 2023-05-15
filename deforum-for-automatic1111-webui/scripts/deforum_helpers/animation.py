@@ -253,7 +253,7 @@ def transform_image_3d_switcher(device, prev_img_cv2, depth_tensor, rot_mat, tra
         return transform_image_3d_new(device, prev_img_cv2, depth_tensor, rot_mat, translate, anim_args, keys, frame_idx)
 
 def transform_image_3d_legacy(device, prev_img_cv2, depth_tensor, rot_mat, translate, anim_args, keys, frame_idx):
-    # adapted and optimized version of transform_image_3d from Disco Diffusion https://github.com/alembics/disco-diffusion 
+    # adapted and optimized version of transform_image_3d from Disco Diffusion https://github.com/alembics/disco-diffusion
     w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
 
     if anim_args.aspect_ratio_use_old_formula:
@@ -263,7 +263,10 @@ def transform_image_3d_legacy(device, prev_img_cv2, depth_tensor, rot_mat, trans
     
     near = keys.near_series[frame_idx]
     far = keys.far_series[frame_idx]
-    fov_deg = keys.fov_series[frame_idx]
+    if usingDeforumation: #Should we Connect to the Deforumation websocket server to get rotation values?
+        fov_deg = float(mediator_getValue("fov"))
+    if usingDeforumation == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
+        fov_deg = keys.fov_series[frame_idx]
     persp_cam_old = p3d.FoVPerspectiveCameras(near, far, aspect_ratio, fov=fov_deg, degrees=True, device=device)
     persp_cam_new = p3d.FoVPerspectiveCameras(near, far, aspect_ratio, fov=fov_deg, degrees=True, R=rot_mat, T=torch.tensor([translate]), device=device)
 
@@ -333,7 +336,10 @@ def transform_image_3d_new(device, prev_img_cv2, depth_tensor, rot_mat, translat
     # get projection keys
     near = keys.near_series[frame_idx]
     far = keys.far_series[frame_idx]
-    fov_deg = keys.fov_series[frame_idx]
+    if usingDeforumation: #Should we Connect to the Deforumation websocket server to get rotation values?
+        fov_deg = float(mediator_getValue("fov"))
+    if usingDeforumation == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
+        fov_deg = keys.fov_series[frame_idx]
 
     # get perspective cams old (still) and new (transformed)
     persp_cam_old = p3d.FoVPerspectiveCameras(near, far, aspect_ratio, fov=fov_deg, degrees=True, device=device)
@@ -344,7 +350,10 @@ def transform_image_3d_new(device, prev_img_cv2, depth_tensor, rot_mat, translat
 
     # test tensor for validity (some are corrupted for some reason)
     depth_tensor_invalid = depth_tensor is None or torch.isnan(depth_tensor).any() or torch.isinf(depth_tensor).any() or depth_tensor.min() == depth_tensor.max()
-    debug_print(f"Depth_T.min: {depth_tensor.min()}, Depth_T.max: {depth_tensor.max()}")
+
+    if depth_tensor is not None:
+        debug_print(f"Depth_T.min: {depth_tensor.min()}, Depth_T.max: {depth_tensor.max()}")
+
     # if invalid, create flat z for this frame
     if depth_tensor_invalid:
         # if none, then 3D depth is turned off, so no warning is needed.
