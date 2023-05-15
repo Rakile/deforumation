@@ -1368,8 +1368,12 @@ class Mywin(wx.Frame):
                 if Rotation_3D_Y < 0:
                     is_negative = 1
 
-        #print("Stepper thread activated")
-        while (stepit_pan or stepit_rotate) and zero_frame_steps_n_frame != 0:
+        while zero_frame_steps_n_frame != 0:
+            if (parameter_value == "translation_x" or parameter_value == "translation_y") and stepit_pan == 0:
+                break
+            if (parameter_value == "rotation_x" or parameter_value == "rotation_y") and stepit_rotate == 0:
+                break
+
             current_step_frame = int(readValue("start_frame"))
             if (int(current_step_frame) > int(now_frame)):
                 now_frame = current_step_frame
@@ -1453,8 +1457,12 @@ class Mywin(wx.Frame):
                 #print("Rotaion_Y:" + str(Rotation_3D_Y))
             time.sleep(0.25)
         self.writeAllValues()
-        zero_pan_active = False
-        zero_rotate_active = False
+        if (parameter_value == "translation_x" or parameter_value == "translation_y"):
+            zero_pan_active = False
+        if (parameter_value == "rotation_x" or parameter_value == "rotation_y"):
+            zero_rotate_active = False
+
+
         print("Ending stepper thread")
 #"translation_x"
     def OnClicked(self, event):
