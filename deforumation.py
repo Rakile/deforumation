@@ -90,9 +90,12 @@ async def sendAsync(value):
         #print(str(message))
         return message
 def scale_bitmap(bitmap, width, height):
-    image = bitmap.ConvertToImage()
-    image = image.Scale(width, height, wx.IMAGE_QUALITY_HIGH)
-    result = wx.Bitmap(image)
+    if bitmap.IsOk():
+        image = bitmap.ConvertToImage()
+        image = image.Scale(width, height, wx.IMAGE_QUALITY_HIGH)
+        result = wx.Bitmap(image)
+    else:
+        result = None
     return result
 
 def get_current_image_path():
@@ -179,10 +182,16 @@ def changeBitmapWorker(parent):
                         if maxBackTrack == 0:
                             imageFound = False
                     if(imageFound):
-                        parent.bitmap = wx.Bitmap(imagePath)
-                        bitmap_width, bitmap_height = parent.parent.GetSize()
-                        parent.bitmap = scale_bitmap(parent.bitmap, bitmap_width, bitmap_height)
-                        parent.Refresh()
+                        if bool(parent):
+                            parent.bitmap = wx.Bitmap(imagePath)
+                            if bool(parent.parent):
+                                bitmap_width, bitmap_height = parent.parent.GetSize()
+                                parent.bitmap = scale_bitmap(parent.bitmap, bitmap_width, bitmap_height)
+                                parent.Refresh()
+                            else:
+                                isReplaying = 0
+                                print("Thread destroyed")
+                                return
                         #print("Image_Nr:"+str(current_frame).zfill(9))
                     else:
                         imageFound = True
@@ -214,7 +223,8 @@ def changeBitmapWorker(parent):
                 #print("Done Replaying")
     bmp = wx.Bitmap("./images/play.bmp", wx.BITMAP_TYPE_BMP)
     bmp = scale_bitmap(bmp, 18, 18)
-    parent.parent.parent.replay_button.SetBitmap(bmp)
+    if bool(parent.parent.parent):
+        parent.parent.parent.replay_button.SetBitmap(bmp)
     isReplaying = 0
     print("Thread destroyed")
 class MyPanel(wx.Panel):
@@ -248,7 +258,9 @@ class MyPanel(wx.Panel):
             imagePath = get_current_image_path()
         self.bitmap = wx.Bitmap(imagePath)
         bitmap_width, bitmap_height = self.parent.GetSize()
-        self.bitmap = scale_bitmap(self.bitmap, bitmap_width, bitmap_height)
+        tempBitmap = scale_bitmap(self.bitmap, bitmap_width, bitmap_height)
+        if tempBitmap.IsOk():
+            self.bitmap
         self.Refresh()
 
 class render_window(wx.Frame):
