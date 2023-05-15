@@ -233,6 +233,8 @@ Tilt is tilt... It will rotate the image clock or counter clock-wise.
 
 The "1.0" box decides how much of the value will be applied when you push a button.
 
+**Pause and Rewind**
+  
 ![img](github_images/rewindforward.PNG)
 
 Deforumation allows you to rewind to a given frame, and gives you the ability to start generating from that given frame. This is good for when something in your creativity "goes bananas". Maybe that clown shouldn't have appeard all of a sudden ;P
@@ -252,13 +254,25 @@ The "double-left-arrow" will jump to your closest saved prompt towards the begin
 
 When you know you did a misstake, start by pressing the "PUSH TO PAUS RENDERING"-button. Then click "Show current image"-button. This will give you the current image, and the current actual frame number. Use the arrows to rewind or forward... or you could just type in a frame number and press enter to jump to that frame... When you found the frame where you want to resume rendering from, press the "Set current image"-button, and then, to resume rendering, push the "PUSH TO RESUME RENDERING"-button. EASY!!!
 
-Pushing the "SAVE PROMPTS" button will save your current prompts (positive and negative), as files inside the "prompts" folde in your deforumation folder. Depending on your current generation (timestring), seperate files will be saved for that particular "project". That means that your prompts can be recalled during a generation of a specific project. E.g. Push "SAVE PROMPT" on fram 0, then on fram 50 change your prompts, and push again "SAVE PROMPTS", and they will update as you rewind/forward throughout you generated frames... You'll get a hang of it ;) (Else ask in the discord).
+**Prompts**
+  
+Pushing the "SAVE PROMPTS" button will save your current prompts (positives and negative), as files inside the "prompts" folde in your deforumation folder. Depending on your current generation (timestring), seperate files will be saved for that particular "project". That means that your prompts can be recalled during a generation of a specific project. E.g. Push "SAVE PROMPT" on fram 0, then on fram 50 change your prompts, and push again "SAVE PROMPTS", and they will update as you rewind/forward throughout you generated frames... You'll get a hang of it ;) (Else ask in the discord).
 
+**Replay**
+  
+![img](github_images/replay.PNG)
+
+During a generation session, you can directly watched any range of images, by inserting the range you want to play, and then pressing the Play button. 
+  
+  
 ![img](github_images/smile.gif)
 
 To change the seed, just type a new seed in the seed-input box, and push return. It will then be loyal to whatever you have choosen in the Deforum GUI, iterative, etc.
 
   
+**ControlNet** 
+
+Deforumation can 
 </details>
 
 
