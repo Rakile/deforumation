@@ -426,19 +426,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
                 # optical flow cadence setup before animation warping
                 if anim_args.animation_mode in ['2D', '3D'] and anim_args.optical_flow_cadence != 'None':
-                    if usingDeforumation: #Should we Connect to the Deforumation websocket server to get strength values?            
-                        if int(mediator_getValue("should_use_deforumation_strength")) == 1: #Should we use manual or deforum's strength scheduling?
-                            deforumation_strength = float(mediator_getValue("strength"))
-                            if deforumation_strength > 0:
-                                if cadence_flow is None and turbo_prev_image is not None and turbo_next_image is not None:
-                                    cadence_flow = get_flow_from_images(turbo_prev_image, turbo_next_image, anim_args.optical_flow_cadence, raft_model) / 2
-                                    turbo_next_image = image_transform_optical_flow(turbo_next_image, -cadence_flow, 1)
-                        else:
-                            if keys.strength_schedule_series[tween_frame_start_idx] > 0:
-                                if cadence_flow is None and turbo_prev_image is not None and turbo_next_image is not None:
-                                    cadence_flow = get_flow_from_images(turbo_prev_image, turbo_next_image, anim_args.optical_flow_cadence, raft_model) / 2
-                                    turbo_next_image = image_transform_optical_flow(turbo_next_image, -cadence_flow, 1)
-                              
+                    if keys.strength_schedule_series[tween_frame_start_idx] > 0:
+                        if cadence_flow is None and turbo_prev_image is not None and turbo_next_image is not None:
+                            cadence_flow = get_flow_from_images(turbo_prev_image, turbo_next_image, anim_args.optical_flow_cadence, raft_model) / 2
+                            turbo_next_image = image_transform_optical_flow(turbo_next_image, -cadence_flow, 1)                              
 
                 if opts.data.get("deforum_save_gen_info_as_srt"):
                     params_string = format_animation_params(keys, tween_frame_idx)
