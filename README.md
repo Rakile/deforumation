@@ -274,7 +274,7 @@ To change the seed, just type a new seed in the seed-input box, and push return.
 
 ![img](github_images/controlnet.png)
   
-Deforumation can control Deforum's ControlNet values
+Deforumation can control Deforum's 1:st ControlNet (CN Model1) values. They are only active if the ControlNet in Deforum is Enabled.
   
 </details>
 
