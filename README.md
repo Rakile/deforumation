@@ -272,7 +272,10 @@ To change the seed, just type a new seed in the seed-input box, and push return.
   
 **ControlNet** 
 
-Deforumation can 
+![img](github_images/controlnet.PNG)
+  
+Deforumation can control Deforum's ControlNet values
+  
 </details>
 
 
