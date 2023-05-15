@@ -250,7 +250,7 @@ Typing a frame number in the input box and pushing RETURN will directly transpor
 The "double-left-arrow" will jump to your closest saved prompt towards the beginning relative to your current frame, and the "double-right-arrow" will jump to your closest saved prompt towards the end relative to your current frame.
 
 
-![img](github_images/resume.PNG)
+![img](github_images/resume.png)
 
 When you know you did a misstake, start by pressing the "PUSH TO PAUS RENDERING"-button. Then click "Show current image"-button. This will give you the current image, and the current actual frame number. Use the arrows to rewind or forward... or you could just type in a frame number and press enter to jump to that frame... When you found the frame where you want to resume rendering from, press the "Set current image"-button, and then, to resume rendering, push the "PUSH TO RESUME RENDERING"-button. EASY!!!
 
@@ -259,8 +259,8 @@ When you know you did a misstake, start by pressing the "PUSH TO PAUS RENDERING"
 Pushing the "SAVE PROMPTS" button will save your current prompts (positives and negative), as files inside the "prompts" folde in your deforumation folder. Depending on your current generation (timestring), seperate files will be saved for that particular "project". That means that your prompts can be recalled during a generation of a specific project. E.g. Push "SAVE PROMPT" on fram 0, then on fram 50 change your prompts, and push again "SAVE PROMPTS", and they will update as you rewind/forward throughout you generated frames... You'll get a hang of it ;) (Else ask in the discord).
 
 **Replay**
-  
-![img](github_images/replay.PNG)
+
+![img](github_images/replay.png)
 
 During a generation session, you can directly watched any range of images, by inserting the range you want to play, and then pressing the Play button. 
   
