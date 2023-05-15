@@ -203,6 +203,7 @@ Think of yourself being the eyes (the camera view)  and the image that you see..
 The "0.2" box decides how much of the value will be applied when you push a button.
 
 **Rotation**
+  
 ![img](github_images/rotation.PNG)
 
 Think of yourself being the eyes (the camera view)  and the image that you see... so if you push the left button, then you'r head will turn left... etc
