@@ -1553,25 +1553,25 @@ class Mywin(wx.Frame):
                 Translation_X = Translation_X - float(self.pan_step_input_box.GetValue())
                 self.writeValue("translation_x", Translation_X)
             else:
-                Translation_X_ARMED = Translation_X_ARMED - float(self.pan_step_input_box.GetValue())
+                Translation_X_ARMED =  round(Translation_X_ARMED - float(self.pan_step_input_box.GetValue()),2)
         elif btn == "PAN_RIGHT":
             if not armed_pan:
                 Translation_X = Translation_X + float(self.pan_step_input_box.GetValue())
                 self.writeValue("translation_x", Translation_X)
             else:
-                Translation_X_ARMED = Translation_X_ARMED + float(self.pan_step_input_box.GetValue())
+                Translation_X_ARMED = round(Translation_X_ARMED + float(self.pan_step_input_box.GetValue()),2)
         elif btn == "PAN_UP":
             if not armed_pan:
                 Translation_Y = Translation_Y + float(self.pan_step_input_box.GetValue())
                 self.writeValue("translation_y", Translation_Y)
             else:
-                Translation_Y_ARMED = Translation_Y_ARMED + float(self.pan_step_input_box.GetValue())
+                Translation_Y_ARMED =  round(Translation_Y_ARMED + float(self.pan_step_input_box.GetValue()),2)
         elif btn == "PAN_DOWN":
             if not armed_pan:
                 Translation_Y = Translation_Y - float(self.pan_step_input_box.GetValue())
                 self.writeValue("translation_y", Translation_Y)
             else:
-                Translation_Y_ARMED = Translation_Y_ARMED - float(self.pan_step_input_box.GetValue())
+                Translation_Y_ARMED =  round(Translation_Y_ARMED - float(self.pan_step_input_box.GetValue()),2)
         elif btn == "ZERO PAN":
             if not zero_pan_active:
                 #Start a ZERO step thread.
@@ -1581,15 +1581,15 @@ class Mywin(wx.Frame):
                     Translation_Y = 0
                     self.writeValue("translation_x", Translation_X)
                     self.writeValue("translation_y", Translation_Y)
-                elif Translation_X == 0 and Translation_Y == 0 and Translation_X_ARMED == 0 and Translation_Y_ARMED == 0:
+                elif (Translation_X == 0 and Translation_Y == 0 and Translation_X_ARMED == 0 and Translation_Y_ARMED == 0) or (Translation_X == Translation_X_ARMED and Translation_Y == Translation_Y_ARMED):
                     zero_pan_active = False
                 else:
                     zero_pan_active = True
-                    if Translation_X != 0 or Translation_X_ARMED != 0:
+                    if Translation_X != Translation_X_ARMED:
                         self.zero_step_thread_x = threading.Thread(target=self.ZeroStepper, args=("translation_x", frame_steps, Translation_X_ARMED))
                         self.zero_step_thread_x.daemon = True
                         self.zero_step_thread_x.start()
-                    if Translation_Y != 0 or Translation_Y_ARMED != 0:
+                    if Translation_Y != Translation_Y_ARMED:
                         self.zero_step_thread_y = threading.Thread(target=self.ZeroStepper, args=("translation_y", frame_steps, Translation_Y_ARMED))
                         self.zero_step_thread_y.daemon = True
                         self.zero_step_thread_y.start()
@@ -1620,25 +1620,25 @@ class Mywin(wx.Frame):
                 Rotation_3D_Y = Rotation_3D_Y - float(self.rotate_step_input_box.GetValue())
                 self.writeValue("rotation_y", Rotation_3D_Y)
             else:
-                Rotation_3D_Y_ARMED = Rotation_3D_Y_ARMED - float(self.rotate_step_input_box.GetValue())
+                Rotation_3D_Y_ARMED =  round(Rotation_3D_Y_ARMED - float(self.rotate_step_input_box.GetValue()),2)
         elif btn == "LOOK_RIGHT":
             if not armed_rotation:
                 Rotation_3D_Y = Rotation_3D_Y + float(self.rotate_step_input_box.GetValue())
                 self.writeValue("rotation_y", Rotation_3D_Y)
             else:
-                Rotation_3D_Y_ARMED = Rotation_3D_Y_ARMED + float(self.rotate_step_input_box.GetValue())
+                Rotation_3D_Y_ARMED =  round(Rotation_3D_Y_ARMED + float(self.rotate_step_input_box.GetValue()),2)
         elif btn == "LOOK_UP":
             if not armed_rotation:
                 Rotation_3D_X = Rotation_3D_X + float(self.rotate_step_input_box.GetValue())
                 self.writeValue("rotation_x", Rotation_3D_X)
             else:
-                Rotation_3D_X_ARMED = Rotation_3D_X_ARMED + float(self.rotate_step_input_box.GetValue())
+                Rotation_3D_X_ARMED =  round(Rotation_3D_X_ARMED + float(self.rotate_step_input_box.GetValue()),2)
         elif btn == "LOOK_DOWN":
             if not armed_rotation:
                 Rotation_3D_X = Rotation_3D_X - float(self.rotate_step_input_box.GetValue())
                 self.writeValue("rotation_x", Rotation_3D_X)
             else:
-                Rotation_3D_X_ARMED = Rotation_3D_X_ARMED - float(self.rotate_step_input_box.GetValue())
+                Rotation_3D_X_ARMED =  round(Rotation_3D_X_ARMED - float(self.rotate_step_input_box.GetValue()),2)
         elif btn == "ZERO ROTATE":
             if not zero_rotate_active:
                 #Start a ZERO step thread.
@@ -1648,15 +1648,15 @@ class Mywin(wx.Frame):
                     Rotation_3D_Y = 0
                     self.writeValue("rotation_x", Rotation_3D_X)
                     self.writeValue("rotation_y", Rotation_3D_Y)
-                elif Rotation_3D_X == 0 and Rotation_3D_Y == 0 and Rotation_3D_X_ARMED == 0 and Rotation_3D_Y_ARMED == 0:
+                elif (Rotation_3D_X == 0 and Rotation_3D_Y == 0 and Rotation_3D_X_ARMED == 0 and Rotation_3D_Y_ARMED == 0) or (Rotation_3D_X == Rotation_3D_X_ARMED and Rotation_3D_Y == Rotation_3D_Y_ARMED):
                     zero_rotate_active = False
                 else:
                     zero_rotate_active = True
-                    if Rotation_3D_X != 0 or Rotation_3D_X_ARMED !=0:
+                    if Rotation_3D_X != Rotation_3D_X_ARMED:
                         self.zero_rotate_thread_x = threading.Thread(target=self.ZeroStepper, args=("rotation_x", frame_steps, Rotation_3D_X_ARMED))
                         self.zero_rotate_thread_x.daemon = True
                         self.zero_rotate_thread_x.start()
-                    if Rotation_3D_Y != 0 or Rotation_3D_Y_ARMED != 0:
+                    if Rotation_3D_Y != Rotation_3D_Y_ARMED:
                         self.zero_rotate_thread_y = threading.Thread(target=self.ZeroStepper, args=("rotation_y", frame_steps, Rotation_3D_Y_ARMED))
                         self.zero_rotate_thread_y.daemon = True
                         self.zero_rotate_thread_y.start()
