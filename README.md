@@ -27,7 +27,7 @@ Table of Contents
 11. [in-depth information](#in-depth-information)
 
 
-**Support our work via Patreon 
+[Support our work via Patreon] 
 
 Deforumation is a free tool for everyone to use. We appreciate all and any donations/support to keep Deforumation up to date and adding new features together with the community. We aim to have enough support to be able to pay for Discord nitro, witch will be beneficial for everyone. 
 ([Deforumation Patreon](https://www.patreon.com/Deforumation)) 
