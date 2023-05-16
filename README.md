@@ -25,9 +25,10 @@ Table of Contents
 9. [Discord Channel](#Discord-Channel)
 10. [Ongoing Work](#Ongoing-Work)
 11. [in-depth information](#in-depth-information)
+12. [patreon](#patreon)
 
 
-[Support our work via Patreon] 
+[Support our work via Patreon] (#patreon)
 
 Deforumation is a free tool for everyone to use. We appreciate all and any donations/support to keep Deforumation up to date and adding new features together with the community. We aim to have enough support to be able to pay for Discord nitro, witch will be beneficial for everyone. 
 ([Deforumation Patreon](https://www.patreon.com/Deforumation)) 
