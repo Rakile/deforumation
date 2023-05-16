@@ -28,7 +28,7 @@ Table of Contents
 
 
 **Support our work via Patreon 
-([Deforumation Patreon]((https://www.patreon.com/Deforumation)) 
+([Deforumation Patreon](https://www.patreon.com/Deforumation)) 
 
 
 
