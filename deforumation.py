@@ -1853,7 +1853,7 @@ class Mywin(wx.Frame):
                 should_use_deforumation_strength = 1
                 #print("NOW IT IS:"+str(should_use_deforumation_strength))
             else:
-                self.readValue("should_use_deforumation_strength")
+                self.writeValue("should_use_deforumation_strength", 0)
                 should_use_deforumation_strength = 0
                 #print("NOW IT IS:"+str(should_use_deforumation_strength))
         elif btn == "REPLAY":
