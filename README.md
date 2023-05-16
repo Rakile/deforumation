@@ -10,6 +10,8 @@ Deforumation: Unofficial Extension for Deforum
 
 **IMPORTANT: No official Deforum support will be provided if you use this extension.**
 
+
+
 Table of Contents
 -----------------
 1. [Introduction](#introduction)
@@ -23,6 +25,12 @@ Table of Contents
 9. [Discord Channel](#Discord-Channel)
 10. [Ongoing Work](#Ongoing-Work)
 11. [in-depth information](#in-depth-information)
+
+
+**Support our work via Patreon 
+([Deforumation Patreon]((https://www.patreon.com/Deforumation)) 
+
+
 
 Latest version / features
 -----------------
