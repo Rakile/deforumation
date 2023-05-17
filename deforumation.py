@@ -10,6 +10,8 @@ from threading import *
 from pathlib import Path
 import wx.lib.newevent
 import threading
+#from deforum_helpers import parseq_adapter
+
 #import subprocess
 cadenceArray = {}
 deforumationSettingsPath="./deforumation_settings.txt"
@@ -74,6 +76,9 @@ replayTo = 0
 replayFPS = 30
 armed_rotation = False
 armed_pan = False
+pstb = False
+pmob = False
+is_Parseq_Active = False
 
 async def sendAsync(value):
     async with websockets.connect("ws://localhost:8765") as websocket:
@@ -310,6 +315,9 @@ class render_window(wx.Frame):
             self.bitmap = None
         should_render_live = False
         #print("CLOSING, framer.bitmap is:"+ str(self.bitmap))
+
+
+import args as deforum_args
 class Mywin(wx.Frame):
     def __init__(self, parent, title):
         super(Mywin, self).__init__(parent, title=title, size=(screenWidth, screenHeight))
@@ -317,15 +325,16 @@ class Mywin(wx.Frame):
         self.panel.SetBackgroundColour(wx.Colour(100, 100, 100))
         self.Bind(wx.EVT_CLOSE, self.OnExit)
         self.framer = None
-        #self.framer = render_window(None, 'Rendering Image')
-        #wx.EVT_PAINT(self, self.OnPaint)
-        #wx.EVT_SIZE(self, self.OnSize)
-        #Timer Event
-        ##############################################################################################################################################################################
-        #self.timer = wx.Timer(self)
-        #self.Bind(wx.EVT_TIMER, self.updateRender, self.timer)
-        #self.timer.Start(200)
-
+        # expand key frame strings to values
+        #component_names = deforum_args.get_component_names()
+        #args_dict = {component_names[i]:i for i in range(0, len(component_names))}
+        #args, anim_args, parseq_args = deforum_args.process_args(args_dict)
+        #keys = animation_key_frames.DeformAnimKeys(anim_args, -1)
+        #self.parseq_keys = parseq_adapter.ParseqAnimKeys(parseq_args, anim_args)
+        #data1 = pickle.dumps(self.parseq_keys)
+        #print(str(self.parseq_keys.translation_x_series))
+        #writeValue("parseq_keys", self.parseq_keys)
+        writeValue("use_parseq", 0)
 
         #Positive Prompt
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -590,6 +599,18 @@ class Mywin(wx.Frame):
         self.strength_schedule_slider.SetTickFreq(1)
         self.strength_schedule_slider.SetLabel("STRENGTH SCHEDULE")
         self.step_schedule_Text = wx.StaticText(self.panel, label="Strength Value (divided by 100)", pos=(trbX-25, tbrY-70))
+        #PARSEQ STRENGTH ON/OFF BUTTON
+        bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = scale_bitmap(bmp, 15, 15)
+        self.parseq_strength_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos=(trbX-45, tbrY-46), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
+        self.parseq_strength_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.parseq_strength_button.SetLabel("pstb")
+        #PARSEQ MOVEMENTS ON/OFF BUTTON
+        bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = scale_bitmap(bmp, 20, 20)
+        self.parseq_movements_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos = (trbX+280, tbrY+100), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
+        self.parseq_movements_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.parseq_movements_button.SetLabel("pmob")
 
         #SHOULD USE DEFORUMATION STRENGTH VALUES? CHECK-BOX
         self.should_use_deforumation_strength_checkbox = wx.CheckBox(self.panel, label="USE DEFORUMATION", pos=(trbX+160, tbrY-66))
@@ -762,6 +783,17 @@ class Mywin(wx.Frame):
         self.control_net_hight_slider.SetLabel("CN HIGHT")
         self.control_net_hight_slider_Text = wx.StaticText(self.panel, label="ControlNet - High Threshold", pos=(trbX+300, tbrY+240))
 
+        #PARSEQ URL INPUT BOX
+        self.Parseq_URL_input_box_text = wx.StaticText(self.panel, label="Use PARSEQ as Guide: ", pos = (trbX + 640, tbrY + 245))
+        self.Parseq_activation_Checkbox = wx.CheckBox(self.panel, id=73, pos=(trbX+760, tbrY + 245))
+        self.Parseq_activation_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+        self.Parseq_URL_input_box = wx.TextCtrl(self.panel, 28, size=(300,20), style = wx.TE_PROCESS_ENTER, pos = (trbX + 640, tbrY + 265))
+        self.Parseq_URL_input_box.SetHint("<URL to Parseq JSON File here>")
+        #PARSEQ SEND TO DEFORUM BUTTON
+        self.Send_URL_to_Deforum = wx.Button(self.panel, id=wx.ID_ANY, label="Send Deforum", pos=(trbX + 820, tbrY + 242), size=(120, 20))
+        self.Send_URL_to_Deforum.Bind(wx.EVT_BUTTON, self.OnClicked)
+
+
         self.Centre()
         self.Show()
         self.Fit()
@@ -877,6 +909,8 @@ class Mywin(wx.Frame):
         self.fov_lock_button.SetPosition((172 + trbX, tbrY - 5))
         self.fov_reverse_lock_button.SetPosition((172 + trbX, tbrY + 120))
         self.strength_schedule_slider.SetPosition((trbX - 25, tbrY - 50))
+        self.parseq_strength_button.SetPosition((trbX-45, tbrY-46))
+        self.parseq_movements_button.SetPosition((trbX+280, tbrY+100))
         self.step_schedule_Text.SetPosition((trbX - 25, tbrY - 70))
         self.should_use_deforumation_strength_checkbox.SetPosition((trbX + 160, tbrY - 66))
         self.sample_schedule_slider.SetPosition((trbX - 25, tbrY - 50 - 70))
@@ -911,6 +945,10 @@ class Mywin(wx.Frame):
         self.control_net_lowt_slider_Text.SetPosition((trbX-40, tbrY+240))
         self.control_net_hight_slider.SetPosition((trbX+300, tbrY+260))
         self.control_net_hight_slider_Text.SetPosition((trbX+300, tbrY+240))
+        self.Send_URL_to_Deforum.SetPosition((trbX + 820, tbrY + 242))
+        self.Parseq_URL_input_box.SetPosition((trbX + 640, tbrY + 265))
+        self.Parseq_URL_input_box_text.SetPosition((trbX + 640, tbrY + 245))
+        self.Parseq_activation_Checkbox.SetPosition((trbX+760, tbrY + 245))
         self.replay_input_box_text.SetPosition((trbX+990, tbrY-130))
         self.replay_from_input_box.SetPosition((trbX+1030, tbrY-131))
         self.replay_to_input_box.SetPosition((trbX+1090, tbrY-131))
@@ -1104,7 +1142,7 @@ class Mywin(wx.Frame):
             self.writeValue("rotation_x", Rotation_3D_X)
             self.writeValue("rotation_y", Rotation_3D_Y)
             self.writeValue("rotation_z", Rotation_3D_Z)
-            self.writeValue("rotation_z", Rotation_3D_Z)
+            #self.writeValue("rotation_z", Rotation_3D_Z)
             self.writeValue("should_use_deforumation_strength", int(should_use_deforumation_strength))
             self.writeValue("cadence", int(Cadence_Schedule))
             self.writeValue("cn_weight", float(CN_Weight))
@@ -1508,6 +1546,9 @@ class Mywin(wx.Frame):
         global Rotation_3D_X_ARMED
         global Rotation_3D_Y_ARMED
         global Rotation_3D_Z_ARMED
+        global pstb
+        global pmob
+        global is_Parseq_Active
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
@@ -1925,6 +1966,47 @@ class Mywin(wx.Frame):
                     self.framer.Close()
                     self.framer = None
                 current_render_frame = -1
+        elif btn == "pstb":
+            if pstb:
+                bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 15, 15)
+                self.parseq_strength_button.SetBitmap(wx.Bitmap(bmp))
+                self.writeValue("parseq_strength", 0)
+                pstb = False
+            else:
+                bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 15, 15)
+                self.parseq_strength_button.SetBitmap(wx.Bitmap(bmp))
+                self.writeValue("parseq_strength", 1)
+                pstb = True
+        elif btn == "pmob":
+            if pmob:
+                bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 20, 20)
+                self.parseq_movements_button.SetBitmap(wx.Bitmap(bmp))
+                self.writeValue("parseq_movements", 0)
+                pmob = False
+            else:
+                bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 20, 20)
+                self.parseq_movements_button.SetBitmap(wx.Bitmap(bmp))
+                self.writeValue("parseq_movements", 1)
+                pmob = True
+
+        elif event.GetId() == 73:
+            if is_Parseq_Active == 0:
+                is_Parseq_Active = 1
+                urlToSend = str(self.Parseq_URL_input_box.GetValue()).strip()
+                if len(urlToSend) > 5:
+                    writeValue("parseq_manifest", urlToSend)
+                    writeValue("use_parseq", 1)
+            else:
+                is_Parseq_Active = 0
+                writeValue("use_parseq", 0)
+        elif btn == "Send Deforum":
+            urlToSend = str(self.Parseq_URL_input_box.GetValue()).strip()
+            if len(urlToSend) > 5:
+                writeValue("parseq_manifest", urlToSend)
 
         if armed_pan:
             self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
@@ -1957,5 +2039,5 @@ if __name__ == '__main__':
     #time.sleep(5)
     blaha = random.randint(0, 2**32 - 1)
     app = wx.App()
-    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.1.3)')
+    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.1.5)')
     app.MainLoop()
