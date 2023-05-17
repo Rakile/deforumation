@@ -1,6 +1,5 @@
 import asyncio
 import time
-
 import websockets
 import pickle
 #Server-stuff
@@ -41,6 +40,11 @@ cn_stepstart = 0.0
 cn_stepend = 1.0
 cn_lowt = 0
 cn_hight = 255
+parseq_keys = 0
+use_parseq = 0
+parseq_manifest = ""
+parseq_strength = 0
+parseq_movements = 0
 async def echo(websocket):
     global serverShutDown
     global Prompt_Positive
@@ -70,6 +74,11 @@ async def echo(websocket):
     global cn_stepend
     global cn_lowt
     global cn_hight
+    global parseq_keys
+    global use_parseq
+    global parseq_manifest
+    global parseq_strength
+    global parseq_movements
     async for message in websocket:
         #print("Incomming message:"+str(message))
         arr = pickle.loads(message)
@@ -299,6 +308,42 @@ async def echo(websocket):
                     if doVerbose2:
                         print("sending cadence:"+str(cadence))
                     await websocket.send(str(cadence))
+            elif str(parameter) == "parseq_keys":
+                if shouldWrite:
+                    parseq_keys = value
+                else:
+                    if doVerbose2:
+                        print("sending parseq_keys:")
+                    await websocket.send(pickle.dumps(parseq_keys))
+            elif str(parameter) == "use_parseq":
+                if shouldWrite:
+                    use_parseq = value
+                else:
+                    if doVerbose2:
+                        print("sending use_parseq:")
+                    await websocket.send(str(use_parseq))
+            elif str(parameter) == "parseq_manifest":
+                if shouldWrite:
+                    parseq_manifest = value
+                    print("Got parseq_manifest:"+ str(value))
+                else:
+                    if doVerbose2:
+                        print("sending parseq_manifest:")
+                    await websocket.send(str(parseq_manifest))
+            elif str(parameter) == "parseq_strength":
+                if shouldWrite:
+                    parseq_strength = value
+                else:
+                    if doVerbose2:
+                        print("sending parseq_strength:")
+                    await websocket.send(str(parseq_strength))
+            elif str(parameter) == "parseq_movements":
+                if shouldWrite:
+                    parseq_movements = value
+                else:
+                    if doVerbose2:
+                        print("sending parseq_movements:")
+                    await websocket.send(str(parseq_movements))
             elif str(parameter) == "shutdown":
                 serverShutDown = True
             if shouldWrite: #Return an "OK" if the writes went OK
