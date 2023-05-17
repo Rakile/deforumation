@@ -16,6 +16,8 @@ from .video_audio_utilities import get_frame_name, get_next_frame
 from .depth import DepthModel
 from .colors import maintain_colors
 from .parseq_adapter import ParseqAnimKeys
+from deforum_helpers import parseq_adapter
+from deforum_helpers import animation_key_frames
 from .seed import next_seed
 from .image_sharpening import unsharp_mask
 from .load_images import get_mask, load_img, load_image, get_mask_from_file
@@ -34,6 +36,7 @@ from modules.shared import opts, cmd_opts, state, sd_model
 from modules import lowvram, devices, sd_hijack
 from .RAFT import RAFT
 #Deforumation_mediator imports/settings
+import pickle
 from .deforum_mediator import mediator_getValue, mediator_setValue, mediator_set_anim_args
 usingDeforumation = True
 #End settings
@@ -68,11 +71,38 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     if is_controlnet_enabled(controlnet_args):
         unpack_controlnet_vids(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root)
 
-    # use parseq if manifest is provided
-    use_parseq = parseq_args.parseq_manifest != None and parseq_args.parseq_manifest.strip()
-    # expand key frame strings to values
-    keys = DeformAnimKeys(anim_args, args.seed) if not use_parseq else ParseqAnimKeys(parseq_args, anim_args, video_args)
+
+    #Let the deforum mediator get the anim_args and the args values
+    if usingDeforumation:
+        mediator_set_anim_args(anim_args, args)
+
+    #Deforumation has a chance to overwrite the keys values, if it is using parseq
+    use_parseq_through_deforumator = 0
+    use_parseq = 0
+    if usingDeforumation:
+        if int(mediator_getValue("use_parseq")) == 1:
+            use_parseq = 1
+            use_parseq_through_deforumator = 1
+            temp_parseq_manifest = parseq_args.parseq_manifest
+            parseq_args.parseq_manifest = str(mediator_getValue("parseq_manifest").strip())
+            keys = ParseqAnimKeys(parseq_args, anim_args, video_args)
+            parseq_args.parseq_manifest = temp_parseq_manifest
+            print("Using Parseq through Deforumation.")
+        else:
+            args.seed = int(mediator_getValue("seed"))
+            if args.seed == -1:
+                args.seed = random.randint(0, 2**32 - 1)
+            keys = DeformAnimKeys(anim_args, args.seed)
+    else:
+        # use parseq if manifest is provided
+        use_parseq = parseq_args.parseq_manifest != None and parseq_args.parseq_manifest.strip()
+        # expand key frame strings to values
+        keys = DeformAnimKeys(anim_args, args.seed) if not use_parseq else ParseqAnimKeys(parseq_args, anim_args, video_args)
+
     loopSchedulesAndData = LooperAnimKeys(loop_args, anim_args, args.seed)
+
+
+
 
     # create output folder for the batch
     os.makedirs(args.outdir, exist_ok=True)
@@ -157,7 +187,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         start_frame = next_frame + 1
 
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to write the current resume frame properties?
-        mediator_set_anim_args(anim_args, args)
         mediator_setValue("should_resume", 0)
         print("DEFORUM, SETTING STARTFRAME:"+str(start_frame))
         mediator_setValue("start_frame", -1) #We set this in order to help third party know, that no image has been produced yet.
@@ -321,20 +350,22 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 if args.seed == -1:
                     args.seed = random.randint(0, 2**32 - 1)
                 connectedToServer = True
-        if usingDeforumation: #Should we Connect to the Deforumation websocket server to get strength values?            
-            if int(mediator_getValue("should_use_deforumation_strength")) == 1: #Should we use manual or deforum's strength scheduling?
+        if usingDeforumation and not use_parseq_through_deforumator: #Should we Connect to the Deforumation websocket server to get strength values?            
+            if (int(mediator_getValue("should_use_deforumation_strength")) == 1) and (int(mediator_getValue("parseq_strength")) == 0): #Should we use manual or deforum's strength scheduling?
                 deforumation_strength = float(mediator_getValue("strength"))
                 strength = deforumation_strength
+                print("Using Deforumations strength:"+str(strength))
             else:
                 strength = keys.strength_schedule_series[frame_idx]    
-        if usingDeforumation == False or connectedToServer == False:
+        else:
             strength = keys.strength_schedule_series[frame_idx]
-        if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
+        if usingDeforumation and not use_parseq_through_deforumator: #Should we Connect to the Deforumation websocket server to get CFG values?
             connectedToServer = False
             deforumation_cfg = float(mediator_getValue("cfg"))
             connectedToServer = True
             scale = deforumation_cfg
-        if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
+            keys.cfg_scale_schedule_series[frame_idx] = scale
+        else: #if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             scale = keys.cfg_scale_schedule_series[frame_idx]
 
         contrast = keys.contrast_schedule_series[frame_idx]
@@ -359,13 +390,13 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         scheduled_ancestral_eta = None
         mask_seq = None
         noise_mask_seq = None
-        if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
+        if usingDeforumation  and not use_parseq_through_deforumator: #Should we Connect to the Deforumation websocket server to get CFG values?
             connectedToServer = False
             deforumation_steps = int(mediator_getValue("steps"))
             connectedToServer = True
             args.steps = int(deforumation_steps)
             print("Steps is:"+str(args.steps))        
-        if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
+        else: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             if anim_args.enable_steps_scheduling and keys.steps_schedule_series[frame_idx] is not None:
                 args.steps = int(keys.steps_schedule_series[frame_idx])
 
@@ -402,7 +433,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             params_string = None
             
         # emit in-between frames
-        if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
+        if usingDeforumation: #Should we Connect to the Deforumation websocket server to get CFG values?
             if using_vid_init:
                # print("We do use using_vid_init")
                 turbo_steps = 1
@@ -598,7 +629,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         args.pix2pix_img_cfg_scale = float(keys.pix2pix_img_cfg_scale_series[frame_idx])
 
         # grab prompt for current frame
-        if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
+        if usingDeforumation and not use_parseq_through_deforumator: #Should we Connect to the Deforumation websocket server to get CFG values?
             connectedToServer = False
             should_use_deforum_prompt_scheduling = int(mediator_getValue("should_use_deforum_prompt_scheduling"))
             if should_use_deforum_prompt_scheduling == 0:
@@ -609,7 +640,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 args.prompt = prompt_series[frame_idx]
             connectedToServer = True
 
-        if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
+        else: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             args.prompt = prompt_series[frame_idx]
                   
         if args.seed_behavior == 'schedule' or use_parseq:
