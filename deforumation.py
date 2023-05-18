@@ -18,7 +18,7 @@ deforumationSettingsPath="./deforumation_settings.txt"
 deforumationSettingsPath_Keys = "./deforum_settings_keys.txt"
 deforumationPromptsPath ="./prompts/"
 screenWidth = 1500
-screenHeight = 1050
+screenHeight = 1060
 USE_BUFFERED_DC = True
 should_stay_on_top = False
 frame_path = "gibberish"
@@ -79,7 +79,7 @@ armed_pan = False
 pstb = False
 pmob = False
 is_Parseq_Active = False
-
+showLiveValues = False
 async def sendAsync(value):
     async with websockets.connect("ws://localhost:8765") as websocket:
         #await websocket.send(pickle.dumps(value))
@@ -176,7 +176,7 @@ def changeBitmapWorker(parent):
                 #if current_render_frame < current_frame or int(is_paused) == 0:
                 if int(is_paused) == 0:
                     imagePath = get_current_image_path_f(current_frame)
-                    maxBackTrack = 10
+                    maxBackTrack = 100
                     while not os.path.isfile(imagePath):
                         if (current_frame <= 0):
                             imageFound = False
@@ -317,13 +317,24 @@ class render_window(wx.Frame):
         #print("CLOSING, framer.bitmap is:"+ str(self.bitmap))
 
 
+import args as deforum_args
 class Mywin(wx.Frame):
     def __init__(self, parent, title):
+        global pmob
+        global pstb
         super(Mywin, self).__init__(parent, title=title, size=(screenWidth, screenHeight))
         self.panel = wx.Panel(self)
         self.panel.SetBackgroundColour(wx.Colour(100, 100, 100))
         self.Bind(wx.EVT_CLOSE, self.OnExit)
         self.framer = None
+        #Event dictionary helper
+        self.eventDict = {}
+        for evtname in dir(wx):
+            if evtname.startswith('EVT_'):
+                evt = getattr(wx, evtname)
+                if isinstance(evt, wx.PyEventBinder):
+                    self.eventDict[evt.typeId] = evtname
+
         # expand key frame strings to values
         #component_names = deforum_args.get_component_names()
         #args_dict = {component_names[i]:i for i in range(0, len(component_names))}
@@ -333,7 +344,7 @@ class Mywin(wx.Frame):
         #data1 = pickle.dumps(self.parseq_keys)
         #print(str(self.parseq_keys.translation_x_series))
         #writeValue("parseq_keys", self.parseq_keys)
-        writeValue("use_parseq", 0)
+        #writeValue("use_parseq", 0)
 
         #Positive Prompt
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -515,6 +526,7 @@ class Mywin(wx.Frame):
         bmp = wx.Bitmap("./images/left_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.transform_x_left_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(5+trbX, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.transform_x_left_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.transform_x_left_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.transform_x_left_button.SetLabel("PAN_LEFT")
 
         #SET PAN VALUE X
@@ -535,17 +547,20 @@ class Mywin(wx.Frame):
         bmp = wx.Bitmap("./images/upp_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.transform_y_upp_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(35+trbX, 25+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.transform_y_upp_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.transform_y_upp_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.transform_y_upp_button.SetLabel("PAN_UP")
 
         #RIGHT PAN BUTTTON
         bmp = wx.Bitmap("./images/right_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.transform_x_right_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(65+trbX, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.transform_x_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.transform_x_right_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.transform_x_right_button.SetLabel("PAN_RIGHT")
         #DOWN PAN BUTTTON
         bmp = wx.Bitmap("./images/down_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.transform_y_down_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(35+trbX, 85+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.transform_y_down_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.transform_y_down_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.transform_y_down_button.SetLabel("PAN_DOWN")
 
         #ZERO PAN BUTTTON
@@ -562,14 +577,31 @@ class Mywin(wx.Frame):
         self.zero_pan_step_input_box.SetLabel("0")
 
         #ZOOM SLIDER
-        self.zoom_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=0, minValue=-10, maxValue=10, pos = (110+trbX, tbrY-5), size = (40, 150), style = wx.SL_VERTICAL | wx.SL_AUTOTICKS | wx.SL_LABELS | wx.SL_INVERSE )
+        self.zoom_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=0, minValue=-1000, maxValue=1000, pos = (142+trbX, tbrY+5), size = (20, 135), style = wx.SL_VERTICAL  | wx.SL_LEFT | wx.SL_AUTOTICKS | wx.SL_INVERSE) # | wx.SL_LABELS)
+        self.zoom_slider.SetTickFreq(int(float(10) * 100 / 10))
         self.zoom_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
-        self.zoom_slider.SetTickFreq(1)
+        self.zoom_slider.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
+
         self.zoom_slider.SetLabel("ZOOM")
         self.ZOOM_X_Text = wx.StaticText(self.panel, label="Z", pos=(170+trbX, tbrY+40))
         self.ZOOM_X_Text2 = wx.StaticText(self.panel, label="O", pos=(170+trbX, tbrY+60))
         self.ZOOM_X_Text3 = wx.StaticText(self.panel, label="O", pos=(170+trbX, tbrY+80))
         self.ZOOM_X_Text4 = wx.StaticText(self.panel, label="M", pos=(169+trbX, tbrY+100))
+        self.zoom_value_text = wx.StaticText(self.panel, label="0.01", pos=(116+trbX, tbrY+65))
+        self.zoom_value_high_text = wx.StaticText(self.panel, label="10", pos=(140+trbX, tbrY-7))
+        font = self.zoom_value_high_text.GetFont()
+        font = font.Bold()
+        self.zoom_value_high_text.SetFont(font)
+        self.zoom_value_low_text = wx.StaticText(self.panel, label="-10", pos=(136+trbX, tbrY+138))
+        font = self.zoom_value_low_text.GetFont()
+        font = font.Bold()
+        self.zoom_value_low_text.SetFont(font)
+
+        #ZOOM STEPS INPUT
+        self.zoom_step_input_box = wx.TextCtrl(self.panel, 151, size=(30,20), style = wx.TE_PROCESS_ENTER, pos=(105+trbX, tbrY+115))
+        self.zoom_step_input_box.SetLabel("10")
+        self.zoom_step_input_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=151)
+        #self.seed_input_box =      wx.TextCtrl(self.panel, 3, size=(300,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+340, tbrY-50-60))
 
         #FOV SLIDER
         self.fov_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=70, minValue=20, maxValue=120, pos = (190+trbX, tbrY-5), size = (40, 150), style = wx.SL_VERTICAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
@@ -599,13 +631,26 @@ class Mywin(wx.Frame):
         self.strength_schedule_slider.SetLabel("STRENGTH SCHEDULE")
         self.step_schedule_Text = wx.StaticText(self.panel, label="Strength Value (divided by 100)", pos=(trbX-25, tbrY-70))
         #PARSEQ STRENGTH ON/OFF BUTTON
-        bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
-        bmp = scale_bitmap(bmp, 15, 15)
+        if int(readValue("parseq_strength")) == 1:
+            bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
+            bmp = scale_bitmap(bmp, 15, 15)
+            pstb = True
+        else:
+            bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+            bmp = scale_bitmap(bmp, 15, 15)
+            pstb = False
         self.parseq_strength_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos=(trbX-45, tbrY-46), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
         self.parseq_strength_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.parseq_strength_button.SetLabel("pstb")
         #PARSEQ MOVEMENTS ON/OFF BUTTON
-        bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+        if int(readValue("parseq_movements")) == 1:
+            bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
+            pmob = True
+        else:
+            bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+            pmob = False
+
+
         bmp = scale_bitmap(bmp, 20, 20)
         self.parseq_movements_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos = (trbX+280, tbrY+100), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
         self.parseq_movements_button.Bind(wx.EVT_BUTTON, self.OnClicked)
@@ -792,6 +837,18 @@ class Mywin(wx.Frame):
         self.Send_URL_to_Deforum = wx.Button(self.panel, id=wx.ID_ANY, label="Send Deforum", pos=(trbX + 820, tbrY + 242), size=(120, 20))
         self.Send_URL_to_Deforum.Bind(wx.EVT_BUTTON, self.OnClicked)
 
+        #LIVE VALUE BUTTON
+        self.Live_Values_Checkbox = wx.CheckBox(self.panel, id=wx.ID_ANY, label="Live Values", pos=(trbX-40, tbrY + 130))
+        self.Live_Values_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
+        self.deforum_strength_value_info_text = wx.StaticText(self.panel, label="Strength:", pos=(trbX-40, tbrY+310))
+        self.deforum_trx_value_info_text = wx.StaticText(self.panel, label="Tr X:", pos=(trbX+40, tbrY+310))
+        self.deforum_try_value_info_text = wx.StaticText(self.panel, label="Tr Y:", pos=(trbX+100, tbrY+310))
+        self.deforum_trz_value_info_text = wx.StaticText(self.panel, label="Tr Z:", pos=(trbX+160, tbrY+310))
+        self.deforum_rox_value_info_text = wx.StaticText(self.panel, label="Ro X:", pos=(trbX+220, tbrY+310))
+        self.deforum_roy_value_info_text = wx.StaticText(self.panel, label="Ro Y:", pos=(trbX+280, tbrY+310))
+        self.deforum_roz_value_info_text = wx.StaticText(self.panel, label="Ro Z:", pos=(trbX+340, tbrY+310))
+        self.deforum_steps_value_info_text = wx.StaticText(self.panel, label="Steps:", pos=(trbX+400, tbrY+310))
 
         self.Centre()
         self.Show()
@@ -896,11 +953,16 @@ class Mywin(wx.Frame):
         self.zero_pan_step_input_box.SetPosition((trbX + 70, tbrY + 30))
         self.zero_rotate_step_input_box_text.SetPosition((240 + trbX + 43 + 100, 55 + tbrY - 40))
         self.zero_rotate_step_input_box.SetPosition((240 + trbX + 40 + 100, 55 + tbrY - 25))
-        self.zoom_slider.SetPosition((110 + trbX, tbrY - 5))
+        self.zoom_slider.SetPosition((142+trbX, tbrY+5))
         self.ZOOM_X_Text.SetPosition((170 + trbX, tbrY + 40))
         self.ZOOM_X_Text2.SetPosition((170 + trbX, tbrY + 60))
         self.ZOOM_X_Text3.SetPosition((170 + trbX, tbrY + 80))
         self.ZOOM_X_Text4.SetPosition((169 + trbX, tbrY + 100))
+        self.zoom_value_text.SetPosition((116+trbX, tbrY+65))
+        self.zoom_value_high_text.SetPosition((140+trbX, tbrY-7))
+        self.zoom_value_low_text.SetPosition((136+trbX, tbrY+138))
+        self.zoom_step_input_box.SetPosition((105+trbX, tbrY+115))
+
         self.fov_slider.SetPosition((190 + trbX, tbrY - 5))
         self.FOV_Text.SetPosition((250 + trbX, tbrY + 40))
         self.FOV_Text2.SetPosition((249 + trbX, tbrY + 60))
@@ -957,6 +1019,14 @@ class Mywin(wx.Frame):
         self.replay_fps_input_box.SetPosition((trbX+1200, tbrY-131))
         self.arm_pan_button.SetPosition((trbX-15, tbrY))
         self.arm_rotation_button.SetPosition((240+trbX+80, tbrY))
+        self.deforum_strength_value_info_text.SetPosition((trbX-40, tbrY+310))
+        self.deforum_trx_value_info_text.SetPosition((trbX+40, tbrY+310))
+        self.deforum_try_value_info_text.SetPosition((trbX+100, tbrY+310))
+        self.deforum_trz_value_info_text.SetPosition((trbX+160, tbrY+310))
+        self.deforum_rox_value_info_text.SetPosition((trbX+220, tbrY+310))
+        self.deforum_roy_value_info_text.SetPosition((trbX+280, tbrY+310))
+        self.deforum_roz_value_info_text.SetPosition((trbX+340, tbrY+310))
+        self.deforum_steps_value_info_text.SetPosition((trbX+400, tbrY+310))
 
     def OnResize(self, evt):
         global screenHeight
@@ -1008,13 +1078,13 @@ class Mywin(wx.Frame):
             evt = wx.PyCommandEvent(wx.EVT_SCROLL.typeId)
             evt.SetEventObject(self.zoom_slider)
             evt.SetId(self.zoom_slider.GetId())
-            self.zoom_slider.SetValue(self.zoom_slider.GetValue()+1)
+            self.zoom_slider.SetValue(self.zoom_slider.GetValue()+1*100)
             self.zoom_slider.GetEventHandler().ProcessEvent(evt)
         elif event.GetKeyCode() == zoom_down_key:
             evt = wx.PyCommandEvent(wx.EVT_SCROLL.typeId)
             evt.SetEventObject(self.zoom_slider)
             evt.SetId(self.zoom_slider.GetId())
-            self.zoom_slider.SetValue(self.zoom_slider.GetValue()-1)
+            self.zoom_slider.SetValue(self.zoom_slider.GetValue()-1*100)
             self.zoom_slider.GetEventHandler().ProcessEvent(evt)
 
 
@@ -1091,6 +1161,7 @@ class Mywin(wx.Frame):
                 self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
                 Translation_Z = float(deforumFile.readline())
                 self.zoom_slider.SetValue(int(Translation_Z))
+                self.zoom_value_text.SetLabel('%.2f' % (Translation_Z/100))
                 Rotation_3D_X = float(deforumFile.readline())
                 Rotation_3D_Y = float(deforumFile.readline())
                 Rotation_3D_Z = float(deforumFile.readline())
@@ -1232,17 +1303,23 @@ class Mywin(wx.Frame):
             promptFile_negative.close()
             positive_promptToShow = self.positive_prompt_input_ctrl.GetValue()
             negative_promptToShow = self.negative_prompt_input_ctrl.GetValue()
+            len_pos = len(positive_lines)
+            len_neg = len(negative_lines)
             for index in range(0, len(positive_lines), 2):
                 param = positive_lines[index].strip('\n').replace(" ", "").split(',')
                 frame_index = param[0]
                 type = param[1]
                 if forwardrewindType == "R" and int(p_current_frame-1) >= int(frame_index):
-                    positive_promptToShow = positive_lines[index + 1]
-                    negative_promptToShow = negative_lines[index + 1]
+                    if len_pos > index:
+                        positive_promptToShow = positive_lines[index + 1]
+                    if len_neg > index:
+                        negative_promptToShow = negative_lines[index + 1]
                     returnFrame = frame_index
                 elif forwardrewindType == "F" and int(p_current_frame+1) <= int(frame_index):
-                    positive_promptToShow = positive_lines[index + 1]
-                    negative_promptToShow = negative_lines[index + 1]
+                    if len_pos > index:
+                        positive_promptToShow = positive_lines[index + 1]
+                    if len_neg > index:
+                        negative_promptToShow = negative_lines[index + 1]
                     returnFrame = frame_index
                     break
             self.positive_prompt_input_ctrl.SetValue(str(positive_promptToShow))
@@ -1305,12 +1382,14 @@ class Mywin(wx.Frame):
             promptFile = open(deforumationPromptsPath + resume_timestring + "_" + promptType + ".txt", 'w')
             new_lines = [None] * 2
             didWriteNewPrompt = False
+            copy_of_current = current_frame = str(self.readValue("start_frame"))
+            print("Writing prompt at frame:" + str(copy_of_current))
             for index in range(0, len(old_lines), 2):
                 if not didWriteNewPrompt:
                     param = old_lines[index].strip('\n').replace(" ", "").split(',')
                     frame_index = param[0]
                     type = param[1]
-                    if int(current_frame) == int(frame_index):
+                    if int(copy_of_current) == int(frame_index):
                         new_lines[0] = frame_index + "," + type
                         if promptType == "P":
                             new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')
@@ -1325,8 +1404,8 @@ class Mywin(wx.Frame):
                         if index+2 != len(old_lines):
                             promptFile.write("\n")
                         didWriteNewPrompt = True
-                    elif int(current_frame) < int(frame_index):
-                        new_lines[0] = str(current_frame) + "," + type
+                    elif int(copy_of_current) < int(frame_index):
+                        new_lines[0] = str(copy_of_current) + "," + type
                         if promptType == "P":
                             new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')
                             if new_lines[1] == "":
@@ -1336,10 +1415,11 @@ class Mywin(wx.Frame):
                             if new_lines[1] == "":
                                 new_lines[1] = " "
                         promptFile.write(str(new_lines[0]) + "\n")
-                        promptFile.write(str(new_lines[1]) + "\n")
-                        promptFile.write(frame_index + "," + type + "\n")
-                        promptFile.write(old_lines[index + 1])
+                        promptFile.write(str(new_lines[1]))
+                        #promptFile.write(frame_index + "," + type + "\n")
+                        #promptFile.write(old_lines[index + 1])
                         didWriteNewPrompt = True
+                        break
                     else:
                         promptFile.write(old_lines[index])
                         promptFile.write(old_lines[index + 1])
@@ -1348,7 +1428,7 @@ class Mywin(wx.Frame):
                     promptFile.write(old_lines[index])
                     promptFile.write(old_lines[index + 1])
             if not didWriteNewPrompt:
-                new_lines[0] = str(current_frame) + "," + promptType
+                new_lines[0] = str(copy_of_current) + "," + promptType
                 if promptType == "P":
                     new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')
                     if new_lines[1] == "":
@@ -1548,6 +1628,7 @@ class Mywin(wx.Frame):
         global pstb
         global pmob
         global is_Parseq_Active
+        global showLiveValues
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
@@ -1590,25 +1671,37 @@ class Mywin(wx.Frame):
             self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '') + "\n")
         elif btn == "PAN_LEFT":
             if not armed_pan:
-                Translation_X = Translation_X - float(self.pan_step_input_box.GetValue())
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Translation_X = 0
+                else:
+                    Translation_X = Translation_X - float(self.pan_step_input_box.GetValue())
                 self.writeValue("translation_x", Translation_X)
             else:
                 Translation_X_ARMED =  round(Translation_X_ARMED - float(self.pan_step_input_box.GetValue()),2)
         elif btn == "PAN_RIGHT":
             if not armed_pan:
-                Translation_X = Translation_X + float(self.pan_step_input_box.GetValue())
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Translation_X = 0
+                else:
+                    Translation_X = Translation_X + float(self.pan_step_input_box.GetValue())
                 self.writeValue("translation_x", Translation_X)
             else:
                 Translation_X_ARMED = round(Translation_X_ARMED + float(self.pan_step_input_box.GetValue()),2)
         elif btn == "PAN_UP":
             if not armed_pan:
-                Translation_Y = Translation_Y + float(self.pan_step_input_box.GetValue())
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Translation_Y = 0
+                else:
+                    Translation_Y = Translation_Y + float(self.pan_step_input_box.GetValue())
                 self.writeValue("translation_y", Translation_Y)
             else:
                 Translation_Y_ARMED =  round(Translation_Y_ARMED + float(self.pan_step_input_box.GetValue()),2)
         elif btn == "PAN_DOWN":
             if not armed_pan:
-                Translation_Y = Translation_Y - float(self.pan_step_input_box.GetValue())
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Translation_Y = 0
+                else:
+                    Translation_Y = Translation_Y - float(self.pan_step_input_box.GetValue())
                 self.writeValue("translation_y", Translation_Y)
             else:
                 Translation_Y_ARMED =  round(Translation_Y_ARMED - float(self.pan_step_input_box.GetValue()),2)
@@ -1638,15 +1731,36 @@ class Mywin(wx.Frame):
                 zero_pan_active = False
 
         elif btn == "ZOOM":
-            Translation_Z = self.zoom_slider.GetValue()
-            self.writeValue("translation_z", Translation_Z)
-            if is_fov_locked:
-                if is_reverse_fov_locked:
-                    FOV_Scale = 70+(Translation_Z * -5)
-                else:
-                    FOV_Scale = 70 + (Translation_Z * 5)
-                self.fov_slider.SetValue(FOV_Scale)
-                self.writeValue("fov", FOV_Scale)
+            currentEventTypeID = event.GetEventType()
+
+            if self.eventDict[currentEventTypeID] == "EVT_RIGHT_UP":
+                self.zoom_slider.SetValue(0)
+                self.zoom_value_text.SetLabel("0.00")
+                Translation_Z = 0.0
+                if is_fov_locked:
+                    FOV_Scale = 70
+                    self.fov_slider.SetValue(int(FOV_Scale))
+            else:
+                Translation_Z = self.zoom_slider.GetValue()/100
+                self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
+
+                #print(str(Translation_Z))
+                self.writeValue("translation_z", Translation_Z)
+                if is_fov_locked:
+                    if is_reverse_fov_locked:
+                        FOV_Scale = 70+(Translation_Z * -5)
+                    else:
+                        FOV_Scale = 70 + (Translation_Z * 5)
+                    self.fov_slider.SetValue(int(FOV_Scale))
+                    self.writeValue("fov", FOV_Scale)
+        elif event.GetId() == 151:
+            minmaxval = self.zoom_step_input_box.GetValue()
+            self.zoom_slider.SetMin(int(-float(minmaxval)*100))
+            self.zoom_slider.SetMax(int(float(minmaxval)*100))
+            self.zoom_value_high_text.SetLabel(minmaxval)
+            self.zoom_value_low_text.SetLabel("-"+minmaxval)
+            self.zoom_slider.SetTickFreq(int(float(minmaxval)*100/10))
+            #float(minmaxval)/20
 
         elif btn == "STRENGTH SCHEDULE":
             Strength_Scheduler = float(self.strength_schedule_slider.GetValue())*0.01
@@ -1832,13 +1946,13 @@ class Mywin(wx.Frame):
             self.loadCurrentPrompt("N", current_render_frame, 0)
             current_render_frame = str(current_render_frame).zfill(9)
             imagePath = outdir + "/" + resume_timestring + "_" + current_render_frame + ".png"
-            maxBackTrack = 20
+            maxBackTrack = 100
             #print(str("Trying to load:"+imagePath))
             while not os.path.isfile(imagePath):
                 if (current_render_frame == 0):
                     break
                 current_render_frame = int(current_render_frame) - 1
-                imagePath = get_current_image_path()
+                imagePath = get_current_image_path_f(current_render_frame) #outdir + "/" + resume_timestring + "_" + current_render_frame + ".png" #imagePath = get_current_image_path()
                 maxBackTrack = maxBackTrack - 1
                 if maxBackTrack == 0:
                     break
@@ -1937,13 +2051,13 @@ class Mywin(wx.Frame):
                 current_frame = current_frame.zfill(9)
                 imagePath = outdir + "/" + resume_timestring + "_" + current_frame + ".png"
                 imagePath = get_current_image_path()
-                maxBackTrack = 20
+                maxBackTrack = 100
                 while not os.path.isfile(imagePath):
                     if (current_frame == 0):
                         break
                     current_frame = str(int(current_frame) - 1)
                     current_frame = current_frame.zfill(9)
-                    imagePath = outdir + "/" + resume_timestring + "_" + current_frame + ".png"
+                    imagePath = get_current_image_path_f(current_frame) #outdir + "/" + resume_timestring + "_" + current_frame + ".png"
                     maxBackTrack = maxBackTrack -1
                     if maxBackTrack == 0:
                         break
@@ -2006,6 +2120,14 @@ class Mywin(wx.Frame):
             urlToSend = str(self.Parseq_URL_input_box.GetValue()).strip()
             if len(urlToSend) > 5:
                 writeValue("parseq_manifest", urlToSend)
+        elif btn == "Live Values":
+            if showLiveValues == False:
+                showLiveValues = True
+                self.live_values_thread = threading.Thread(target=self.LiveValues, args=())
+                self.live_values_thread.daemon = True
+                self.live_values_thread.start()
+            else:
+                showLiveValues = False
 
         if armed_pan:
             self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
@@ -2024,6 +2146,49 @@ class Mywin(wx.Frame):
 
         self.writeAllValues()
 
+    def LiveValues(self):
+        while showLiveValues:
+            deforum_translation_x = readValue("deforum_translation_x")
+            deforum_translation_y = readValue("deforum_translation_y")
+            deforum_translation_z = readValue("deforum_translation_z")
+            deforum_rotation_x = readValue("deforum_rotation_x")
+            deforum_rotation_y = readValue("deforum_rotation_y")
+            deforum_rotation_z = readValue("deforum_rotation_z")
+            deforum_strength = readValue("deforum_strength")
+            deforum_cfg = readValue("deforum_cfg")
+            deforum_fov = readValue("deforum_fov")
+            deforum_steps = readValue("deforum_steps")
+
+            self.pan_X_Value_Text.SetLabel(str('%.2f' % float(deforum_translation_x)))
+            self.pan_Y_Value_Text.SetLabel(str('%.2f' % float(deforum_translation_y)))
+            self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_y)))
+            self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_x)))
+            self.zoom_slider.SetValue(int(float(deforum_rotation_z)*100))
+            self.zoom_value_text.SetLabel(str('%.2f' % float(deforum_rotation_z)))
+            self.strength_schedule_slider.SetValue(int(float(deforum_strength)*100))
+            self.deforum_strength_value_info_text.SetLabel("Strength:" + str('%.2f' % float(deforum_strength)))
+            self.deforum_trx_value_info_text.SetLabel("Tr X:" + str('%.2f' % float(deforum_translation_x)))
+            self.deforum_try_value_info_text.SetLabel("Tr Y:" + str('%.2f' % float(deforum_translation_y)))
+            self.deforum_trz_value_info_text.SetLabel("Tr Z:" + str('%.2f' % float(deforum_translation_z)))
+            self.deforum_rox_value_info_text.SetLabel("Ro X:" + str('%.2f' % float(deforum_rotation_x)))
+            self.deforum_roy_value_info_text.SetLabel("Ro Y:" + str('%.2f' % float(deforum_rotation_y)))
+            self.deforum_roz_value_info_text.SetLabel("Ro Z:" + str('%.2f' % float(deforum_rotation_z)))
+            self.deforum_steps_value_info_text.SetLabel("Steps:" + str(deforum_steps))
+            self.cfg_schedule_slider.SetValue(int(deforum_cfg))
+            self.fov_slider.SetValue(int(float(deforum_fov)))
+            time.sleep(0.25)
+
+        self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+        self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+        self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_X)))
+        self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Y)))
+        self.zoom_slider.SetValue(int(float(Rotation_3D_Z) * 100))
+        self.zoom_value_text.SetLabel(str('%.2f' % float(Rotation_3D_Z)))
+        self.strength_schedule_slider.SetValue(int(float(Strength_Scheduler)*100))
+        self.cfg_schedule_slider.SetValue(int(CFG_Scale))
+        self.fov_slider.SetValue(int(FOV_Scale))
+
+        print("Ending Live Values Thread....")
     def OnExit(self, event):
         if self.framer != None:
             self.framer.Hide()
@@ -2038,5 +2203,5 @@ if __name__ == '__main__':
     #time.sleep(5)
     blaha = random.randint(0, 2**32 - 1)
     app = wx.App()
-    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.1.5)')
+    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.1.8)')
     app.MainLoop()
