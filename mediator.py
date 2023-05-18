@@ -8,17 +8,26 @@ server = None
 serverShutDown = False
 #Run/Steps
 steps = 25
+deforum_steps = 25
 #Keyframes/Strength
 strength_value = 0.65
+deforum_strength = 0.65
 #Keyframes/CFG
 cfg_scale = 6
+deforum_cfg = 6
 #Keyframes/3D/Motion
 rotation_x = 0.0
 rotation_y = 0.0
 rotation_z = 0.0
+deforum_rotation_x = 0.0
+deforum_rotation_y = 0.0
+deforum_rotation_z = 0.0
 translation_x = 0.0
 translation_y = 0.0
 translation_z = 0.0
+deforum_translation_x = 0.0
+deforum_translation_y = 0.0
+deforum_translation_z = 0.0
 Prompt_Positive = "EMPTY"
 Prompt_Negative = "EMPTY"
 should_resume = 0
@@ -30,7 +39,8 @@ seed_value = -1
 did_seed_change = 0
 should_use_deforum_prompt_scheduling = 0
 #Keyframes/Field Of View/FOV schedule
-fov = 70
+fov = 70.0
+deforum_fov = 70.0
 doVerbose = False
 doVerbose2 = False
 should_use_deforumation_strength = 1
@@ -55,6 +65,9 @@ async def echo(websocket):
     global translation_x
     global translation_y
     global translation_z
+    global deforum_translation_x
+    global deforum_translation_y
+    global deforum_translation_z
     global fov
     global cfg_scale
     global strength_value
@@ -79,6 +92,13 @@ async def echo(websocket):
     global parseq_manifest
     global parseq_strength
     global parseq_movements
+    global deforum_rotation_x
+    global deforum_rotation_y
+    global deforum_rotation_z
+    global deforum_fov
+    global deforum_strength
+    global deforum_cfg
+    global deforum_steps
     async for message in websocket:
         #print("Incomming message:"+str(message))
         arr = pickle.loads(message)
@@ -140,6 +160,50 @@ async def echo(websocket):
                     if doVerbose:
                         print("sending translation_z:"+str(translation_z))
                     await websocket.send(str(translation_z))
+            #What Deforum thinks it has for Translation
+            elif str(parameter) == "deforum_translation_x":
+                if shouldWrite:
+                    deforum_translation_x = float(value)
+                else:
+                    if doVerbose:
+                        print("sending deforum_translation_x:"+str(deforum_translation_x))
+                    await websocket.send(str(deforum_translation_x))
+            elif str(parameter) == "deforum_translation_y":
+                if shouldWrite:
+                    deforum_translation_y = float(value)
+                else:
+                    if doVerbose:
+                        print("sending deforum_translation_y:"+str(deforum_translation_y))
+                    await websocket.send(str(deforum_translation_y))
+            elif str(parameter) == "deforum_translation_z":
+                if shouldWrite:
+                    deforum_translation_z = float(value)
+                else:
+                    if doVerbose:
+                        print("sending deforum_translation_z:"+str(deforum_translation_z))
+                    await websocket.send(str(deforum_translation_z))
+            #What Deforum thinks it has for Rotation
+            elif str(parameter) == "deforum_rotation_x":
+                if shouldWrite:
+                    deforum_rotation_x = float(value)
+                else:
+                    if doVerbose:
+                        print("sending deforum_rotation_x:"+str(deforum_rotation_x))
+                    await websocket.send(str(deforum_rotation_x))
+            elif str(parameter) == "deforum_rotation_y":
+                if shouldWrite:
+                    deforum_rotation_y = float(value)
+                else:
+                    if doVerbose:
+                        print("sending deforum_translation_y:"+str(deforum_rotation_y))
+                    await websocket.send(str(deforum_rotation_y))
+            elif str(parameter) == "deforum_rotation_z":
+                if shouldWrite:
+                    deforum_rotation_z = float(value)
+                else:
+                    if doVerbose:
+                        print("sending deforum_rotation_z:"+str(deforum_rotation_z))
+                    await websocket.send(str(deforum_rotation_z))
             #Rotation Params
             ###########################################################################
             elif str(parameter) == "rotation_x":
@@ -174,15 +238,33 @@ async def echo(websocket):
                     if doVerbose:
                         print("sending fov:"+str(fov))
                     await websocket.send(str(fov))
+            #what Deforum think it has
+            ###########################################################################
+            elif str(parameter) == "deforum_fov":
+                if shouldWrite:
+                    deforum_fov = float(value)
+                else:
+                    if doVerbose:
+                        print("sending deforum_fov:"+str(deforum_fov))
+                    await websocket.send(str(deforum_fov))
             #CFG Params
             ###########################################################################
             elif str(parameter) == "cfg":
                 if shouldWrite:
-                    cfg_scale = float(value)
+                    cfg_scale = int(value)
                 else:
                     if doVerbose:
                         print("sending CFG:"+str(cfg_scale))
                     await websocket.send(str(cfg_scale))
+            #What Deforum think the CFG Value is
+            ###########################################################################
+            elif str(parameter) == "deforum_cfg":
+                if shouldWrite:
+                    deforum_cfg = int(value)
+                else:
+                    if doVerbose:
+                        print("sending deforum_cfg:"+str(deforum_cfg))
+                    await websocket.send(str(deforum_cfg))
             #Strength Params
             ###########################################################################
             elif str(parameter) == "strength":
@@ -192,6 +274,15 @@ async def echo(websocket):
                     if doVerbose:
                         print("sending STRENGTH:"+str(strength_value))
                     await websocket.send(str(strength_value))
+            #What Deforum think the Strength Value is
+            ###########################################################################
+            elif str(parameter) == "deforum_strength":
+                if shouldWrite:
+                    deforum_strength = float(value)
+                else:
+                    if doVerbose:
+                        print("sending deforum_strength:"+str(deforum_strength))
+                    await websocket.send(str(deforum_strength))
             #ControlNet Weight Params
             ###########################################################################
             elif str(parameter) == "cn_weight":
@@ -261,6 +352,15 @@ async def echo(websocket):
                     if doVerbose:
                         print("sending STEPS:"+str(steps))
                     await websocket.send(str(steps))
+            #What Deforum thinks the Steps Value is
+            ###########################################################################
+            elif str(parameter) == "deforum_steps":
+                if shouldWrite:
+                    deforum_steps = int(value)
+                else:
+                    if doVerbose:
+                        print("sending deforum_steps:"+str(deforum_steps))
+                    await websocket.send(str(deforum_steps))
             #Resume and rewind
             ##########################################################################
             elif str(parameter) == "should_resume":
@@ -385,7 +485,7 @@ async def main():
 
 if __name__ == '__main__':
     try:
-        print("Starting mediator 0.1")
+        print("Starting mediator 0.3")
         asyncio.run(main())
     except KeyboardInterrupt:
         serverShutDown = True
