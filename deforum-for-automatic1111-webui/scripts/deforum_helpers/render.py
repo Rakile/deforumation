@@ -350,23 +350,23 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 if args.seed == -1:
                     args.seed = random.randint(0, 2**32 - 1)
                 connectedToServer = True
-        if usingDeforumation and not use_parseq_through_deforumator: #Should we Connect to the Deforumation websocket server to get strength values?            
+        if usingDeforumation: #Should we Connect to the Deforumation websocket server to get strength values?            
             if (int(mediator_getValue("should_use_deforumation_strength")) == 1) and (int(mediator_getValue("parseq_strength")) == 0): #Should we use manual or deforum's strength scheduling?
-                deforumation_strength = float(mediator_getValue("strength"))
-                strength = deforumation_strength
-                print("Using Deforumations strength:"+str(strength))
+                strength = float(mediator_getValue("strength"))
+                fov_deg = float(mediator_getValue("fov"))
+                mediator_setValue("deforum_strength", strength)
             else:
                 strength = keys.strength_schedule_series[frame_idx]    
+                mediator_setValue("deforum_strength", strength)
         else:
             strength = keys.strength_schedule_series[frame_idx]
-        if usingDeforumation and not use_parseq_through_deforumator: #Should we Connect to the Deforumation websocket server to get CFG values?
-            connectedToServer = False
-            deforumation_cfg = float(mediator_getValue("cfg"))
-            connectedToServer = True
-            scale = deforumation_cfg
+        if usingDeforumation: #Should we Connect to the Deforumation websocket server to get CFG values?
+            scale = float(mediator_getValue("cfg"))
             keys.cfg_scale_schedule_series[frame_idx] = scale
+            mediator_setValue("deforum_cfg", scale)
         else: #if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             scale = keys.cfg_scale_schedule_series[frame_idx]
+            mediator_setValue("deforum_cfg", scale)
 
         contrast = keys.contrast_schedule_series[frame_idx]
         kernel = int(keys.kernel_schedule_series[frame_idx])
@@ -390,15 +390,13 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         scheduled_ancestral_eta = None
         mask_seq = None
         noise_mask_seq = None
-        if usingDeforumation  and not use_parseq_through_deforumator: #Should we Connect to the Deforumation websocket server to get CFG values?
-            connectedToServer = False
-            deforumation_steps = int(mediator_getValue("steps"))
-            connectedToServer = True
-            args.steps = int(deforumation_steps)
-            print("Steps is:"+str(args.steps))        
+        if usingDeforumation: #Should we Connect to the Deforumation websocket server to get CFG values?
+            args.steps = int(mediator_getValue("steps"))
+            mediator_setValue("deforum_steps", args.steps)      
         else: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             if anim_args.enable_steps_scheduling and keys.steps_schedule_series[frame_idx] is not None:
                 args.steps = int(keys.steps_schedule_series[frame_idx])
+                mediator_setValue("deforum_steps", args.steps)      
 
         if anim_args.enable_sampler_scheduling and keys.sampler_schedule_series[frame_idx] is not None:
             scheduled_sampler_name = keys.sampler_schedule_series[frame_idx].casefold()
