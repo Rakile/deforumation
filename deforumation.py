@@ -317,6 +317,7 @@ class render_window(wx.Frame):
         #print("CLOSING, framer.bitmap is:"+ str(self.bitmap))
 
 
+import args as deforum_args
 class Mywin(wx.Frame):
     def __init__(self, parent, title):
         global pmob
@@ -1012,7 +1013,7 @@ class Mywin(wx.Frame):
         self.panel.Layout()
 
     def updateComponents(self):
-        self.shouldUseDeforumPromptScheduling_Checkbox.SetPosition((trbX + 600, 10))
+        #self.shouldUseDeforumPromptScheduling_Checkbox.SetPosition((trbX + 600, 10))
         self.stayOnTop_Checkbox.SetPosition((trbX + 1130, 10))
         self.live_render_checkbox.SetPosition((trbX + 1130-340, tbrY - 110))
         self.show_current_image.SetPosition((trbX + 992-340, tbrY - 110))
