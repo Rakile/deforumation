@@ -205,7 +205,6 @@ def anim_frame_warp_2d(prev_img_cv2, args, anim_args, keys, frame_idx):
 
 def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
     TRANSLATION_SCALE = 1.0/200.0 # matches Disco
-    connectedToServer = False
     use_parseq_through_deforumator = int(mediator_getValue("use_parseq"))  
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to get translation values?
             deforumation_translation_x = float(mediator_getValue("translation_x"))

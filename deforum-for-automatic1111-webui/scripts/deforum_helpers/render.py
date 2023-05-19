@@ -80,6 +80,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     use_parseq_through_deforumator = 0
     use_parseq = 0
     if usingDeforumation:
+        print("Made for Deforumation version: 0.4")
+        print("----------------------------------")
         if int(mediator_getValue("use_parseq")) == 1:
             use_parseq = 1
             use_parseq_through_deforumator = 1
@@ -197,7 +199,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             mediator_setValue("resume_timestring", anim_args.resume_timestring)
         else:
             mediator_setValue("resume_timestring", args.timestring)               
-        connectedToServer = True
 
     args.n_samples = 1
     frame_idx = start_frame
@@ -339,7 +340,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 mediator_setValue("should_resume", 0)
             else:
                 donothing = 0
-            connectedToServer = True
 
         print(f"\033[36mAnimation frame: \033[0m{frame_idx}/{anim_args.max_frames}  ")
 
@@ -349,11 +349,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 args.seed = int(mediator_getValue("seed"))
                 if args.seed == -1:
                     args.seed = random.randint(0, 2**32 - 1)
-                connectedToServer = True
         if usingDeforumation: #Should we Connect to the Deforumation websocket server to get strength values?            
-            if (int(mediator_getValue("should_use_deforumation_strength")) == 1) and (int(mediator_getValue("parseq_strength")) == 0): #Should we use manual or deforum's strength scheduling?
+            if (int(mediator_getValue("should_use_deforumation_strength")) == 1) or (int(mediator_getValue("parseq_strength")) == 0): #Should we use manual or deforum's strength scheduling?
                 strength = float(mediator_getValue("strength"))
-                fov_deg = float(mediator_getValue("fov"))
                 mediator_setValue("deforum_strength", strength)
             else:
                 strength = keys.strength_schedule_series[frame_idx]    
@@ -361,9 +359,12 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         else:
             strength = keys.strength_schedule_series[frame_idx]
         if usingDeforumation: #Should we Connect to the Deforumation websocket server to get CFG values?
-            scale = float(mediator_getValue("cfg"))
-            keys.cfg_scale_schedule_series[frame_idx] = scale
-            mediator_setValue("deforum_cfg", scale)
+            if int(mediator_getValue("parseq_strength")) == 0:
+                scale = float(mediator_getValue("cfg"))
+                mediator_setValue("deforum_cfg", scale)
+            else:
+                scale = keys.cfg_scale_schedule_series[frame_idx]
+                mediator_setValue("deforum_cfg", scale)
         else: #if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             scale = keys.cfg_scale_schedule_series[frame_idx]
             mediator_setValue("deforum_cfg", scale)
@@ -627,16 +628,13 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         args.pix2pix_img_cfg_scale = float(keys.pix2pix_img_cfg_scale_series[frame_idx])
 
         # grab prompt for current frame
-        if usingDeforumation and not use_parseq_through_deforumator: #Should we Connect to the Deforumation websocket server to get CFG values?
-            connectedToServer = False
-            should_use_deforum_prompt_scheduling = int(mediator_getValue("should_use_deforum_prompt_scheduling"))
-            if should_use_deforum_prompt_scheduling == 0:
+        if usingDeforumation: #Should we Connect to the Deforumation websocket server to get CFG values?
+            if (int(mediator_getValue("should_use_deforumation_prompt_scheduling")) == 1): #Should we use manual or deforum's strength scheduling?
                 deforumation_positive_prompt = str(mediator_getValue("positive_prompt"))
                 deforumation_negative_prompt = str(mediator_getValue("negative_prompt"))
                 args.prompt = deforumation_positive_prompt + "--neg "+ deforumation_negative_prompt
             else:
                 args.prompt = prompt_series[frame_idx]
-            connectedToServer = True
 
         else: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             args.prompt = prompt_series[frame_idx]
@@ -707,7 +705,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         #If controlnet is being used, get the values from Deforumation
         #setattr(controlnet_args, f'cn_1_threshold_b', 20)
         #print(str(getattr(controlnet_args, f'cn_1_threshold_b')))
-        if usingDeforumation and connectedToServer:
+        if usingDeforumation:
             if is_controlnet_enabled(controlnet_args):
                 setattr(controlnet_args, f'cn_1_weight', "0:(" + str(mediator_getValue("cn_weight")) + ")" )
                 #print(str(getattr(controlnet_args, f'cn_1_weight')))
