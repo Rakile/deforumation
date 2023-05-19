@@ -317,7 +317,6 @@ class render_window(wx.Frame):
         #print("CLOSING, framer.bitmap is:"+ str(self.bitmap))
 
 
-import args as deforum_args
 class Mywin(wx.Frame):
     def __init__(self, parent, title):
         global pmob
