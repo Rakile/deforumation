@@ -37,7 +37,7 @@ frame_outdir = ""
 resume_timestring=""
 seed_value = -1
 did_seed_change = 0
-should_use_deforum_prompt_scheduling = 0
+should_use_deforumation_prompt_scheduling = 0
 #Keyframes/Field Of View/FOV schedule
 fov = 70.0
 deforum_fov = 70.0
@@ -55,6 +55,7 @@ use_parseq = 0
 parseq_manifest = ""
 parseq_strength = 0
 parseq_movements = 0
+parseq_prompt = 0
 async def echo(websocket):
     global serverShutDown
     global Prompt_Positive
@@ -81,7 +82,7 @@ async def echo(websocket):
     global did_seed_change
     global should_use_deforumation_strength
     global cadence
-    global should_use_deforum_prompt_scheduling
+    global should_use_deforumation_prompt_scheduling
     global cn_weight
     global cn_stepstart
     global cn_stepend
@@ -99,6 +100,7 @@ async def echo(websocket):
     global deforum_strength
     global deforum_cfg
     global deforum_steps
+    global parseq_prompt
     async for message in websocket:
         #print("Incomming message:"+str(message))
         arr = pickle.loads(message)
@@ -116,13 +118,13 @@ async def echo(websocket):
                     if doVerbose:
                         print("is_paused_rendering:"+str(parameter))
                     await websocket.send(str(shouldPause))
-            elif str(parameter) == "should_use_deforum_prompt_scheduling":
+            elif str(parameter) == "should_use_deforumation_prompt_scheduling":
                 if shouldWrite:
-                    should_use_deforum_prompt_scheduling = value
+                    should_use_deforumation_prompt_scheduling = value
                 else:
                     if doVerbose:
-                        print("should_use_deforum_prompt_scheduling:" + str(should_use_deforum_prompt_scheduling))
-                    await websocket.send(str(should_use_deforum_prompt_scheduling))
+                        print("should_use_deforumation_prompt_scheduling:" + str(should_use_deforumation_prompt_scheduling))
+                    await websocket.send(str(should_use_deforumation_prompt_scheduling))
             elif str(parameter) == "positive_prompt":
                 if shouldWrite:
                     Prompt_Positive = value
@@ -430,6 +432,13 @@ async def echo(websocket):
                     if doVerbose2:
                         print("sending parseq_manifest:")
                     await websocket.send(str(parseq_manifest))
+            #elif str(parameter) == "parseq_prompt":
+            #    if shouldWrite:
+            #        parseq_prompt = value
+            #    else:
+            #        if doVerbose2:
+            #            print("sending parseq_prompt:")
+            #        await websocket.send(str(parseq_prompt))
             elif str(parameter) == "parseq_strength":
                 if shouldWrite:
                     parseq_strength = value
@@ -485,7 +494,7 @@ async def main():
 
 if __name__ == '__main__':
     try:
-        print("Starting mediator 0.3")
+        print("Starting mediator 0.4")
         asyncio.run(main())
     except KeyboardInterrupt:
         serverShutDown = True
