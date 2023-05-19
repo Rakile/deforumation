@@ -51,7 +51,7 @@ should_render_live = False
 current_render_frame = -1
 current_frame = 0
 should_use_deforumation_strength = 1
-should_use_deforum_prompt_scheduling = 0
+should_use_deforumation_prompt_scheduling = 1
 #ControlNet
 CN_Weight = 0
 CN_StepStart = 0
@@ -316,10 +316,13 @@ class render_window(wx.Frame):
         should_render_live = False
         #print("CLOSING, framer.bitmap is:"+ str(self.bitmap))
 
+
+import args as deforum_args
 class Mywin(wx.Frame):
     def __init__(self, parent, title):
         global pmob
         global pstb
+        global ppb
         super(Mywin, self).__init__(parent, title=title, size=(screenWidth, screenHeight))
         self.panel = wx.Panel(self)
         self.panel.SetBackgroundColour(wx.Colour(100, 100, 100))
@@ -363,58 +366,72 @@ class Mywin(wx.Frame):
         self.positive_prompt_input_ctrl_prio = wx.TextCtrl(self.panel, size=(20,20))
         sizer2.Add(self.positive_prompt_input_ctrl_prio, 0, wx.ALL, 0)
         self.positive_prompt_input_ctrl_prio.SetValue("1")
+        self.positive_prompt_input_ctrl_prio.SetToolTip("The value decides how Deforumation will send the collected positive prompts to Deforum (Lowest will be added first, and highest last).")
 
         self.positive_prompt_input_ctrl_hide_box = wx.CheckBox(self.panel, id=101, label="Hide")
+        self.positive_prompt_input_ctrl_hide_box.SetToolTip("Minimize or maximize this prompt window.")
         self.positive_prompt_input_ctrl_hide_box.Bind(wx.EVT_CHECKBOX, self.OnShouldHide)
         sizer2.Add(self.positive_prompt_input_ctrl_hide_box, 0, wx.ALL, 0)
         sizer.Add(sizer2, 0, wx.ALL, 0)
 
 
         self.positive_prompt_input_ctrl = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(-1,100))
+        self.positive_prompt_input_ctrl.SetToolTip("This is the main positive prompt window. When \"Save Prompts\" is pushed, this prompt will belong to the current image frame.")
         sizer.Add(self.positive_prompt_input_ctrl, 0, wx.ALL | wx.EXPAND, 0)
 
         self.positive_prompt_input_ctrl_2_prio = wx.TextCtrl(self.panel, size=(20,20))
         sizer3.Add(self.positive_prompt_input_ctrl_2_prio, 0, wx.ALL, 0)
         self.positive_prompt_input_ctrl_2_prio.SetValue("2")
+        self.positive_prompt_input_ctrl_2_prio.SetToolTip("The value decides how Deforumation will send the collected positive prompts to Deforum (Lowest will be added first, and highest last).")
 
         self.positive_prompt_input_ctrl_hide_box_2 = wx.CheckBox(self.panel, id=102, label="Hide")
+        self.positive_prompt_input_ctrl_hide_box_2.SetToolTip("Minimize or maximize this prompt window.")
         self.positive_prompt_input_ctrl_hide_box_2.Bind(wx.EVT_CHECKBOX, self.OnShouldHide)
         sizer3.Add(self.positive_prompt_input_ctrl_hide_box_2, 0, wx.ALL, 0)
         sizer.Add(sizer3, 0, wx.ALL, 0)
 
         self.positive_prompt_input_ctrl_2 = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(-1,50))
+        self.positive_prompt_input_ctrl_2.SetToolTip("This is a secondary positive prompt window. When \"Save Prompts\" is pushed, it will be part of the combined positive prompts. It doesn't belong to a certain frame.")
         sizer.Add(self.positive_prompt_input_ctrl_2, 0, wx.ALL | wx.EXPAND, 0)
 
         self.positive_prompt_input_ctrl_3_prio = wx.TextCtrl(self.panel, size=(20,20))
         sizer4.Add(self.positive_prompt_input_ctrl_3_prio, 0, wx.ALL, 0)
         self.positive_prompt_input_ctrl_3_prio.SetValue("3")
+        self.positive_prompt_input_ctrl_3_prio.SetToolTip("The value decides how Deforumation will send the collected positive prompts to Deforum (Lowest will be added first, and highest last).")
 
         self.positive_prompt_input_ctrl_hide_box_3 = wx.CheckBox(self.panel, id=103, label="Hide")
+        self.positive_prompt_input_ctrl_hide_box_3.SetToolTip("Minimize or maximize this prompt window.")
         self.positive_prompt_input_ctrl_hide_box_3.Bind(wx.EVT_CHECKBOX, self.OnShouldHide)
         sizer4.Add(self.positive_prompt_input_ctrl_hide_box_3, 0, wx.ALL, 0)
         sizer.Add(sizer4, 0, wx.ALL, 0)
 
 
         self.positive_prompt_input_ctrl_3 = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(-1,50))
+        self.positive_prompt_input_ctrl_3.SetToolTip("This is a secondary positive prompt window. When \"Save Prompts\" is pushed, it will be part of the combined positive prompts. It doesn't belong to a certain frame.")
         sizer.Add(self.positive_prompt_input_ctrl_3, 0, wx.ALL | wx.EXPAND, 0)
 
         self.positive_prompt_input_ctrl_4_prio = wx.TextCtrl(self.panel, size=(20,20))
         sizer5.Add(self.positive_prompt_input_ctrl_4_prio, 0, wx.ALL, 0)
         self.positive_prompt_input_ctrl_4_prio.SetValue("4")
+        self.positive_prompt_input_ctrl_4_prio.SetToolTip("The value decides how Deforumation will send the collected positive prompts to Deforum (Lowest will be added first, and highest last).")
 
         self.positive_prompt_input_ctrl_hide_box_4 = wx.CheckBox(self.panel, id=104, label="Hide")
+        self.positive_prompt_input_ctrl_hide_box_4.SetToolTip("Minimize or maximize this prompt window.")
         self.positive_prompt_input_ctrl_hide_box_4.Bind(wx.EVT_CHECKBOX, self.OnShouldHide)
         sizer5.Add(self.positive_prompt_input_ctrl_hide_box_4, 0, wx.ALL, 0)
         sizer.Add(sizer5, 0, wx.ALL, 0)
 
         self.positive_prompt_input_ctrl_4 = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(-1,50))
+        self.positive_prompt_input_ctrl_4.SetToolTip("This is a secondary positive prompt window. When \"Save Prompts\" is pushed, it will be part of the combined positive prompts. It doesn't belong to a certain frame.")
         sizer.Add(self.positive_prompt_input_ctrl_4, 0, wx.ALL | wx.EXPAND, 0)
 
         #Should use Deforum prompt scheduling?
-        self.shouldUseDeforumPromptScheduling_Checkbox = wx.CheckBox(self.panel, label="Use Deforum prompt scheduling", pos=(trbX+600, 10))
-        self.shouldUseDeforumPromptScheduling_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+        self.shouldUseDeforumPromptScheduling_text = wx.StaticText(self.panel, label="Use Deforumation prompt scheduling...", pos=(trbX+580, 10))
+        #self.shouldUseDeforumPromptScheduling_Checkbox = wx.CheckBox(self.panel, label="Use Deforumation prompt scheduling", pos=(trbX+600, 10))
+        #self.shouldUseDeforumPromptScheduling_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
         #Stay On Top
         self.stayOnTop_Checkbox = wx.CheckBox(self.panel, label="Stay on top", pos=(trbX+1130, 10))
+        self.stayOnTop_Checkbox.SetToolTip("This will keep Deforumation and the Live Render window on top, if checked.")
         self.stayOnTop_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
         #Negative Prompt
         self.negativePromtText = wx.StaticText(self.panel, label="Negative prompt:")
@@ -426,6 +443,7 @@ class Mywin(wx.Frame):
         sizer6.AddSpacer(5)
         sizer7.AddSpacer(5)
         self.negative_prompt_input_ctrl_hide_box = wx.CheckBox(self.panel, id=105, label="Hide")
+        self.negative_prompt_input_ctrl_hide_box.SetToolTip("Minimize or maximize this prompt window.")
         self.negative_prompt_input_ctrl_hide_box.Bind(wx.EVT_CHECKBOX, self.OnShouldHide)
         sizer7.Add(self.negative_prompt_input_ctrl_hide_box, 0, wx.ALL, 0)
         sizer6.Add(sizer7, 0, wx.ALL, 0)
@@ -433,6 +451,7 @@ class Mywin(wx.Frame):
 
 
         self.negative_prompt_input_ctrl = wx.TextCtrl(self.panel,style=wx.TE_MULTILINE, size=(-1,100))
+        self.negative_prompt_input_ctrl.SetToolTip("This is the negative prompt window. When \"Save Prompts\" is pushed, this prompt will belong to the current image frame.")
         sizer.Add(self.negative_prompt_input_ctrl, 0, wx.ALL | wx.EXPAND, 0)
         #if os.path.isfile(deforumationSettingsPath):
         #    self.negative_prompt_input_ctrl.SetValue(promptfileRead.readline())
@@ -441,6 +460,7 @@ class Mywin(wx.Frame):
         self.panel.SetSizer(sizer)
         #SHOW LIVE RENDER CHECK-BOX
         self.live_render_checkbox = wx.CheckBox(self.panel, label="LIVE RENDER", pos=(trbX+1130-340, tbrY-110))
+        self.live_render_checkbox.SetToolTip("Shows another window, that displays the current frame that is being generated, or if in paused mode, the frame choosen with the \"frame picker input box\".")
         self.live_render_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
         #OFF GRID BUTTON FOR KEYBOARD INPUT
@@ -450,62 +470,69 @@ class Mywin(wx.Frame):
 
         #SHOW CURRENT IMAGE, BUTTON
         self.show_current_image = wx.Button(self.panel, label="Show current image", pos=(trbX+992-340, tbrY-110))
+        self.show_current_image.SetToolTip("This will display the current (or the latest) image that Deforum is rendering. This can change during a render or by using the \"Set current image\"-button.")
         self.show_current_image.Bind(wx.EVT_BUTTON, self.OnClicked)
         #REWIND BUTTTON
         bmp = wx.Bitmap("./images/left_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.rewind_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1000-340, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rewind_button.SetToolTip("Steps one image backwards dependent on the frame number currently set in the \"frame picker input box\".")
         self.rewind_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rewind_button.SetLabel("REWIND")
         #REWIND CLOSEST BUTTTON
         bmp = wx.Bitmap("./images/rewind_closest.bmp", wx.BITMAP_TYPE_BMP)
         self.rewind_closest_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+970-340, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rewind_closest_button.SetToolTip("Tries to find the last saved prompt starting from the frame number set in the \"frame picker input box\".")
         self.rewind_closest_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rewind_closest_button.SetLabel("REWIND_CLOSEST")
         #SET CURRENT FRAME INPUT BOX
         self.frame_step_input_box = wx.TextCtrl(self.panel, 2, size=(48,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+1032-340, tbrY-74))
+        self.frame_step_input_box.SetToolTip("This is the \"frame picker input box\", which is used to navigate to a certain frame, or to show the current frame that is being generated (when pushing \"Show current frame\"). You can enter a frame number and then press Return in order to jump to a frame.")
         self.frame_step_input_box.SetLabel("0")
         self.frame_step_input_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=2)
         #FORWARD BUTTTON
         bmp = wx.Bitmap("./images/right_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.forward_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1080-340, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.forward_button.SetToolTip("Steps one image forwards dependent on the frame number currently set in the \"frame picker input box\".")
         self.forward_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.forward_button.SetLabel("FORWARD")
         #FORWARD CLOSEST BUTTTON
         bmp = wx.Bitmap("./images/forward_closest.bmp", wx.BITMAP_TYPE_BMP)
         self.forward_closest_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+1110-340, tbrY-80), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.forward_closest_button.SetToolTip("Tries to find the next saved prompt starting from the frame number set in the \"frame picker input box\".")
         self.forward_closest_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.forward_closest_button.SetLabel("FORWARD_CLOSEST")
         #SET CURRENT IMAGE, BUTTON
         self.set_current_image = wx.Button(self.panel, label="Set current image", pos=(trbX+998-340, tbrY-40))
+        self.set_current_image.SetToolTip("This will force the current image to be the number given in the \"frame picker input box\". This will also instruct Deforum to use this as it's current frame. After rewinding or forwarding, it is neccessary to push \"Set current image\" if you want Deforum to know that this the new starting position. All prompts that have been saved on a time frame later than this, will be deleted.")
         self.set_current_image.Bind(wx.EVT_BUTTON, self.OnClicked)
 
-        #SHOW AN IMAGE
-        #self.img = wx.EmptyImage(240,240)
-        #self.img = wx.Image("E:\\Tools\\stable-diffusion-webui\\outputs\\img2img-images\\Deforum_20230330002842\\20230330002842_000000082.png", wx.BITMAP_TYPE_ANY)
-        #self.imageCtrl = wx.StaticBitmap(panel, wx.ID_ANY, wx.BitmapFromImage(img))
-        #self.bitmap = wx.StaticBitmap(panel, -1, self.img, pos=(trbX+700, tbrY-120))
-        #self.bitmap = None
         img = wx.Image(256, 256)
         self.bitmap = wx.StaticBitmap(self.panel, wx.ID_ANY, wx.Bitmap(img), pos=(trbX + 650 +340, tbrY - 100))
+        self.bitmap.SetToolTip("This is a preview window, that will only update to the current image through using the \"Show current frame\"-button, or by using the controls for rewinding or forwarding.")
         #REPLAY BUTTON
         self.replay_input_box_text = wx.StaticText(self.panel, label="Replay", pos=(trbX+990, tbrY-130))
         self.replay_from_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX+1030, tbrY-131))
+        self.replay_from_input_box.SetToolTip("Replay from this frame.")
         self.replay_from_input_box.SetValue("0")
         self.replay_to_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX+1090, tbrY-131))
+        self.replay_to_input_box.SetToolTip("Replay to this frame.")
         self.replay_to_input_box.SetValue("0")
         self.replay_input_divider_box_text = wx.StaticText(self.panel, label="-", pos=(trbX+1077, tbrY-130))
         bmp = wx.Bitmap("./images/play.bmp", wx.BITMAP_TYPE_BMP)
         bmp = scale_bitmap(bmp, 18, 18)
         self.replay_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX + 1145, tbrY -135), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.replay_button.SetToolTip("This will replay the range given in the input boxes to the left. The replay will take place in the Live Render window.")
         self.replay_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.replay_button.SetLabel("REPLAY")
         #REPLAY FPS BOX
         self.fps_input_box_text = wx.StaticText(self.panel, label="fps", pos=(trbX+1180, tbrY-130))
         self.replay_fps_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX+1200, tbrY-131))
+        self.replay_fps_input_box.SetToolTip("When doing a replay, this is the fps that should be used to replay the images. How ever, because the replay is done through converting .PNG files to bitmaps (takes a long time), the speed will not be accurate.")
         self.replay_fps_input_box.SetValue("30")
 
         #SAVE PROMPTS BUTTON
         self.update_prompts = wx.Button(self.panel, label="SAVE PROMPTS")
+        self.update_prompts.SetToolTip("When pushing this, the current Positive Prompt, and the current Negative Prompt will be saved on the currently set frame. While generating, the current frame will be increasing, and your prompts will be saved along with it.")
         sizer.Add(self.update_prompts, 0, wx.ALL | wx.EXPAND, 5)
         self.update_prompts.Bind(wx.EVT_BUTTON, self.OnClicked)
 
@@ -513,22 +540,26 @@ class Mywin(wx.Frame):
         bmp = wx.Bitmap("./images/arm_off.bmp", wx.BITMAP_TYPE_BMP)
         bmp = scale_bitmap(bmp, 10, 10)
         self.arm_pan_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX-15, tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.arm_pan_button.SetToolTip("When activated, you enter arming mode for panning. In arming mode, these panning values are separate from the actual panning values. These values are the end point when doing a transitioning of the current panning values. Such a transition is started by pushing the \"0\"-button.")
         self.arm_pan_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.arm_pan_button.SetLabel("ARM_PAN")
 
         #PAN STEPS INPUT
         self.pan_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX-15, 30+tbrY))
+        self.pan_step_input_box.SetToolTip("Sets the granularity of how much the panning value should change, when using the panning buttons.")
         self.pan_step_input_box.SetLabel("1.0")
 
         #LEFT PAN BUTTTON
         bmp = wx.Bitmap("./images/left_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.transform_x_left_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(5+trbX, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.transform_x_left_button.SetToolTip("Decreases the X-axel panning value.")
         self.transform_x_left_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_x_left_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.transform_x_left_button.SetLabel("PAN_LEFT")
 
         #SET PAN VALUE X
         self.pan_X_Value_Text = wx.StaticText(self.panel, label=str(Translation_X), pos=(trbX-26, 55+tbrY+5))
+        self.pan_X_Value_Text.SetToolTip("Current X-panning value.")
         font = self.pan_X_Value_Text.GetFont()
         font.PointSize += 1
         font = font.Bold()
@@ -536,6 +567,7 @@ class Mywin(wx.Frame):
 
         #SET PAN VALUE Y
         self.pan_Y_Value_Text = wx.StaticText(self.panel, label=str(Translation_Y), pos=(40+trbX, 5+tbrY))
+        self.pan_Y_Value_Text.SetToolTip("Current Y-panning value.")
         font = self.pan_Y_Value_Text.GetFont()
         font.PointSize += 1
         font = font.Bold()
@@ -544,6 +576,7 @@ class Mywin(wx.Frame):
         #UPP PAN BUTTTON
         bmp = wx.Bitmap("./images/upp_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.transform_y_upp_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(35+trbX, 25+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.transform_y_upp_button.SetToolTip("Increases the Y-axel panning value.")
         self.transform_y_upp_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_y_upp_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.transform_y_upp_button.SetLabel("PAN_UP")
@@ -551,12 +584,14 @@ class Mywin(wx.Frame):
         #RIGHT PAN BUTTTON
         bmp = wx.Bitmap("./images/right_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.transform_x_right_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(65+trbX, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.transform_x_right_button.SetToolTip("Increases the X-axel panning value.")
         self.transform_x_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_x_right_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.transform_x_right_button.SetLabel("PAN_RIGHT")
         #DOWN PAN BUTTTON
         bmp = wx.Bitmap("./images/down_arrow.bmp", wx.BITMAP_TYPE_BMP)
         self.transform_y_down_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(35+trbX, 85+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.transform_y_down_button.SetToolTip("Decreases the Y-axel panning value.")
         self.transform_y_down_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_y_down_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.transform_y_down_button.SetLabel("PAN_DOWN")
@@ -565,6 +600,7 @@ class Mywin(wx.Frame):
         bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
         bmp = scale_bitmap(bmp, 22, 22)
         self.transform_zero_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(35+trbX, 56+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.transform_zero_button.SetToolTip("Will start a transition from the current panning values, to the armed panning values.")
         self.transform_zero_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.transform_zero_button.SetLabel("ZERO PAN")
 
@@ -572,10 +608,12 @@ class Mywin(wx.Frame):
         self.zero_pan_step_input_box_text = wx.StaticText(self.panel, label="0-Steps", pos=(trbX+74, tbrY+14))
         #ZERO PAN STEP INPUT BOX
         self.zero_pan_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX+70, tbrY+30))
+        self.zero_pan_step_input_box.SetToolTip("The number of frames that it will take a for a panning transition to go from the current panning value to the armed panning value.")
         self.zero_pan_step_input_box.SetLabel("0")
 
         #ZOOM SLIDER
         self.zoom_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=0, minValue=-1000, maxValue=1000, pos = (142+trbX, tbrY+5), size = (20, 135), style = wx.SL_VERTICAL  | wx.SL_LEFT | wx.SL_AUTOTICKS | wx.SL_INVERSE) # | wx.SL_LABELS)
+        self.zoom_slider.SetToolTip("Zooming value (Z-axis).")
         self.zoom_slider.SetTickFreq(int(float(10) * 100 / 10))
         self.zoom_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.zoom_slider.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
@@ -597,12 +635,14 @@ class Mywin(wx.Frame):
 
         #ZOOM STEPS INPUT
         self.zoom_step_input_box = wx.TextCtrl(self.panel, 151, size=(30,20), style = wx.TE_PROCESS_ENTER, pos=(105+trbX, tbrY+115))
+        self.zoom_step_input_box.SetToolTip("The granularity of the Zoom slider.")
         self.zoom_step_input_box.SetLabel("10")
         self.zoom_step_input_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=151)
         #self.seed_input_box =      wx.TextCtrl(self.panel, 3, size=(300,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+340, tbrY-50-60))
 
         #FOV SLIDER
         self.fov_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=70, minValue=20, maxValue=120, pos = (190+trbX, tbrY-5), size = (40, 150), style = wx.SL_VERTICAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.fov_slider.SetToolTip("Sets the current Field Of View (70 is default).")
         self.fov_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.fov_slider.SetTickFreq(1)
         self.fov_slider.SetLabel("FOV")
@@ -613,33 +653,47 @@ class Mywin(wx.Frame):
         #LOCK FOV TO ZOOM BUTTON
         bmp = wx.Bitmap("./images/lock_off.bmp", wx.BITMAP_TYPE_BMP)
         self.fov_lock_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(172+trbX, tbrY-5), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.fov_lock_button.SetToolTip("Locks the FOV slider to the Zoom slider (bi-directional).")
         self.fov_lock_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.fov_lock_button.SetLabel("LOCK FOV")
 
         #REVERSE FOV TO ZOOM BUTTON
         bmp = wx.Bitmap("./images/reverse_fov_off.bmp", wx.BITMAP_TYPE_BMP)
         self.fov_reverse_lock_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(172+trbX, tbrY+120), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.fov_reverse_lock_button.SetToolTip("Changes the direction of the lock between the Zoom and Fov slider (when using the \"Lock Zoom and Fov\"-button).")
         self.fov_reverse_lock_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.fov_reverse_lock_button.SetLabel("REVERSE FOV")
 
         #STRENGTH SCHEDULE SLIDER
         self.strength_schedule_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=65, minValue=1, maxValue=100, pos = (trbX-25, tbrY-50), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.strength_schedule_slider.SetToolTip("Sets the Strength value. The scale shown is 100 times larger than the actual value (so when using strength==100 it's actually 1.0)")
         self.strength_schedule_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.strength_schedule_slider.SetTickFreq(1)
         self.strength_schedule_slider.SetLabel("STRENGTH SCHEDULE")
         self.step_schedule_Text = wx.StaticText(self.panel, label="Strength Value (divided by 100)", pos=(trbX-25, tbrY-70))
+
+        #PROMPT ON/OFF BUTTON
+        bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+        ppb = True
+        bmp = scale_bitmap(bmp, 15, 15)
+        self.parseq_prompt_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos=(trbX+560, 10), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
+        self.parseq_prompt_button.SetToolTip("When activated (red), Deforumations prompt system will be in use, else it will use Deforum's or Parseq's. If Parseq is activated it overrides Deforum's.")
+        self.parseq_prompt_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.parseq_prompt_button.SetLabel("Use Deforumation prompt scheduling")
+
         #PARSEQ STRENGTH ON/OFF BUTTON
         if int(readValue("parseq_strength")) == 1:
             bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
-            bmp = scale_bitmap(bmp, 15, 15)
             pstb = True
         else:
             bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
-            bmp = scale_bitmap(bmp, 15, 15)
             pstb = False
+        bmp = scale_bitmap(bmp, 15, 15)
         self.parseq_strength_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos=(trbX-45, tbrY-46), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
+        self.parseq_strength_button.SetToolTip("When activated (red), both Deforumations Strength and CFG-slider will be used.")
         self.parseq_strength_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.parseq_strength_button.SetLabel("pstb")
+
         #PARSEQ MOVEMENTS ON/OFF BUTTON
         if int(readValue("parseq_movements")) == 1:
             bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
@@ -647,19 +701,20 @@ class Mywin(wx.Frame):
         else:
             bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
             pmob = False
-
-
         bmp = scale_bitmap(bmp, 20, 20)
         self.parseq_movements_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos = (trbX+280, tbrY+100), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
+        self.parseq_movements_button.SetToolTip("When activated (red), Deforumations motion controls will be in use (PAN, ROTATION, ZOOM, FOV and TILT). Else, Deforum's or Parseq override the CFG value and Strength (depending on if the \"USE DEFORUMATION\"-checkbox is activated or not. If Parseq is active it overrides Deforum's values.")
         self.parseq_movements_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.parseq_movements_button.SetLabel("pmob")
 
         #SHOULD USE DEFORUMATION STRENGTH VALUES? CHECK-BOX
         self.should_use_deforumation_strength_checkbox = wx.CheckBox(self.panel, label="USE DEFORUMATION", pos=(trbX+160, tbrY-66))
+        self.should_use_deforumation_strength_checkbox.SetToolTip("When activated, Deforumations Strength value will be used.")
         self.should_use_deforumation_strength_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
         #SAMPLE STEP SLIDER
         self.sample_schedule_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=25, minValue=1, maxValue=200, pos = (trbX-25, tbrY-50-70), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.sample_schedule_slider.SetToolTip("Tells Deforum how many steps it should use during image generation.")
         self.sample_schedule_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.sample_schedule_slider.SetTickFreq(1)
         self.sample_schedule_slider.SetLabel("STEPS")
@@ -668,6 +723,7 @@ class Mywin(wx.Frame):
         #SEED INPUT BOX
         self.seed_schedule_Text = wx.StaticText(self.panel, label="Seed", pos=(trbX+340, tbrY-50-80))
         self.seed_input_box = wx.TextCtrl(self.panel, 3, size=(300,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+340, tbrY-50-60))
+        self.seed_input_box.SetToolTip("Tells Deforum what the seed should be (-1 == random). The method used (iter, fixed, etc), is decided by Deforum's Seed behaviour option.")
         self.seed_input_box.SetLabel("-1")
         self.seed_input_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=3)
 
@@ -675,6 +731,7 @@ class Mywin(wx.Frame):
 
         #CFG SCHEDULE SLIDER
         self.cfg_schedule_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=7, minValue=1, maxValue=30, pos = (trbX+340, tbrY-50), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.cfg_schedule_slider.SetToolTip("Tells Deforum what CFG value to use.")
         self.cfg_schedule_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.cfg_schedule_slider.SetTickFreq(1)
         self.cfg_schedule_slider.SetLabel("CFG SCALE")
@@ -684,11 +741,13 @@ class Mywin(wx.Frame):
         #LOOK LEFT BUTTTON
         bmp = wx.Bitmap("./images/look_left.bmp", wx.BITMAP_TYPE_BMP)
         self.rotation_3d_x_left_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+80, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_x_left_button.SetToolTip("How many degrees it should continuously rotate left.")
         self.rotation_3d_x_left_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_x_left_button.SetLabel("LOOK_LEFT")
 
         #SET ROTATION VALUE X
         self.rotation_3d_x_Value_Text = wx.StaticText(self.panel, label=str(Rotation_3D_X), pos=(240+trbX-30+80, 55+tbrY+5))
+        self.rotation_3d_x_Value_Text.SetToolTip("Current X-Rotation value.")
         font = self.rotation_3d_x_Value_Text.GetFont()
         font.PointSize += 1
         font = font.Bold()
@@ -696,22 +755,26 @@ class Mywin(wx.Frame):
 
         #ROTATE STEPS INPUT
         self.rotate_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(240+trbX-15+80, 30+tbrY))
+        self.rotate_step_input_box.SetToolTip("The X Rotation granularity.")
         self.rotate_step_input_box.SetLabel("1.0")
 
         #LOOK UPP BUTTTON
         bmp = wx.Bitmap("./images/look_upp.bmp", wx.BITMAP_TYPE_BMP)
         self.rotation_3d_y_up_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30+80, 55+tbrY-30), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_y_up_button.SetToolTip("How many degrees it should continuously rotate upwards.")
         self.rotation_3d_y_up_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_y_up_button.SetLabel("LOOK_UP")
 
-        #ZERO PAN STEP INPUT BOX STRING
+        #ZERO ROTATE STEP INPUT BOX STRING
         self.zero_rotate_step_input_box_text = wx.StaticText(self.panel, label="0-Steps", pos=(240+trbX+43+100, 55+tbrY-40))
-        #ZERO PAN STEP INPUT BOX
+        #ZERO ROTATE STEP INPUT BOX
         self.zero_rotate_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(240+trbX+40+100, 55+tbrY-25))
+        self.zero_rotate_step_input_box.SetToolTip("The number of frames that it will take a for a rotation transition to go from the current rotation values to the armed panning values.")
         self.zero_rotate_step_input_box.SetLabel("0")
 
         #SET ROTATION VALUE Y
         self.rotation_3d_y_Value_Text = wx.StaticText(self.panel, label=str(Rotation_3D_Y), pos=(240+trbX+35+80, 55+tbrY-48))
+        self.rotation_3d_y_Value_Text.SetToolTip("Current Y-Rotation value.")
         font = self.rotation_3d_y_Value_Text.GetFont()
         font.PointSize += 1
         font = font.Bold()
@@ -720,24 +783,28 @@ class Mywin(wx.Frame):
         bmp = wx.Bitmap("./images/arm_off.bmp", wx.BITMAP_TYPE_BMP)
         bmp = scale_bitmap(bmp, 10, 10)
         self.arm_rotation_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+80, tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.arm_rotation_button.SetToolTip("When activated, you enter arming mode for rotation. In arming mode, these rotation values are separate from the actual rotation values. These values are the end point when doing a transitioning of the current panning values. Such a transition is started by pushing the \"0\"-button.")
         self.arm_rotation_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.arm_rotation_button.SetLabel("ARM_ROTATION")
 
         #LOOK RIGHT BUTTTON
         bmp = wx.Bitmap("./images/look_right.bmp", wx.BITMAP_TYPE_BMP)
         self.rotation_3d_x_right_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+57+80, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_x_right_button.SetToolTip("How many degrees it should continuously rotate right.")
         self.rotation_3d_x_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_x_right_button.SetLabel("LOOK_RIGHT")
 
-        #LOOK UPP BUTTTON
+        #LOOK DOWN BUTTTON
         bmp = wx.Bitmap("./images/look_down.bmp", wx.BITMAP_TYPE_BMP)
         self.rotation_3d_y_down_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30+80, 55+tbrY+30), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_y_down_button.SetToolTip("How many degrees it should continuously rotate downwards.")
         self.rotation_3d_y_down_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_y_down_button.SetLabel("LOOK_DOWN")
 
-        #ROTATE LEFT BUTTTON
+        #SPIN BUTTTON
         bmp = wx.Bitmap("./images/rotate_left.bmp", wx.BITMAP_TYPE_BMP)
         self.rotation_3d_z_left_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(300+trbX+57+80, 50+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_z_left_button.SetToolTip("How many degrees it should continuously spin anti-clock-wise.")
         self.rotation_3d_z_left_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_z_left_button.SetLabel("ROTATE_LEFT")
 
@@ -745,17 +812,20 @@ class Mywin(wx.Frame):
         bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
         bmp = scale_bitmap(bmp, 20, 20)
         self.rotate_zero_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30+80, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotate_zero_button.SetToolTip("Will start a transition from the current rotation values, to the armed panning values.")
         self.rotate_zero_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotate_zero_button.SetLabel("ZERO ROTATE")
 
         #ROTATE RIGHT BUTTTON
         bmp = wx.Bitmap("./images/rotate_right.bmp", wx.BITMAP_TYPE_BMP)
         self.rotation_3d_z_right_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(380+trbX+57+80, 50+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.rotation_3d_z_right_button.SetToolTip("How many degrees it should continuously spin clock-wise.")
         self.rotation_3d_z_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.rotation_3d_z_right_button.SetLabel("ROTATE_RIGHT")
 
         #SET ROTATION VALUE Z
         self.rotation_Z_Value_Text = wx.StaticText(self.panel, label=str(Rotation_3D_Z), pos=(360+trbX+46+80, 60+tbrY))
+        self.rotation_Z_Value_Text.SetToolTip("The current Z-Rotation value (negative == clockwise, positive == anti-clockwise).")
         font = self.rotation_Z_Value_Text.GetFont()
         font.PointSize += 1
         font = font.Bold()
@@ -765,33 +835,40 @@ class Mywin(wx.Frame):
         bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
         bmp = scale_bitmap(bmp, 32, 32)
         self.tilt_zero_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(360+trbX+36+80, 88+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.tilt_zero_button.SetToolTip("Immediately Zeroes the Tilt value.")
         self.tilt_zero_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.tilt_zero_button.SetLabel("ZERO TILT")
 
         #TILT STEPS INPUT
         self.tilt_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(360+trbX+38+80, 30+tbrY))
+        self.tilt_step_input_box.SetToolTip("Sets the granularity of how many degrees it should tilt, when using the Tilt buttons.")
         self.tilt_step_input_box.SetLabel("1.0")
 
         #PAUSE VIDEO RENDERING
         if is_paused_rendering:
             self.pause_rendering = wx.Button(self.panel, label="PUSH TO RESUME RENDERING")
+            self.pause_rendering.SetToolTip("Push this button to resume the paused image generation.")
         else:
             self.pause_rendering = wx.Button(self.panel, label="PUSH TO PAUSE RENDERING")
+            self.pause_rendering.SetToolTip("Push this button to pause the ongoing image generation.")
         sizer.Add(self.pause_rendering, 0, wx.ALL | wx.EXPAND, 5)
         self.pause_rendering.Bind(wx.EVT_BUTTON, self.OnClicked)
 
         #CADENCE SLIDER
         self.cadence_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(Cadence_Schedule), minValue=1, maxValue=20, pos = (trbX+1000-340, tbrY+20), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.cadence_slider.SetToolTip("Tells Deforum what cadence value it should use. A higher cadence will create so called in-between(tweens) images that are not diffused.")
         self.cadence_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.cadence_slider.SetTickFreq(1)
         self.cadence_slider.SetLabel("CADENCE")
         self.cadence_slider_Text = wx.StaticText(self.panel, label="Cadence Scale", pos=(trbX+1000-340, tbrY))
         #CADENCE SUGGESTION
         self.cadence_suggestion = wx.StaticText(self.panel, label="(hist cad: ??)", pos=(trbX+1000-140, tbrY))
+        self.cadence_suggestion.SetToolTip("This tries to remember what cadence you had at the current frame. It is always good to start with the same cadence after you have rewinded as it for a better transition.")
         #ControlNet Sliders
         ###############################################################
         #CONTROLNET WEIGHT
         self.control_net_weight_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_Weight), minValue=0, maxValue=200, pos = (trbX-40, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.control_net_weight_slider.SetToolTip("Tells, if activated, the first ControlNet, what weight it should use. The slider value is scaled by 100 (actual value 100 times smaller)")
         self.control_net_weight_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.control_net_weight_slider.SetTickFreq(1)
         self.control_net_weight_slider.SetLabel("CN WEIGHT")
@@ -799,6 +876,7 @@ class Mywin(wx.Frame):
 
         #CONTROLNET STARTING CONTROL STEP
         self.control_net_stepstart_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_StepStart), minValue=0, maxValue=100, pos = (trbX+300, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.control_net_stepstart_slider.SetToolTip("Tells, if activated, the first ControlNet, what step it should start on. The slider value is scaled by 100 (actual value 100 times smaller)")
         self.control_net_stepstart_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.control_net_stepstart_slider.SetTickFreq(1)
         self.control_net_stepstart_slider.SetLabel("CN STEPSTART")
@@ -806,6 +884,7 @@ class Mywin(wx.Frame):
 
         #CONTROLNET ENDING CONTROL STEP
         self.control_net_stepend_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_StepEnd), minValue=0, maxValue=100, pos = (trbX+640, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.control_net_stepend_slider.SetToolTip("Tells, if activated, the first ControlNet, what step it should end on. The slider value is scaled by 100 (actual value 100 times smaller)")
         self.control_net_stepend_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.control_net_stepend_slider.SetTickFreq(1)
         self.control_net_stepend_slider.SetLabel("CN STEPEND")
@@ -813,6 +892,7 @@ class Mywin(wx.Frame):
 
         #CONTROLNET LOW THRESHOLD
         self.control_net_lowt_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_LowT), minValue=0, maxValue=255, pos = (trbX-40, tbrY+260), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.control_net_lowt_slider.SetToolTip("Tells, if activated, the first ControlNet, what the lower threshold should be. Values below the low threshold always get discarded. Values in between the the two thresholds may get kept or may get discarded depending on various rules and maths.")
         self.control_net_lowt_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.control_net_lowt_slider.SetTickFreq(1)
         self.control_net_lowt_slider.SetLabel("CN LOWT")
@@ -820,6 +900,7 @@ class Mywin(wx.Frame):
 
         #CONTROLNET HIGH THRESHOLD
         self.control_net_hight_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_HighT), minValue=0, maxValue=255, pos = (trbX+300, tbrY+260), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.control_net_hight_slider.SetToolTip("Tells, if activated, the first ControlNet, what the higher threshold should be. Values below the low threshold always get discarded. Values above the high threshold always get kept. Values in between the the two thresholds may get kept or may get discarded depending on various rules and maths.")
         self.control_net_hight_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.control_net_hight_slider.SetTickFreq(1)
         self.control_net_hight_slider.SetLabel("CN HIGHT")
@@ -828,15 +909,19 @@ class Mywin(wx.Frame):
         #PARSEQ URL INPUT BOX
         self.Parseq_URL_input_box_text = wx.StaticText(self.panel, label="Use PARSEQ as Guide: ", pos = (trbX + 640, tbrY + 245))
         self.Parseq_activation_Checkbox = wx.CheckBox(self.panel, id=73, pos=(trbX+760, tbrY + 245))
+        self.Parseq_activation_Checkbox.SetToolTip("Tells, Deforum and Deforumation that Parseq is to be used as scheduler.")
         self.Parseq_activation_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
         self.Parseq_URL_input_box = wx.TextCtrl(self.panel, 28, size=(300,20), style = wx.TE_PROCESS_ENTER, pos = (trbX + 640, tbrY + 265))
+        self.Parseq_URL_input_box.SetToolTip("This should point to a URL that contains a JSON file, as generated by the online Parseq application (https://sd-parseq.web.app).")
         self.Parseq_URL_input_box.SetHint("<URL to Parseq JSON File here>")
         #PARSEQ SEND TO DEFORUM BUTTON
         self.Send_URL_to_Deforum = wx.Button(self.panel, id=wx.ID_ANY, label="Send Deforum", pos=(trbX + 820, tbrY + 242), size=(120, 20))
+        self.Send_URL_to_Deforum.SetToolTip("This sends the actual URL to Deforum, so that it knows what Parseq file it should use during scheduling.")
         self.Send_URL_to_Deforum.Bind(wx.EVT_BUTTON, self.OnClicked)
 
         #LIVE VALUE BUTTON
         self.Live_Values_Checkbox = wx.CheckBox(self.panel, id=wx.ID_ANY, label="Live Values", pos=(trbX-40, tbrY + 130))
+        self.Live_Values_Checkbox.SetToolTip("Activating \"Live Values\", will get motion and other setting values as how Deforum sees them (those can differ from the values that are displayed in Deforumation because of what override choices you have made.). The values will also be visually reflected in Deforums GUI (sliders and values will show Deforum's values). Some values are also displyed at the bottom of Deforumation's screen. NOTE, that your current Deforumation values will revert, when you uncheck this box.")
         self.Live_Values_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
         self.deforum_strength_value_info_text = wx.StaticText(self.panel, label="Strength:", pos=(trbX-40, tbrY+310))
@@ -1108,6 +1193,7 @@ class Mywin(wx.Frame):
         global CN_StepEnd
         global CN_LowT
         global CN_HighT
+        global should_use_deforumation_prompt_scheduling
 
         if os.path.isfile(deforumationSettingsPath_Keys):
             deforumFile = open(deforumationSettingsPath_Keys, 'r')
@@ -1166,6 +1252,17 @@ class Mywin(wx.Frame):
                 self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
                 self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
                 self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
+                should_use_deforumation_prompt_scheduling = int(deforumFile.readline())
+                if should_use_deforumation_prompt_scheduling:
+                    bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+                    bmp = scale_bitmap(bmp, 15, 15)
+                    self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
+                    self.writeValue("should_use_deforumation_prompt_scheduling", 1)
+                else:
+                    bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
+                    bmp = scale_bitmap(bmp, 15, 15)
+                    self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
+                    self.writeValue("should_use_deforumation_prompt_scheduling", 0)
                 should_use_deforumation_strength = int(deforumFile.readline())
                 self.should_use_deforumation_strength_checkbox.SetValue(int(should_use_deforumation_strength))
                 self.pan_step_input_box.SetValue(deforumFile.readline())
@@ -1210,7 +1307,8 @@ class Mywin(wx.Frame):
             self.writeValue("rotation_x", Rotation_3D_X)
             self.writeValue("rotation_y", Rotation_3D_Y)
             self.writeValue("rotation_z", Rotation_3D_Z)
-            #self.writeValue("rotation_z", Rotation_3D_Z)
+            self.writeValue("rotation_z", Rotation_3D_Z)
+            self.writeValue("should_use_deforumation_prompt_scheduling", int(should_use_deforumation_prompt_scheduling))
             self.writeValue("should_use_deforumation_strength", int(should_use_deforumation_strength))
             self.writeValue("cadence", int(Cadence_Schedule))
             self.writeValue("cn_weight", float(CN_Weight))
@@ -1274,7 +1372,7 @@ class Mywin(wx.Frame):
         deforumFile.write(str('%.2f' % Rotation_3D_X)+"\n")
         deforumFile.write(str('%.2f' % Rotation_3D_Y)+"\n")
         deforumFile.write(str('%.2f' % Rotation_3D_Z)+"\n")
-        #print("WRITING:" + str(should_use_deforumation_strength))
+        deforumFile.write(str(int(should_use_deforumation_prompt_scheduling)) + "\n")
         deforumFile.write(str(int(should_use_deforumation_strength))+"\n")
         deforumFile.write(self.pan_step_input_box.GetValue().strip().replace('\n', '')+"\n")
         deforumFile.write(self.rotate_step_input_box.GetValue().strip().replace('\n', '')+"\n")
@@ -1601,7 +1699,7 @@ class Mywin(wx.Frame):
         global should_use_deforumation_strength
         global Cadence_Schedule
         global should_stay_on_top
-        global should_use_deforum_prompt_scheduling
+        global should_use_deforumation_prompt_scheduling
         global zero_pan_active
         global zero_rotate_active
         global stepit_pan
@@ -1627,6 +1725,7 @@ class Mywin(wx.Frame):
         global pmob
         global is_Parseq_Active
         global showLiveValues
+        global ppb
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
@@ -1651,13 +1750,13 @@ class Mywin(wx.Frame):
                 self.ToggleWindowStyle(wx.STAY_ON_TOP | wx.BORDER_DEFAULT)
                 if self.framer != None:
                     self.framer.ToggleWindowStyle(wx.STAY_ON_TOP | wx.BORDER_DEFAULT)
-        elif btn == "Use Deforum prompt scheduling":
-            if should_use_deforum_prompt_scheduling == 0:
-                should_use_deforum_prompt_scheduling = 1
-                self.writeValue("should_use_deforum_prompt_scheduling", should_use_deforum_prompt_scheduling)
-            else:
-                should_use_deforum_prompt_scheduling = 0
-                self.writeValue("should_use_deforum_prompt_scheduling", should_use_deforum_prompt_scheduling)
+        #elif btn == "Use Deforumation prompt scheduling":
+        #    if should_use_deforumation_prompt_scheduling == 0:
+        #        should_use_deforumation_prompt_scheduling = 1
+        #        self.writeValue("should_use_deforumation_prompt_scheduling", should_use_deforumation_prompt_scheduling)
+        #    else:
+        #        should_use_deforumation_prompt_scheduling = 0
+        #        self.writeValue("should_use_deforumation_prompt_scheduling", should_use_deforumation_prompt_scheduling)
         elif btn == "SAVE PROMPTS":
             self.saveCurrentPrompt("P")
             self.saveCurrentPrompt("N")
@@ -2077,6 +2176,19 @@ class Mywin(wx.Frame):
                     self.framer.Close()
                     self.framer = None
                 current_render_frame = -1
+        elif btn == "Use Deforumation prompt scheduling":
+            if should_use_deforumation_prompt_scheduling == 0:
+                bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 15, 15)
+                self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
+                self.writeValue("should_use_deforumation_prompt_scheduling", 1)
+                should_use_deforumation_prompt_scheduling = 1
+            else:
+                bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 15, 15)
+                self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
+                self.writeValue("should_use_deforumation_prompt_scheduling", 0)
+                should_use_deforumation_prompt_scheduling = 0
         elif btn == "pstb":
             if pstb:
                 bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
@@ -2127,20 +2239,21 @@ class Mywin(wx.Frame):
             else:
                 showLiveValues = False
 
-        if armed_pan:
-            self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
-            self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
-        else:
-            self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
-            self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
-        if armed_rotation:
-            self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
-            self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' %Rotation_3D_X_ARMED))
-        else:
-            self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
-            self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' %Rotation_3D_X))
+        if not showLiveValues:
+            if armed_pan:
+                self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
+                self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
+            else:
+                self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+                self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+            if armed_rotation:
+                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
+                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' %Rotation_3D_X_ARMED))
+            else:
+                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
+                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' %Rotation_3D_X))
 
-        self.rotation_Z_Value_Text.SetLabel(str('%.2f' %Rotation_3D_Z))
+            self.rotation_Z_Value_Text.SetLabel(str('%.2f' %Rotation_3D_Z))
 
         self.writeAllValues()
 
@@ -2157,34 +2270,72 @@ class Mywin(wx.Frame):
             deforum_fov = readValue("deforum_fov")
             deforum_steps = readValue("deforum_steps")
 
-            self.pan_X_Value_Text.SetLabel(str('%.2f' % float(deforum_translation_x)))
-            self.pan_Y_Value_Text.SetLabel(str('%.2f' % float(deforum_translation_y)))
-            self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_y)))
-            self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_x)))
-            self.zoom_slider.SetValue(int(float(deforum_rotation_z)*100))
-            self.zoom_value_text.SetLabel(str('%.2f' % float(deforum_rotation_z)))
-            self.strength_schedule_slider.SetValue(int(float(deforum_strength)*100))
+            if pmob:
+                self.pan_X_Value_Text.SetLabel(str('%.2f' % float(deforum_translation_x)))
+                self.pan_Y_Value_Text.SetLabel(str('%.2f' % float(deforum_translation_y)))
+                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_y)))
+                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_x)))
+                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_z)))
+                self.zoom_slider.SetValue(int(float(deforum_translation_z)*100))
+                self.zoom_value_text.SetLabel(str('%.2f' % float(deforum_translation_z)))
+                self.fov_slider.SetValue(int(float(deforum_fov)))
+            else:
+                if armed_pan:
+                    self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
+                    self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
+                else:
+                    self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+                    self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+                if armed_rotation:
+                    self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
+                    self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X_ARMED))
+                else:
+                    self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
+                    self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
+
+                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Z)))
+                self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
+                self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
+                self.fov_slider.SetValue(int(FOV_Scale))
+
+            if pstb:
+                self.strength_schedule_slider.SetValue(int(float(deforum_strength)*100))
+                self.cfg_schedule_slider.SetValue(int(deforum_cfg))
+            else:
+                self.strength_schedule_slider.SetValue(int(float(Strength_Scheduler) * 100))
+                self.cfg_schedule_slider.SetValue(int(CFG_Scale))
+
+            #Bottom Info Text
             self.deforum_strength_value_info_text.SetLabel("Strength:" + str('%.2f' % float(deforum_strength)))
+            self.deforum_steps_value_info_text.SetLabel("Steps:" + str(deforum_steps))
             self.deforum_trx_value_info_text.SetLabel("Tr X:" + str('%.2f' % float(deforum_translation_x)))
             self.deforum_try_value_info_text.SetLabel("Tr Y:" + str('%.2f' % float(deforum_translation_y)))
             self.deforum_trz_value_info_text.SetLabel("Tr Z:" + str('%.2f' % float(deforum_translation_z)))
             self.deforum_rox_value_info_text.SetLabel("Ro X:" + str('%.2f' % float(deforum_rotation_x)))
             self.deforum_roy_value_info_text.SetLabel("Ro Y:" + str('%.2f' % float(deforum_rotation_y)))
             self.deforum_roz_value_info_text.SetLabel("Ro Z:" + str('%.2f' % float(deforum_rotation_z)))
-            self.deforum_steps_value_info_text.SetLabel("Steps:" + str(deforum_steps))
-            self.cfg_schedule_slider.SetValue(int(deforum_cfg))
-            self.fov_slider.SetValue(int(float(deforum_fov)))
+
             time.sleep(0.25)
 
-        self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
-        self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
-        self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_X)))
-        self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Y)))
-        self.zoom_slider.SetValue(int(float(Rotation_3D_Z) * 100))
-        self.zoom_value_text.SetLabel(str('%.2f' % float(Rotation_3D_Z)))
+        if armed_pan:
+            self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
+            self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
+        else:
+            self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+            self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+        if armed_rotation:
+            self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
+            self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X_ARMED))
+        else:
+            self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
+            self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
+        self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Z)))
+        self.fov_slider.SetValue(int(FOV_Scale))
+        self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
+        self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
+
         self.strength_schedule_slider.SetValue(int(float(Strength_Scheduler)*100))
         self.cfg_schedule_slider.SetValue(int(CFG_Scale))
-        self.fov_slider.SetValue(int(FOV_Scale))
 
         print("Ending Live Values Thread....")
     def OnExit(self, event):
@@ -2201,5 +2352,5 @@ if __name__ == '__main__':
     #time.sleep(5)
     blaha = random.randint(0, 2**32 - 1)
     app = wx.App()
-    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.1.8)')
+    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.4)')
     app.MainLoop()
