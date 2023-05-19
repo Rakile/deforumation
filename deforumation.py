@@ -690,7 +690,7 @@ class Mywin(wx.Frame):
             pstb = False
         bmp = scale_bitmap(bmp, 15, 15)
         self.parseq_strength_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos=(trbX-45, tbrY-46), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
-        self.parseq_strength_button.SetToolTip("When activated (red), both Deforumations Strength and CFG-slider will be used.")
+        self.parseq_strength_button.SetToolTip("When activated (red), both Deforumations Strength and CFG-slider will be used.If not activated, Deforum's or Parseq's values will be used for CFG and maybe Strength (depending on if the \"USE DEFORUMATION\"-checkbox for strength is activated or not. Parseq always overrides Deforum's values if it is active.")
         self.parseq_strength_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.parseq_strength_button.SetLabel("pstb")
 
@@ -703,7 +703,7 @@ class Mywin(wx.Frame):
             pmob = False
         bmp = scale_bitmap(bmp, 20, 20)
         self.parseq_movements_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos = (trbX+280, tbrY+100), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
-        self.parseq_movements_button.SetToolTip("When activated (red), Deforumations motion controls will be in use (PAN, ROTATION, ZOOM, FOV and TILT). Else, Deforum's or Parseq override the CFG value and Strength (depending on if the \"USE DEFORUMATION\"-checkbox is activated or not. If Parseq is active it overrides Deforum's values.")
+        self.parseq_movements_button.SetToolTip("When activated (red), Deforumations motion controls will be in use (PAN, ROTATION, ZOOM, FOV and TILT). If not activated, Deforum's or Parseq's motion values are added to Deforum's motion values.")
         self.parseq_movements_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.parseq_movements_button.SetLabel("pmob")
 
