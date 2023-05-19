@@ -191,7 +191,7 @@ def changeBitmapWorker(parent):
                             parent.bitmap = wx.Bitmap(imagePath)
                             if bool(parent.parent):
                                 bitmap_width, bitmap_height = parent.parent.GetSize()
-                                parent.bitmap = scale_bitmap(parent.bitmap, bitmap_width, bitmap_height)
+                                parent.bitmap = scale_bitmap(parent.bitmap, bitmap_width-18, bitmap_height-40)
                                 parent.Refresh()
                             else:
                                 isReplaying = 0
@@ -257,15 +257,21 @@ class MyPanel(wx.Panel):
         self.shouldRun = False
     def resize(self,width,height):
         self.SetSize(width, height)
+        #if is_paused_rendering:
+        #    imagePath = get_current_image_path_paused()
+        #else:
+        #    imagePath = get_current_image_path()
         if is_paused_rendering:
-            imagePath = get_current_image_path_paused()
+            imagePath = get_current_image_path_f(current_render_frame)
         else:
-            imagePath = get_current_image_path()
+            current_frame = int(readValue("start_frame"))
+            imagePath = get_current_image_path_f(current_frame)
+
         self.bitmap = wx.Bitmap(imagePath)
         bitmap_width, bitmap_height = self.parent.GetSize()
-        tempBitmap = scale_bitmap(self.bitmap, bitmap_width, bitmap_height)
+        tempBitmap = scale_bitmap(self.bitmap, bitmap_width-18, bitmap_height-40)
         if tempBitmap.IsOk():
-            self.bitmap
+            self.bitmap = tempBitmap
         self.Refresh()
 
 class render_window(wx.Frame):
@@ -2144,16 +2150,24 @@ class Mywin(wx.Frame):
                 should_render_live = True
                 outdir = str(self.readValue("frame_outdir")).replace('\\', '/').replace('\n', '')
                 resume_timestring = str(self.readValue("resume_timestring"))
-                current_frame = current_frame.zfill(9)
-                imagePath = outdir + "/" + resume_timestring + "_" + current_frame + ".png"
-                imagePath = get_current_image_path()
+
+                #current_frame = current_frame.zfill(9)
+                #imagePath = get_current_image_path()
+                if not is_paused_rendering or current_render_frame < 0:
+                    imagePath = get_current_image_path_f(current_frame)
+                else:
+                    imagePath = get_current_image_path_f(current_render_frame)
+
                 maxBackTrack = 100
                 while not os.path.isfile(imagePath):
                     if (current_frame == 0):
                         break
                     current_frame = str(int(current_frame) - 1)
                     current_frame = current_frame.zfill(9)
-                    imagePath = get_current_image_path_f(current_frame) #outdir + "/" + resume_timestring + "_" + current_frame + ".png"
+                    if not is_paused_rendering or current_render_frame < 0:
+                        imagePath = get_current_image_path_f(current_frame)
+                    else:
+                        imagePath = get_current_image_path_f(current_render_frame)
                     maxBackTrack = maxBackTrack -1
                     if maxBackTrack == 0:
                         break
@@ -2164,7 +2178,7 @@ class Mywin(wx.Frame):
                         if self.framer == None:
                             self.framer = render_window(self, 'Render Image')
                             self.framer.Show()
-                        self.framer.SetSize(imgWidth + 18, imgHeight + 40)
+                        self.framer.SetSize(imgWidth+18, imgHeight+40) #18,40
                         self.framer.bitmap = wx.StaticBitmap(self.framer, -1, self.img_render)
                         self.framer.Refresh()
                         current_render_frame = int(current_frame)
