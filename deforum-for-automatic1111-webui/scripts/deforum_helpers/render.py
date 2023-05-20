@@ -406,13 +406,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         if anim_args.enable_clipskip_scheduling and keys.clipskip_schedule_series[frame_idx] is not None:
             scheduled_clipskip = int(keys.clipskip_schedule_series[frame_idx])
         if anim_args.enable_noise_multiplier_scheduling and keys.noise_multiplier_schedule_series[frame_idx] is not None:
-            if usingDeforumation:
-                if int(mediator_getValue("parseq_strength")) == 0:
-                    scheduled_noise_multiplier = float(mediator_getValue("noise"))
-                    mediator_setValue("noise", scheduled_noise_multiplier)
-                else:
-                    scheduled_noise_multiplier = float(keys.noise_multiplier_schedule_series[frame_idx])   
-                    mediator_setValue("noise", scheduled_noise_multiplier)
+            scheduled_noise_multiplier = float(keys.noise_multiplier_schedule_series[frame_idx])   
         if anim_args.enable_ddim_eta_scheduling and keys.ddim_eta_schedule_series[frame_idx] is not None:
             scheduled_ddim_eta = float(keys.ddim_eta_schedule_series[frame_idx])
         if anim_args.enable_ancestral_eta_scheduling and keys.ancestral_eta_schedule_series[frame_idx] is not None:
