@@ -41,7 +41,7 @@ from .deforum_mediator import mediator_getValue, mediator_setValue, mediator_set
 usingDeforumation = True
 #End settings
 
-def render_animation(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root):
+def render_animation(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, root):
     DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
 
     if opts.data.get("deforum_save_gen_info_as_srt"): # create .srt file and set timeframe mechanism using FPS
@@ -69,7 +69,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     # handle controlnet video input frames generation
     if is_controlnet_enabled(controlnet_args):
-        unpack_controlnet_vids(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root)
+        unpack_controlnet_vids(args, anim_args, controlnet_args)
 
 
     #Let the deforum mediator get the anim_args and the args values
@@ -127,7 +127,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         prompt_series = keys.prompts
     else:
         prompt_series = pd.Series([np.nan for a in range(anim_args.max_frames)])
-        for i, prompt in animation_prompts.items():
+        for i, prompt in root.animation_prompts.items():
             if str(i).isdigit():
                 prompt_series[int(i)] = prompt
             else:
@@ -343,14 +343,15 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
         print(f"\033[36mAnimation frame: \033[0m{frame_idx}/{anim_args.max_frames}  ")
 
-        noise = keys.noise_schedule_series[frame_idx]
+        noise = keys.noise_schedule_series[frame_idx]    
+        
         if usingDeforumation: #Should we Connect to the Deforumation websocket server and get seed_changed == new seed?
             if int(mediator_getValue("seed_changed")):
                 args.seed = int(mediator_getValue("seed"))
                 if args.seed == -1:
                     args.seed = random.randint(0, 2**32 - 1)
-        if usingDeforumation: #Should we Connect to the Deforumation websocket server to get strength values?            
-            if (int(mediator_getValue("should_use_deforumation_strength")) == 1) or (int(mediator_getValue("parseq_strength")) == 0): #Should we use manual or deforum's strength scheduling?
+        if usingDeforumation:
+            if (int(mediator_getValue("should_use_deforumation_strength")) == 1) or (int(mediator_getValue("parseq_strength")) == 0):
                 strength = float(mediator_getValue("strength"))
                 mediator_setValue("deforum_strength", strength)
             else:
@@ -358,7 +359,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 mediator_setValue("deforum_strength", strength)
         else:
             strength = keys.strength_schedule_series[frame_idx]
-        if usingDeforumation: #Should we Connect to the Deforumation websocket server to get CFG values?
+
+        if usingDeforumation:
             if int(mediator_getValue("parseq_strength")) == 0:
                 scale = float(mediator_getValue("cfg"))
                 mediator_setValue("deforum_cfg", scale)
@@ -404,7 +406,13 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         if anim_args.enable_clipskip_scheduling and keys.clipskip_schedule_series[frame_idx] is not None:
             scheduled_clipskip = int(keys.clipskip_schedule_series[frame_idx])
         if anim_args.enable_noise_multiplier_scheduling and keys.noise_multiplier_schedule_series[frame_idx] is not None:
-            scheduled_noise_multiplier = float(keys.noise_multiplier_schedule_series[frame_idx])
+            if usingDeforumation:
+                if int(mediator_getValue("parseq_strength")) == 0:
+                    scheduled_noise_multiplier = float(mediator_getValue("noise"))
+                    mediator_setValue("noise", scheduled_noise_multiplier)
+                else:
+                    scheduled_noise_multiplier = float(keys.noise_multiplier_schedule_series[frame_idx])   
+                    mediator_setValue("noise", scheduled_noise_multiplier)
         if anim_args.enable_ddim_eta_scheduling and keys.ddim_eta_schedule_series[frame_idx] is not None:
             scheduled_ddim_eta = float(keys.ddim_eta_schedule_series[frame_idx])
         if anim_args.enable_ancestral_eta_scheduling and keys.ancestral_eta_schedule_series[frame_idx] is not None:
@@ -436,9 +444,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             if using_vid_init:
                # print("We do use using_vid_init")
                 turbo_steps = 1
-            else:
-                #print("We don't use using_vid_init")
+            elif int(mediator_getValue("parseq_strength")) == 0:
                 turbo_steps = int(mediator_getValue("cadence"))
+            else:
+                turbo_steps = int(anim_args.diffusion_cadence)
         else:
             turbo_steps = 1 if using_vid_init else int(anim_args.diffusion_cadence)
 
@@ -750,7 +759,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                         disposable_image = maintain_colors(prev_img, color_match_sample, anim_args.color_coherence)                
                     args.seed = stored_seed
                     args.init_sample = Image.fromarray(cv2.cvtColor(disposable_image, cv2.COLOR_BGR2RGB))
-            if disposable_image != None:
+            if disposable_image is not None:
                 del(disposable_image, stored_seed)
                 gc.collect()
 
