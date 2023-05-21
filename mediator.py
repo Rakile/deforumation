@@ -44,7 +44,9 @@ deforum_fov = 70.0
 doVerbose = False
 doVerbose2 = False
 should_use_deforumation_strength = 1
+should_use_deforumation_cfg = 1
 cadence = 2
+deforum_cadence = 2
 cn_weight = 1.00
 cn_stepstart = 0.0
 cn_stepend = 1.0
@@ -56,6 +58,9 @@ parseq_manifest = ""
 parseq_strength = 0
 parseq_movements = 0
 parseq_prompt = 0
+noise_Value = 0.065
+perlin_octaves = 4
+perlin_persistence = 0.5
 async def echo(websocket):
     global serverShutDown
     global Prompt_Positive
@@ -81,6 +86,7 @@ async def echo(websocket):
     global seed_value
     global did_seed_change
     global should_use_deforumation_strength
+    global should_use_deforumation_cfg
     global cadence
     global should_use_deforumation_prompt_scheduling
     global cn_weight
@@ -101,6 +107,10 @@ async def echo(websocket):
     global deforum_cfg
     global deforum_steps
     global parseq_prompt
+    global noise_Value
+    global perlin_octaves
+    global perlin_persistence
+    global deforum_cadence
     async for message in websocket:
         #print("Incomming message:"+str(message))
         arr = pickle.loads(message)
@@ -344,7 +354,33 @@ async def echo(websocket):
             elif str(parameter) == "seed_changed":
                 if not shouldWrite: #don't support write (it's not nessecary)
                     await websocket.send(str(did_seed_change))
-
+            #Perlin persistence Param
+            ###########################################################################
+            elif str(parameter) == "perlin_persistence":
+                if shouldWrite:
+                    perlin_persistence = float(value)
+                else:
+                    if doVerbose:
+                        print("sending perlin_persistence:" + str(perlin_persistence))
+                    await websocket.send(str(perlin_persistence))
+            #Perlin octaves Param
+            ###########################################################################
+            elif str(parameter) == "perlin_octaves":
+                if shouldWrite:
+                    perlin_octaves = int(value)
+                else:
+                    if doVerbose:
+                        print("sending perlin_octaves:" + str(perlin_octaves))
+                    await websocket.send(str(perlin_octaves))
+            # Noise Param
+            ###########################################################################
+            elif str(parameter) == "noise":
+                if shouldWrite:
+                    noise_Value = float(value)
+                else:
+                    if doVerbose:
+                        print("sending Noise_Value:" + str(noise_Value))
+                    await websocket.send(str(noise_Value))
             #Steps Params
             ###########################################################################
             elif str(parameter) == "steps":
@@ -402,6 +438,14 @@ async def echo(websocket):
                     if doVerbose2:
                         print("sending should_use_deforumation_strength:"+str(should_use_deforumation_strength))
                     await websocket.send(str(should_use_deforumation_strength))
+            elif str(parameter) == "should_use_deforumation_cfg":
+                if shouldWrite:
+                    #print("Setting should use deforumation strength to:"+str(int(value)))
+                    should_use_deforumation_cfg = int(value)
+                else:
+                    if doVerbose2:
+                        print("sending should_use_deforumation_cfg:"+str(should_use_deforumation_cfg))
+                    await websocket.send(str(should_use_deforumation_cfg))
             elif str(parameter) == "cadence":
                 if shouldWrite:
                     #print("Writing cadence:"+str(value))
@@ -410,6 +454,15 @@ async def echo(websocket):
                     if doVerbose2:
                         print("sending cadence:"+str(cadence))
                     await websocket.send(str(cadence))
+            #What Deforum thinks the cadence Value is
+            ###########################################################################
+            elif str(parameter) == "deforum_cadence":
+                if shouldWrite:
+                    deforum_cadence = int(value)
+                else:
+                    if doVerbose:
+                        print("sending deforum_cadence:"+str(deforum_cadence))
+                    await websocket.send(str(deforum_cadence))
             elif str(parameter) == "parseq_keys":
                 if shouldWrite:
                     parseq_keys = value
