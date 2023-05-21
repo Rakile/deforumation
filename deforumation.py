@@ -1136,6 +1136,7 @@ class Mywin(wx.Frame):
         self.parseq_movements_button.SetPosition((trbX+280, tbrY+100))
         self.step_schedule_Text.SetPosition((trbX - 25, tbrY - 70))
         self.should_use_deforumation_strength_checkbox.SetPosition((trbX + 160, tbrY - 66))
+        self.should_use_deforumation_cfg_checkbox.SetPosition((trbX+460, tbrY-66))
         self.sample_schedule_slider.SetPosition((trbX - 25, tbrY - 50 - 70))
         self.strength_schedule_Text.SetPosition((trbX - 25, tbrY - 70 - 64))
         self.seed_schedule_Text.SetPosition((trbX + 340, tbrY - 50 - 80))
