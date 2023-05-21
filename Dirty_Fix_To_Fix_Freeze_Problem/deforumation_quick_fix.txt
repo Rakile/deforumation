@@ -15,7 +15,12 @@ So anyone that experience freezing could try the following steps:
 
 2. Force an upgrade to the latest version of Gradio (as of speaking, 3.31.0)
 Open a command line window and standing in the "..\stable-diffusion-webui\venv\Scripts\" folder, activate the python environment by running the "activate.bat" file from your command linme.
+
 You should now have a new prompt with "(venv)" infron of it (meaning you have entered the environment).
 From here run the command: pip install --upgrade gradio
+
+3. Open up requirements_versions.txt located in the ..\stable-diffusion-webui\ root, and change "gradio==3.29.0" to "gradio"
+4. Open up requirements.txt located in the ..\stable-diffusion-webui\ root, and change "gradio==3.29.0" to "gradio"
+
 
 That should be it. Kill the cmd window, and start: webui-user.bat or what ever you start-up file is.
