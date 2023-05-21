@@ -16,8 +16,8 @@ from .video_audio_utilities import get_frame_name, get_next_frame
 from .depth import DepthModel
 from .colors import maintain_colors
 from .parseq_adapter import ParseqAnimKeys
-from deforum_helpers import parseq_adapter
-from deforum_helpers import animation_key_frames
+#from deforum_helpers import parseq_adapter
+#from deforum_helpers import animation_key_frames
 from .seed import next_seed
 from .image_sharpening import unsharp_mask
 from .load_images import get_mask, load_img, load_image, get_mask_from_file
@@ -361,7 +361,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             strength = keys.strength_schedule_series[frame_idx]
 
         if usingDeforumation:
-            if int(mediator_getValue("parseq_strength")) == 0:
+            if (int(mediator_getValue("should_use_deforumation_cfg")) == 1) or (int(mediator_getValue("parseq_strength")) == 0):
                 scale = float(mediator_getValue("cfg"))
                 mediator_setValue("deforum_cfg", scale)
             else:
@@ -369,7 +369,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 mediator_setValue("deforum_cfg", scale)
         else: #if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             scale = keys.cfg_scale_schedule_series[frame_idx]
-            mediator_setValue("deforum_cfg", scale)
 
         contrast = keys.contrast_schedule_series[frame_idx]
         kernel = int(keys.kernel_schedule_series[frame_idx])
@@ -399,14 +398,19 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         else: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             if anim_args.enable_steps_scheduling and keys.steps_schedule_series[frame_idx] is not None:
                 args.steps = int(keys.steps_schedule_series[frame_idx])
-                mediator_setValue("deforum_steps", args.steps)      
 
         if anim_args.enable_sampler_scheduling and keys.sampler_schedule_series[frame_idx] is not None:
             scheduled_sampler_name = keys.sampler_schedule_series[frame_idx].casefold()
         if anim_args.enable_clipskip_scheduling and keys.clipskip_schedule_series[frame_idx] is not None:
             scheduled_clipskip = int(keys.clipskip_schedule_series[frame_idx])
         if anim_args.enable_noise_multiplier_scheduling and keys.noise_multiplier_schedule_series[frame_idx] is not None:
-            scheduled_noise_multiplier = float(keys.noise_multiplier_schedule_series[frame_idx])   
+            if usingDeforumation:
+                if int(mediator_getValue("parseq_strength")) == 0:
+                    scheduled_noise_multiplier = float(mediator_getValue("noise"))
+                    mediator_setValue("noise", scheduled_noise_multiplier)
+                else:
+                    scheduled_noise_multiplier = float(keys.noise_multiplier_schedule_series[frame_idx])   
+                    mediator_setValue("noise", scheduled_noise_multiplier)
         if anim_args.enable_ddim_eta_scheduling and keys.ddim_eta_schedule_series[frame_idx] is not None:
             scheduled_ddim_eta = float(keys.ddim_eta_schedule_series[frame_idx])
         if anim_args.enable_ancestral_eta_scheduling and keys.ancestral_eta_schedule_series[frame_idx] is not None:
@@ -440,8 +444,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 turbo_steps = 1
             elif int(mediator_getValue("parseq_strength")) == 0:
                 turbo_steps = int(mediator_getValue("cadence"))
+                mediator_setValue("deforum_cadence", turbo_steps)
             else:
                 turbo_steps = int(anim_args.diffusion_cadence)
+                mediator_setValue("deforum_cadence", turbo_steps)
         else:
             turbo_steps = 1 if using_vid_init else int(anim_args.diffusion_cadence)
 
@@ -616,9 +622,20 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             # apply frame noising
             if args.use_mask or anim_args.use_noise_mask:
                 args.noise_mask = compose_mask_with_check(root, args, noise_mask_seq, noise_mask_vals, Image.fromarray(cv2.cvtColor(contrast_image, cv2.COLOR_BGR2RGB)))
-            noised_image = add_noise(contrast_image, noise, args.seed, anim_args.noise_type,
-                            (anim_args.perlin_w, anim_args.perlin_h, anim_args.perlin_octaves, anim_args.perlin_persistence),
-                             args.noise_mask, args.invert_mask)
+
+            if usingDeforumation: #Should we Connect to the Deforumation websocket server to get CFG values?
+                if int(mediator_getValue("parseq_strength")) == 0:
+                    noised_image = add_noise(contrast_image, noise, args.seed, anim_args.noise_type,
+                                    (anim_args.perlin_w, anim_args.perlin_h, int(mediator_getValue("perlin_octaves")), float(mediator_getValue("perlin_persistence"))),
+                                     args.noise_mask, args.invert_mask)                    
+                else:
+                    noised_image = add_noise(contrast_image, noise, args.seed, anim_args.noise_type,
+                                    (anim_args.perlin_w, anim_args.perlin_h, anim_args.perlin_octaves, anim_args.perlin_persistence),
+                                     args.noise_mask, args.invert_mask)                    
+            else:
+                noised_image = add_noise(contrast_image, noise, args.seed, anim_args.noise_type,
+                                (anim_args.perlin_w, anim_args.perlin_h, anim_args.perlin_octaves, anim_args.perlin_persistence),
+                                 args.noise_mask, args.invert_mask)
 
             # use transformed previous frame as init for current
             args.use_init = True
