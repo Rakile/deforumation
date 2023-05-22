@@ -82,7 +82,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     if usingDeforumation:
         print("Made for Deforumation version: 0.4")
         print("----------------------------------")
-        if int(mediator_getValue("use_parseq")) == 1:
+        if int(mediator_getValue("use_parseq").strip().strip('\n')) == 1:
             use_parseq = 1
             use_parseq_through_deforumator = 1
             temp_parseq_manifest = parseq_args.parseq_manifest
@@ -91,7 +91,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             parseq_args.parseq_manifest = temp_parseq_manifest
             print("Using Parseq through Deforumation.")
         else:
-            args.seed = int(mediator_getValue("seed"))
+            args.seed = int(mediator_getValue("seed").strip().strip('\n'))
             if args.seed == -1:
                 args.seed = random.randint(0, 2**32 - 1)
             keys = DeformAnimKeys(anim_args, args.seed)
@@ -257,17 +257,17 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
         if usingDeforumation: #Should we Connect to the Deforumation websocket server and get is_paused_rendering?
             ispaused = 0
-            while int(mediator_getValue("is_paused_rendering")) == 1:
+            while int(mediator_getValue("is_paused_rendering").strip().strip('\n')) == 1:
                 if ispaused == 0:
                     print("\n** PAUSED **")
                     ispaused = 1
                 time.sleep(0.5)
             if ispaused:
                 print("** RESUMING **")
-            shouldResume = int(mediator_getValue("should_resume"))  #should_resume should be set when third party chooses another frame (rewinding forward, etc), it doesn't need to happen in paused mode       
+            shouldResume = int(mediator_getValue("should_resume").strip().strip('\n'))  #should_resume should be set when third party chooses another frame (rewinding forward, etc), it doesn't need to happen in paused mode       
             if shouldResume == 1: #If shouldResume == 1, then third party has choosen to jump to a non continues frame
-                start_frame = int(mediator_getValue("start_frame"))
-                turbo_steps = int(mediator_getValue("cadence"))
+                start_frame = int(mediator_getValue("start_frame").strip().strip('\n'))
+                turbo_steps = int(mediator_getValue("cadence").strip().strip('\n'))
                 if start_frame == 0:
                     start_frame = start_frame + turbo_steps
                 print("\n** RESUMING FROM FRAME: " + str(start_frame)+" **")
@@ -346,13 +346,13 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         noise = keys.noise_schedule_series[frame_idx]    
         
         if usingDeforumation: #Should we Connect to the Deforumation websocket server and get seed_changed == new seed?
-            if int(mediator_getValue("seed_changed")):
-                args.seed = int(mediator_getValue("seed"))
+            if int(mediator_getValue("seed_changed").strip().strip('\n')):
+                args.seed = int(mediator_getValue("seed").strip().strip('\n'))
                 if args.seed == -1:
                     args.seed = random.randint(0, 2**32 - 1)
         if usingDeforumation:
-            if (int(mediator_getValue("should_use_deforumation_strength")) == 1) or (int(mediator_getValue("parseq_strength")) == 0):
-                strength = float(mediator_getValue("strength"))
+            if (int(mediator_getValue("should_use_deforumation_strength").strip().strip('\n')) == 1) or (int(mediator_getValue("parseq_strength").strip().strip('\n')) == 0):
+                strength = float(mediator_getValue("strength").strip().strip('\n'))
                 mediator_setValue("deforum_strength", strength)
             else:
                 strength = keys.strength_schedule_series[frame_idx]    
@@ -361,8 +361,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             strength = keys.strength_schedule_series[frame_idx]
 
         if usingDeforumation:
-            if (int(mediator_getValue("should_use_deforumation_cfg")) == 1) or (int(mediator_getValue("parseq_strength")) == 0):
-                scale = float(mediator_getValue("cfg"))
+            if (int(mediator_getValue("should_use_deforumation_cfg").strip().strip('\n')) == 1) or (int(mediator_getValue("parseq_strength").strip().strip('\n')) == 0):
+                scale = float(mediator_getValue("cfg").strip().strip('\n'))
                 mediator_setValue("deforum_cfg", scale)
             else:
                 scale = keys.cfg_scale_schedule_series[frame_idx]
@@ -393,7 +393,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         mask_seq = None
         noise_mask_seq = None
         if usingDeforumation: #Should we Connect to the Deforumation websocket server to get CFG values?
-            args.steps = int(mediator_getValue("steps"))
+            args.steps = int(mediator_getValue("steps").strip().strip('\n'))
             mediator_setValue("deforum_steps", args.steps)      
         else: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             if anim_args.enable_steps_scheduling and keys.steps_schedule_series[frame_idx] is not None:
@@ -405,8 +405,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             scheduled_clipskip = int(keys.clipskip_schedule_series[frame_idx])
         if anim_args.enable_noise_multiplier_scheduling and keys.noise_multiplier_schedule_series[frame_idx] is not None:
             if usingDeforumation:
-                if int(mediator_getValue("parseq_strength")) == 0:
-                    scheduled_noise_multiplier = float(mediator_getValue("noise"))
+                if int(mediator_getValue("parseq_strength").strip().strip('\n')) == 0:
+                    scheduled_noise_multiplier = float(mediator_getValue("noise").strip().strip('\n'))
                     mediator_setValue("noise", scheduled_noise_multiplier)
                 else:
                     scheduled_noise_multiplier = float(keys.noise_multiplier_schedule_series[frame_idx])   
@@ -442,8 +442,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             if using_vid_init:
                # print("We do use using_vid_init")
                 turbo_steps = 1
-            elif int(mediator_getValue("parseq_strength")) == 0:
-                turbo_steps = int(mediator_getValue("cadence"))
+            elif int(mediator_getValue("parseq_strength").strip().strip('\n')) == 0:
+                turbo_steps = int(mediator_getValue("cadence").strip().strip('\n'))
                 mediator_setValue("deforum_cadence", turbo_steps)
             else:
                 turbo_steps = int(anim_args.diffusion_cadence)
@@ -560,7 +560,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 filename = f"{root.timestring}_{tween_frame_idx:09}.png"
                 cv2.imwrite(os.path.join(args.outdir, filename), img)
                 if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell 3:d parties what frame we are on currently?
-                    shouldResume = int(mediator_getValue("should_resume"))  #If the user pushed "Set current image" in Deforumation, we can't just overwrite the new start_frame  
+                    shouldResume = int(mediator_getValue("should_resume").strip().strip('\n'))  #If the user pushed "Set current image" in Deforumation, we can't just overwrite the new start_frame  
                     if not shouldResume:
                         mediator_setValue("start_frame", tween_frame_idx)
                 if anim_args.save_depth_maps:
@@ -626,8 +626,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 root.noise_mask = compose_mask_with_check(root, args, noise_mask_seq, noise_mask_vals, Image.fromarray(cv2.cvtColor(contrast_image, cv2.COLOR_BGR2RGB)))
 
             if usingDeforumation: #Should we Connect to the Deforumation websocket server to get CFG values?
-                if int(mediator_getValue("parseq_strength")) == 0:
-                    noised_image = add_noise(contrast_image, noise, args.seed, anim_args.noise_type,(anim_args.perlin_w, anim_args.perlin_h, int(mediator_getValue("perlin_octaves")), float(mediator_getValue("perlin_persistence"))), root.noise_mask, args.invert_mask)
+                if int(mediator_getValue("parseq_strength").strip().strip('\n')) == 0:
+                    noised_image = add_noise(contrast_image, noise, args.seed, anim_args.noise_type,(anim_args.perlin_w, anim_args.perlin_h, int(mediator_getValue("perlin_octaves").strip().strip('\n')), float(mediator_getValue("perlin_persistence").strip().strip('\n'))), root.noise_mask, args.invert_mask)
 
                 else:
                     noised_image = add_noise(contrast_image, noise, args.seed, anim_args.noise_type,
@@ -650,7 +650,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
         # grab prompt for current frame
         if usingDeforumation: #Should we Connect to the Deforumation websocket server to get CFG values?
-            if (int(mediator_getValue("should_use_deforumation_prompt_scheduling")) == 1): #Should we use manual or deforum's strength scheduling?
+            if (int(mediator_getValue("should_use_deforumation_prompt_scheduling").strip().strip('\n')) == 1): #Should we use manual or deforum's strength scheduling?
                 deforumation_positive_prompt = str(mediator_getValue("positive_prompt"))
                 deforumation_negative_prompt = str(mediator_getValue("negative_prompt"))
                 args.prompt = deforumation_positive_prompt + "--neg "+ deforumation_negative_prompt
@@ -728,15 +728,15 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         #print(str(getattr(controlnet_args, f'cn_1_threshold_b')))
         if usingDeforumation:
             if is_controlnet_enabled(controlnet_args):
-                setattr(controlnet_args, f'cn_1_weight', "0:(" + str(mediator_getValue("cn_weight")) + ")" )
+                setattr(controlnet_args, f'cn_1_weight', "0:(" + str(mediator_getValue("cn_weight").strip().strip('\n')) + ")" )
                 #print(str(getattr(controlnet_args, f'cn_1_weight')))
-                setattr(controlnet_args, f'cn_1_guidance_start', "0:(" + str(mediator_getValue("cn_stepstart")) + ")" )
+                setattr(controlnet_args, f'cn_1_guidance_start', "0:(" + str(mediator_getValue("cn_stepstart").strip().strip('\n')) + ")" )
                 #print(str(getattr(controlnet_args, f'cn_1_guidance_start')))
-                setattr(controlnet_args, f'cn_1_guidance_end', "0:(" + str(mediator_getValue("cn_stepend")) + ")" )
+                setattr(controlnet_args, f'cn_1_guidance_end', "0:(" + str(mediator_getValue("cn_stepend").strip().strip('\n')) + ")" )
                 #print(str(getattr(controlnet_args, f'cn_1_guidance_end')))
-                setattr(controlnet_args, f'cn_1_threshold_a', int(mediator_getValue("cn_lowt")))
+                setattr(controlnet_args, f'cn_1_threshold_a', int(mediator_getValue("cn_lowt").strip().strip('\n')))
                 #print(str(getattr(controlnet_args, f'cn_1_threshold_a')))
-                setattr(controlnet_args, f'cn_1_threshold_b', int(mediator_getValue("cn_hight")))
+                setattr(controlnet_args, f'cn_1_threshold_b', int(mediator_getValue("cn_hight").strip().strip('\n')))
                 #print(str(getattr(controlnet_args, f'cn_1_threshold_b')))
 
 
@@ -820,7 +820,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             filename = f"{root.timestring}_{frame_idx:09}.png"
             save_image(image, 'PIL', filename, args, video_args, root)
             if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell 3:d parties what frame_idx we are on currently?
-                shouldResume = int(mediator_getValue("should_resume"))  #If the user pushed "Set current image" in Deforumation, we can't just overwrite the new start_frame  
+                shouldResume = int(mediator_getValue("should_resume").strip().strip('\n'))  #If the user pushed "Set current image" in Deforumation, we can't just overwrite the new start_frame  
                 if not shouldResume:
                     mediator_setValue("start_frame", frame_idx)
 

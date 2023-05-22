@@ -205,11 +205,11 @@ def anim_frame_warp_2d(prev_img_cv2, args, anim_args, keys, frame_idx):
 
 def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
     TRANSLATION_SCALE = 1.0/200.0 # matches Disco
-    use_parseq_through_deforumator = int(mediator_getValue("use_parseq"))  
+    use_parseq_through_deforumator = int(mediator_getValue("use_parseq").strip().strip('\n'))  
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to get translation values?
-            deforumation_translation_x = float(mediator_getValue("translation_x"))
-            deforumation_translation_y = float(mediator_getValue("translation_y"))
-            deforumation_translation_z = float(mediator_getValue("translation_z"))
+            deforumation_translation_x = float(mediator_getValue("translation_x").strip().strip('\n'))
+            deforumation_translation_y = float(mediator_getValue("translation_y").strip().strip('\n'))
+            deforumation_translation_z = float(mediator_getValue("translation_z").strip().strip('\n'))
             if int(mediator_getValue("parseq_movements")) == 0:
                 translate_xyz = [
                     -deforumation_translation_x * TRANSLATION_SCALE, 
@@ -241,10 +241,10 @@ def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
 
 
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to get rotation values?
-            deforumation_rotation_x = float(mediator_getValue("rotation_x"))
-            deforumation_rotation_y = float(mediator_getValue("rotation_y"))
-            deforumation_rotation_z = float(mediator_getValue("rotation_z"))
-            if int(mediator_getValue("parseq_movements")) == 0:
+            deforumation_rotation_x = float(mediator_getValue("rotation_x").strip().strip('\n'))
+            deforumation_rotation_y = float(mediator_getValue("rotation_y").strip().strip('\n'))
+            deforumation_rotation_z = float(mediator_getValue("rotation_z").strip().strip('\n'))
+            if int(mediator_getValue("parseq_movements").strip().strip('\n')) == 0:
                 rotate_xyz = [
                     math.radians(deforumation_rotation_x), 
                     math.radians(deforumation_rotation_y), 
@@ -298,10 +298,10 @@ def transform_image_3d_legacy(device, prev_img_cv2, depth_tensor, rot_mat, trans
     near = keys.near_series[frame_idx]
     far = keys.far_series[frame_idx]
 
-    use_parseq_through_deforumator = int(mediator_getValue("use_parseq"))
+    use_parseq_through_deforumator = int(mediator_getValue("use_parseq").strip().strip('\n'))
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to get rotation values?
-        if int(mediator_getValue("parseq_movements")) == 0:
-            fov_deg = float(mediator_getValue("fov"))
+        if int(mediator_getValue("parseq_movements").strip().strip('\n')) == 0:
+            fov_deg = float(mediator_getValue("fov").strip().strip('\n'))
             mediator_setValue("deforum_fov", fov_deg)
         else:
             fov_deg = keys.fov_series[frame_idx]
@@ -377,10 +377,10 @@ def transform_image_3d_new(device, prev_img_cv2, depth_tensor, rot_mat, translat
     # get projection keys
     near = keys.near_series[frame_idx]
     far = keys.far_series[frame_idx]
-    use_parseq_through_deforumator = int(mediator_getValue("use_parseq"))
+    use_parseq_through_deforumator = int(mediator_getValue("use_parseq").strip().strip('\n'))
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to get rotation values?
-        if int(mediator_getValue("parseq_movements")) == 0:
-            fov_deg = float(mediator_getValue("fov"))
+        if int(mediator_getValue("parseq_movements").strip().strip('\n')) == 0:
+            fov_deg = float(mediator_getValue("fov").strip().strip('\n'))
             mediator_setValue("deforum_fov", fov_deg)
         else:
             fov_deg = keys.fov_series[frame_idx]
