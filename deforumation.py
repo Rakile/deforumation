@@ -10,7 +10,7 @@ from threading import *
 from pathlib import Path
 import wx.lib.newevent
 import threading
-import pyeaze
+#import pyeaze
 
 #import subprocess
 cadenceArray = {}
@@ -2492,7 +2492,7 @@ class Mywin(wx.Frame):
 
 if __name__ == '__main__':
 
-    anim = pyeaze.Animator(current_value=0, target_value=100, duration=1, fps=40, easing='ease-in-out', reverse=False)
+    #anim = pyeaze.Animator(current_value=0, target_value=100, duration=1, fps=40, easing='ease-in-out', reverse=False)
     app = wx.App()
     Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.4.1)')
     app.MainLoop()
