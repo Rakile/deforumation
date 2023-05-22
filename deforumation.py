@@ -10,7 +10,7 @@ from threading import *
 from pathlib import Path
 import wx.lib.newevent
 import threading
-#from deforum_helpers import parseq_adapter
+import pyeaze
 
 #import subprocess
 cadenceArray = {}
@@ -1311,7 +1311,7 @@ class Mywin(wx.Frame):
         if os.path.isfile(deforumationSettingsPath):
             try:
                 deforumFile = open(deforumationSettingsPath, 'r')
-                is_paused_rendering = int(deforumFile.readline())
+                is_paused_rendering = int(deforumFile.readline().strip().strip('\n'))
                 if is_paused_rendering:
                     self.pause_rendering.SetLabel("PUSH TO RESUME RENDERING")
                 else:
@@ -1322,28 +1322,28 @@ class Mywin(wx.Frame):
                 self.positive_prompt_input_ctrl_3.SetValue(deforumFile.readline())
                 self.positive_prompt_input_ctrl_4.SetValue(deforumFile.readline())
                 self.negative_prompt_input_ctrl.SetValue(deforumFile.readline())
-                Strength_Scheduler = float(deforumFile.readline())
+                Strength_Scheduler = float(deforumFile.readline().strip().strip('\n'))
                 self.strength_schedule_slider.SetValue(int(Strength_Scheduler*100))
-                CFG_Scale = float(deforumFile.readline())
+                CFG_Scale = float(deforumFile.readline().strip().strip('\n'))
                 self.cfg_schedule_slider.SetValue(int(CFG_Scale))
-                STEP_Schedule = int(deforumFile.readline())
+                STEP_Schedule = int(deforumFile.readline().strip().strip('\n'))
                 self.sample_schedule_slider.SetValue(STEP_Schedule)
-                FOV_Scale = float(deforumFile.readline())
+                FOV_Scale = float(deforumFile.readline().strip().strip('\n'))
                 self.fov_slider.SetValue(int(FOV_Scale))
-                Translation_X = float(deforumFile.readline())
+                Translation_X = float(deforumFile.readline().strip().strip('\n'))
                 self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
-                Translation_Y = float(deforumFile.readline())
+                Translation_Y = float(deforumFile.readline().strip().strip('\n'))
                 self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
-                Translation_Z = float(deforumFile.readline())
+                Translation_Z = float(deforumFile.readline().strip().strip('\n'))
                 self.zoom_slider.SetValue(int(Translation_Z))
                 self.zoom_value_text.SetLabel('%.2f' % (Translation_Z/100))
-                Rotation_3D_X = float(deforumFile.readline())
-                Rotation_3D_Y = float(deforumFile.readline())
-                Rotation_3D_Z = float(deforumFile.readline())
+                Rotation_3D_X = float(deforumFile.readline().strip().strip('\n'))
+                Rotation_3D_Y = float(deforumFile.readline().strip().strip('\n'))
+                Rotation_3D_Z = float(deforumFile.readline().strip().strip('\n'))
                 self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
                 self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
                 self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
-                should_use_deforumation_prompt_scheduling = int(deforumFile.readline())
+                should_use_deforumation_prompt_scheduling = int(deforumFile.readline().strip().strip('\n'))
                 if should_use_deforumation_prompt_scheduling:
                     bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
                     bmp = scale_bitmap(bmp, 15, 15)
@@ -1354,34 +1354,33 @@ class Mywin(wx.Frame):
                     bmp = scale_bitmap(bmp, 15, 15)
                     self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
                     self.writeValue("should_use_deforumation_prompt_scheduling", 0)
-                should_use_deforumation_strength = int(deforumFile.readline())
+                should_use_deforumation_strength = int(deforumFile.readline().strip().strip('\n'))
                 self.should_use_deforumation_strength_checkbox.SetValue(int(should_use_deforumation_strength))
-                should_use_deforumation_cfg = int(deforumFile.readline())
+                should_use_deforumation_cfg = int(deforumFile.readline().strip().strip('\n'))
                 self.should_use_deforumation_cfg_checkbox.SetValue(int(should_use_deforumation_cfg))
-                self.pan_step_input_box.SetValue(deforumFile.readline())
-                self.rotate_step_input_box.SetValue(deforumFile.readline())
-                self.tilt_step_input_box.SetValue(deforumFile.readline())
-                self.cadence_slider.SetValue(int(deforumFile.readline()))
+                self.pan_step_input_box.SetValue(deforumFile.readline().strip().strip('\n'))
+                self.rotate_step_input_box.SetValue(deforumFile.readline().strip().strip('\n'))
+                self.tilt_step_input_box.SetValue(deforumFile.readline().strip().strip('\n'))
+                self.cadence_slider.SetValue(int(deforumFile.readline().strip().strip('\n')))
                 Cadence_Schedule = int(self.cadence_slider.GetValue())
-                self.zero_pan_step_input_box.SetValue(deforumFile.readline())
-                self.zero_rotate_step_input_box.SetValue(deforumFile.readline())
-                CN_Weight = float(deforumFile.readline())
+                self.zero_pan_step_input_box.SetValue(deforumFile.readline().strip().strip('\n'))
+                self.zero_rotate_step_input_box.SetValue(deforumFile.readline().strip().strip('\n'))
+                CN_Weight = float(deforumFile.readline().strip().strip('\n'))
                 self.control_net_weight_slider.SetValue(int(CN_Weight*100))
-                CN_StepStart = float(deforumFile.readline())
+                CN_StepStart = float(deforumFile.readline().strip().strip('\n'))
                 self.control_net_stepstart_slider.SetValue(int(CN_StepStart*100))
-                CN_StepEnd = float(deforumFile.readline())
+                CN_StepEnd = float(deforumFile.readline().strip().strip('\n'))
                 self.control_net_stepend_slider.SetValue(int(CN_StepEnd*100))
-                CN_LowT = int(deforumFile.readline())
+                CN_LowT = int(deforumFile.readline().strip().strip('\n'))
                 self.control_net_lowt_slider.SetValue(CN_LowT)
-                CN_HighT = int(deforumFile.readline())
+                CN_HighT = int(deforumFile.readline().strip().strip('\n'))
                 self.control_net_hight_slider.SetValue(CN_HighT)
 
-                Noise_Value = float(deforumFile.readline())
-                print("Got noise:"+str(Noise_Value))
+                Noise_Value = float(deforumFile.readline().strip().strip('\n'))
                 self.noise_slider.SetValue(int(Noise_Value*100))
-                Perlin_Octave_Value = int(deforumFile.readline())
+                Perlin_Octave_Value = int(deforumFile.readline().strip().strip('\n'))
                 self.perlin_octave_slider.SetValue(int(Perlin_Octave_Value))
-                Perlin_Persistence_Value = float(deforumFile.readline())
+                Perlin_Persistence_Value = float(deforumFile.readline().strip().strip('\n'))
                 self.perlin_persistence_slider.SetValue(int(Perlin_Persistence_Value*100))
 
             except Exception as e:
@@ -2490,11 +2489,10 @@ class Mywin(wx.Frame):
         print("CLOSING!")
         wx.Exit()
 
+
 if __name__ == '__main__':
-    #subprocess.run(["python", "mediator.py"])
-    #print("SLEEP")
-    #time.sleep(5)
-    blaha = random.randint(0, 2**32 - 1)
+
+    anim = pyeaze.Animator(current_value=0, target_value=100, duration=1, fps=40, easing='ease-in-out', reverse=False)
     app = wx.App()
     Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.4.1)')
     app.MainLoop()
