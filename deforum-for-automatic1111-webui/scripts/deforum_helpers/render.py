@@ -45,7 +45,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
 
     if opts.data.get("deforum_save_gen_info_as_srt"): # create .srt file and set timeframe mechanism using FPS
-        srt_filename = os.path.join(args.outdir, f"{args.timestring}.srt")
+        srt_filename = os.path.join(args.outdir, f"{root.timestring}.srt")
         srt_frame_duration = init_srt_file(srt_filename, video_args.fps)
 
     if anim_args.animation_mode in ['2D','3D']:
@@ -115,7 +115,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     # resume from timestring
     if anim_args.resume_from_timestring:
-        args.timestring = anim_args.resume_timestring
+        root.timestring = anim_args.resume_timestring
 
     # Always enable pseudo-3d with parseq. No need for an extra toggle:
     # Whether it's used or not in practice is defined by the schedules
@@ -198,7 +198,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         if anim_args.resume_from_timestring:
             mediator_setValue("resume_timestring", anim_args.resume_timestring)
         else:
-            mediator_setValue("resume_timestring", args.timestring)               
+            mediator_setValue("resume_timestring", root.timestring)               
 
     args.n_samples = 1
     frame_idx = start_frame
@@ -282,9 +282,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 # calculate next actual frame
                 next_frame = last_frame - 1
 
-                path = os.path.join(args.outdir, f"{args.timestring}_{prev_frame:09}.png")  
+                path = os.path.join(args.outdir, f"{root.timestring}_{prev_frame:09}.png")  
                 prev_img = cv2.imread(path)
-                path = os.path.join(args.outdir, f"{args.timestring}_{next_frame:09}.png")  
+                path = os.path.join(args.outdir, f"{root.timestring}_{next_frame:09}.png")  
                 next_img = cv2.imread(path)
 
                 # set up turbo step vars (We temporarily set turbo_steps to 1)
@@ -297,7 +297,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 color_match_sample = None
                 #if turbo_steps > 1:
                 #    last_frame -= last_frame%turbo_steps
-                #path = os.path.join(args.outdir,f"{args.timestring}_{last_frame:09}.png")
+                #path = os.path.join(args.outdir,f"{root.timestring}_{last_frame:09}.png")
                 #img = cv2.imread(path)
                 #prev_img = img
                 #if anim_args.color_coherence != 'None':
@@ -556,14 +556,14 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 # state.current_image = Image.fromarray(cv2.cvtColor(img.astype(np.uint8), cv2.COLOR_BGR2RGB))
 
                 # saving cadence frames
-                filename = f"{args.timestring}_{tween_frame_idx:09}.png"
+                filename = f"{root.timestring}_{tween_frame_idx:09}.png"
                 cv2.imwrite(os.path.join(args.outdir, filename), img)
                 if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell 3:d parties what frame we are on currently?
                     shouldResume = int(mediator_getValue("should_resume"))  #If the user pushed "Set current image" in Deforumation, we can't just overwrite the new start_frame  
                     if not shouldResume:
                         mediator_setValue("start_frame", tween_frame_idx)
                 if anim_args.save_depth_maps:
-                    depth_model.save(os.path.join(args.outdir, f"{args.timestring}_depth_{tween_frame_idx:09}.png"), depth)
+                    depth_model.save(os.path.join(args.outdir, f"{root.timestring}_depth_{tween_frame_idx:09}.png"), depth)
 
         # get color match for video outside of prev_img conditional
         hybrid_available = anim_args.hybrid_composite != 'None' or anim_args.hybrid_motion in ['Optical Flow', 'Affine', 'Perspective']
@@ -816,7 +816,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             turbo_next_image, turbo_next_frame_idx = opencv_image, frame_idx
             frame_idx += turbo_steps
         else:    
-            filename = f"{args.timestring}_{frame_idx:09}.png"
+            filename = f"{root.timestring}_{frame_idx:09}.png"
             save_image(image, 'PIL', filename, args, video_args, root)
             if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell 3:d parties what frame_idx we are on currently?
                 shouldResume = int(mediator_getValue("should_resume"))  #If the user pushed "Set current image" in Deforumation, we can't just overwrite the new start_frame  
@@ -830,7 +830,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     devices.torch_gc()
                     depth_model.to(root.device)
                 depth = depth_model.predict(opencv_image, anim_args.midas_weight, root.half_precision)
-                depth_model.save(os.path.join(args.outdir, f"{args.timestring}_depth_{frame_idx:09}.png"), depth)
+                depth_model.save(os.path.join(args.outdir, f"{root.timestring}_depth_{frame_idx:09}.png"), depth)
                 if cmd_opts.lowvram or cmd_opts.medvram:
                     depth_model.to('cpu')
                     devices.torch_gc()
