@@ -74,8 +74,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     #Deforumation has a chance to overwrite the keys values, if it is using parseq
     use_parseq = 0
     if usingDeforumation:
-        print("Made for Deforumation version: 0.4")
-        print("----------------------------------")
+        print("Made for Deforumation version: 0.4.5")
+        print("------------------------------------")
         if int(mediator_getValue("use_parseq").strip().strip('\n')) == 1:
             use_parseq = 1
             temp_parseq_manifest = parseq_args.parseq_manifest
@@ -153,7 +153,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         raft_model = RAFT()
 
     # state for interpolating between diffusion steps
-    turbo_steps = 1 if using_vid_init else int(anim_args.diffusion_cadence)
+    if int(mediator_getValue("should_use_deforumation_cadence").strip().strip('\n')) == 1:
+        turbo_steps = 1 if using_vid_init else int(mediator_getValue("cadence").strip().strip('\n'))
+    else:
+        turbo_steps = 1 if using_vid_init else int(anim_args.diffusion_cadence)
     turbo_prev_image, turbo_prev_frame_idx = None, 0
     turbo_next_image, turbo_next_frame_idx = None, 0
 
@@ -256,7 +259,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             shouldResume = int(mediator_getValue("should_resume").strip().strip('\n'))  #should_resume should be set when third party chooses another frame (rewinding forward, etc), it doesn't need to happen in paused mode       
             if shouldResume == 1: #If shouldResume == 1, then third party has choosen to jump to a non continues frame
                 start_frame = int(mediator_getValue("start_frame").strip().strip('\n'))
-                turbo_steps = int(mediator_getValue("cadence").strip().strip('\n'))
+                if int(mediator_getValue("should_use_deforumation_cadence").strip().strip('\n')) == 1:
+                    turbo_steps = int(mediator_getValue("cadence").strip().strip('\n'))
                 if start_frame == 0:
                     start_frame = start_frame + turbo_steps
                 print("\n** RESUMING FROM FRAME: " + str(start_frame)+" **")
@@ -297,7 +301,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 if args.seed == -1:
                     args.seed = random.randint(0, 2**32 - 1)
         if usingDeforumation:
-            if (int(mediator_getValue("should_use_deforumation_strength").strip().strip('\n')) == 1) or (int(mediator_getValue("parseq_strength").strip().strip('\n')) == 0):
+            if (int(mediator_getValue("should_use_deforumation_strength").strip().strip('\n')) == 1):
                 strength = float(mediator_getValue("strength").strip().strip('\n'))
                 mediator_setValue("deforum_strength", strength)
             else:
@@ -306,7 +310,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         else:
             strength = keys.strength_schedule_series[frame_idx]
         if usingDeforumation:
-            if (int(mediator_getValue("should_use_deforumation_cfg").strip().strip('\n')) == 1) or (int(mediator_getValue("parseq_strength").strip().strip('\n')) == 0):
+            if (int(mediator_getValue("should_use_deforumation_cfg").strip().strip('\n')) == 1):
                 scale = float(mediator_getValue("cfg").strip().strip('\n'))
                 mediator_setValue("deforum_cfg", scale)
             else:
@@ -351,13 +355,13 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             scheduled_clipskip = int(keys.clipskip_schedule_series[frame_idx])
 
         if usingDeforumation:
-            if int(mediator_getValue("parseq_strength").strip().strip('\n')) == 0:
-                scheduled_noise_multiplier = float(mediator_getValue("noise").strip().strip('\n'))
-                mediator_setValue("noise", scheduled_noise_multiplier)
+            if int(mediator_getValue("should_use_deforumation_noise").strip().strip('\n')) == 1:
+                scheduled_noise_multiplier = float(mediator_getValue("noise_multiplier").strip().strip('\n'))
+                mediator_setValue("deforum_noise_multiplier", scheduled_noise_multiplier)
             else:
                 if anim_args.enable_noise_multiplier_scheduling and keys.noise_multiplier_schedule_series[frame_idx] is not None:
                     scheduled_noise_multiplier = float(keys.noise_multiplier_schedule_series[frame_idx])
-                    mediator_setValue("noise", scheduled_noise_multiplier)
+                    mediator_setValue("deforum_noise_multiplier", scheduled_noise_multiplier)
         elif anim_args.enable_noise_multiplier_scheduling and keys.noise_multiplier_schedule_series[frame_idx] is not None:
                 scheduled_noise_multiplier = float(keys.noise_multiplier_schedule_series[frame_idx])
 
@@ -394,7 +398,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             if using_vid_init:
                # print("We do use using_vid_init")
                 turbo_steps = 1
-            elif int(mediator_getValue("parseq_strength").strip().strip('\n')) == 0:
+            elif int(mediator_getValue("should_use_deforumation_cadence").strip().strip('\n')) == 1:
                 turbo_steps = int(mediator_getValue("cadence").strip().strip('\n'))
                 mediator_setValue("deforum_cadence", turbo_steps)
             else:
@@ -572,18 +576,27 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 root.noise_mask = compose_mask_with_check(root, args, noise_mask_seq, noise_mask_vals, Image.fromarray(cv2.cvtColor(contrast_image, cv2.COLOR_BGR2RGB)))
 
             if usingDeforumation: #Should we Connect to the Deforumation websocket server to get CFG values?
-                if int(mediator_getValue("parseq_strength").strip().strip('\n')) == 0:
+                if int(mediator_getValue("should_use_deforumation_noise").strip().strip('\n')) == 1:
+                    deforumation_perlin_octaves = int(mediator_getValue("perlin_octaves").strip().strip('\n'))
+                    deforumation_perlin_persistence = float(mediator_getValue("perlin_persistence").strip().strip('\n'))
                     noised_image = add_noise(contrast_image, noise, args.seed, anim_args.noise_type,
-                                             (anim_args.perlin_w, anim_args.perlin_h, int(mediator_getValue("perlin_octaves").strip().strip('\n')), float(mediator_getValue("perlin_persistence").strip().strip('\n'))),
+                                             (anim_args.perlin_w, anim_args.perlin_h, deforumation_perlin_octaves, deforumation_perlin_persistence),
                                              root.noise_mask, args.invert_mask)
+                    mediator_setValue("deforum_perlin_octaves", deforumation_perlin_octaves)
+                    mediator_setValue("deforum_perlin_persistence", deforumation_perlin_persistence)
+
                 else:
                     noised_image = add_noise(contrast_image, noise, args.seed, anim_args.noise_type,
                                              (anim_args.perlin_w, anim_args.perlin_h, anim_args.perlin_octaves, anim_args.perlin_persistence),
                                              root.noise_mask, args.invert_mask)
+                    mediator_setValue("deforum_perlin_octaves", anim_args.perlin_octaves)
+                    mediator_setValue("deforum_perlin_persistence", anim_args.perlin_persistence)
             else:
                 noised_image = add_noise(contrast_image, noise, args.seed, anim_args.noise_type,
                                          (anim_args.perlin_w, anim_args.perlin_h, anim_args.perlin_octaves, anim_args.perlin_persistence),
                                          root.noise_mask, args.invert_mask)
+                mediator_setValue("deforum_perlin_octaves", anim_args.perlin_octaves)
+                mediator_setValue("deforum_perlin_persistence", anim_args.perlin_persistence)
 
 
             # use transformed previous frame as init for current
