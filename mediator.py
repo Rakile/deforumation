@@ -45,6 +45,11 @@ doVerbose = False
 doVerbose2 = False
 should_use_deforumation_strength = 1
 should_use_deforumation_cfg = 1
+should_use_deforumation_cadence = 1
+should_use_deforumation_panning = 1
+should_use_deforumation_zoomfov = 1
+should_use_deforumation_rotation = 1
+should_use_deforumation_tilt = 1
 cadence = 2
 deforum_cadence = 2
 cn_weight = 1.00
@@ -58,9 +63,16 @@ parseq_manifest = ""
 parseq_strength = 0
 parseq_movements = 0
 parseq_prompt = 0
-noise_Value = 0.065
+should_use_deforumation_noise = 0
+
+noise_multiplier = 1.05
+deforum_noise_multiplier = 1.05
 perlin_octaves = 4
+deforum_perlin_octaves = 4
 perlin_persistence = 0.5
+deforum_perlin_persistence = 0.5
+
+
 async def echo(websocket):
     global serverShutDown
     global Prompt_Positive
@@ -107,10 +119,19 @@ async def echo(websocket):
     global deforum_cfg
     global deforum_steps
     global parseq_prompt
-    global noise_Value
+    global noise_multiplier
+    global deforum_perlin_octaves
+    global deforum_perlin_persistence
+    global deforum_noise_multiplier
     global perlin_octaves
     global perlin_persistence
     global deforum_cadence
+    global should_use_deforumation_cadence
+    global should_use_deforumation_noise
+    global should_use_deforumation_panning
+    global should_use_deforumation_zoomfov
+    global should_use_deforumation_rotation
+    global should_use_deforumation_tilt
     async for message in websocket:
         #print("Incomming message:"+str(message))
         arr = pickle.loads(message)
@@ -372,15 +393,89 @@ async def echo(websocket):
                     if doVerbose:
                         print("sending perlin_octaves:" + str(perlin_octaves))
                     await websocket.send(str(perlin_octaves))
-            # Noise Param
+
+            # Should use Pan params
             ###########################################################################
-            elif str(parameter) == "noise":
+            elif str(parameter) == "should_use_deforumation_panning":
                 if shouldWrite:
-                    noise_Value = float(value)
+                    should_use_deforumation_panning = int(value)
                 else:
                     if doVerbose:
-                        print("sending Noise_Value:" + str(noise_Value))
-                    await websocket.send(str(noise_Value))
+                        print("sending should_use_deforumation_panning:" + str(should_use_deforumation_panning))
+                    await websocket.send(str(should_use_deforumation_panning))
+
+            # Should use Tilt params
+            ###########################################################################
+            elif str(parameter) == "should_use_deforumation_tilt":
+                if shouldWrite:
+                    should_use_deforumation_tilt = int(value)
+                else:
+                    if doVerbose:
+                        print("sending should_use_deforumation_tilt:" + str(should_use_deforumation_tilt))
+                    await websocket.send(str(should_use_deforumation_tilt))
+            # Should use Rotation params
+            ###########################################################################
+            elif str(parameter) == "should_use_deforumation_rotation":
+                if shouldWrite:
+                    should_use_deforumation_rotation = int(value)
+                else:
+                    if doVerbose:
+                        print("sending should_use_deforumation_rotation:" + str(should_use_deforumation_rotation))
+                    await websocket.send(str(should_use_deforumation_rotation))
+            # Should use ZOOM/FOV params
+            ###########################################################################
+            elif str(parameter) == "should_use_deforumation_zoomfov":
+                if shouldWrite:
+                    should_use_deforumation_zoomfov = int(value)
+                else:
+                    if doVerbose:
+                        print("sending should_use_deforumation_zoomfov:" + str(should_use_deforumation_zoomfov))
+                    await websocket.send(str(should_use_deforumation_zoomfov))
+            # Should use Noise Params
+            ###########################################################################
+            elif str(parameter) == "should_use_deforumation_noise":
+                if shouldWrite:
+                    should_use_deforumation_noise = int(value)
+                else:
+                    if doVerbose:
+                        print("sending should_use_deforumation_noise:" + str(should_use_deforumation_noise))
+                    await websocket.send(str(should_use_deforumation_noise))
+            # Noise Multiplier Param
+            ###########################################################################
+            elif str(parameter) == "noise_multiplier":
+                if shouldWrite:
+                    noise_multiplier = float(value)
+                else:
+                    if doVerbose:
+                        print("sending noise_multiplier:" + str(noise_multiplier))
+                    await websocket.send(str(noise_multiplier))
+            #What Deforum thinks the noise multiplier Value is
+            ###########################################################################
+            elif str(parameter) == "deforum_noise_multiplier":
+                if shouldWrite:
+                    deforum_noise_multiplier = int(value)
+                else:
+                    if doVerbose:
+                        print("sending deforum_noise_multiplier:"+str(deforum_noise_multiplier))
+                    await websocket.send(str(deforum_noise_multiplier))
+            #What Deforum thinks the perlin octaves Value is
+            ###########################################################################
+            elif str(parameter) == "deforum_perlin_octaves":
+                if shouldWrite:
+                    deforum_perlin_octaves = int(value)
+                else:
+                    if doVerbose:
+                        print("sending deforum_perlin_octaves:"+str(deforum_perlin_octaves))
+                    await websocket.send(str(deforum_perlin_octaves))
+            #What Deforum thinks the perlin octaves Value is
+            ###########################################################################
+            elif str(parameter) == "deforum_perlin_persistence":
+                if shouldWrite:
+                    deforum_perlin_persistence = int(value)
+                else:
+                    if doVerbose:
+                        print("sending deforum_perlin_persistence:"+str(deforum_perlin_persistence))
+                    await websocket.send(str(deforum_perlin_persistence))
             #Steps Params
             ###########################################################################
             elif str(parameter) == "steps":
@@ -448,12 +543,19 @@ async def echo(websocket):
                     await websocket.send(str(should_use_deforumation_cfg))
             elif str(parameter) == "cadence":
                 if shouldWrite:
-                    #print("Writing cadence:"+str(value))
                     cadence = str(value)
                 else:
                     if doVerbose2:
                         print("sending cadence:"+str(cadence))
                     await websocket.send(str(cadence))
+            elif str(parameter) == "should_use_deforumation_cadence":
+                if shouldWrite:
+                    should_use_deforumation_cadence = str(value)
+                else:
+                    if doVerbose2:
+                        print("sending should_use_deforumation_cadence:"+str(should_use_deforumation_cadence))
+                    await websocket.send(str(should_use_deforumation_cadence))
+
             #What Deforum thinks the cadence Value is
             ###########################################################################
             elif str(parameter) == "deforum_cadence":
@@ -501,15 +603,21 @@ async def echo(websocket):
                     await websocket.send(str(parseq_strength))
             elif str(parameter) == "parseq_movements":
                 if shouldWrite:
+                    print("parseq_movements:"+str(parseq_movements))
                     parseq_movements = value
                 else:
                     if doVerbose2:
-                        print("sending parseq_movements:")
+                        print("sending parseq_movements:"+str(parseq_movements))
                     await websocket.send(str(parseq_movements))
             elif str(parameter) == "shutdown":
                 serverShutDown = True
+            else:
+                print("NO SUCH COMMAND:" +parameter+"\nPlease make sure Mediator, Deforumation and the Deforum (render.py, animation.py) are in sync.")
+                if not shouldWrite:
+                    await websocket.send(str("NO SUCH COMMAND:" +parameter))
             if shouldWrite: #Return an "OK" if the writes went OK
                 await websocket.send("OK")
+
         else: #Array was not a length of 3 [True/False,<parameter value>,<value>
             if doVerbose:
                 await websocket.send("ERROR")
@@ -547,7 +655,7 @@ async def main():
 
 if __name__ == '__main__':
     try:
-        print("Starting mediator 0.4.1")
+        print("Starting mediator 0.4.5")
         asyncio.run(main())
     except KeyboardInterrupt:
         serverShutDown = True
