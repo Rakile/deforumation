@@ -53,10 +53,16 @@ current_frame = 0
 should_use_deforumation_strength = 1
 should_use_deforumation_prompt_scheduling = 1
 should_use_deforumation_cfg = 1
+should_use_deforumation_cadence = 1
+should_use_deforumation_noise = 0
+should_use_deforumation_panning = 1
+should_use_deforumation_zoomfov = 1
+should_use_deforumation_rotation = 1
+should_use_deforumation_tilt = 1
 #ControlNet
-CN_Weight = 0
-CN_StepStart = 0
-CN_StepEnd = 100
+CN_Weight = 1.0
+CN_StepStart = 0.0
+CN_StepEnd = 1.0
 CN_LowT = 0
 CN_HighT = 255
 #KEYBOARD KEYS
@@ -67,9 +73,9 @@ pan_down_key = 0
 zoom_down_key = 0
 zoom_up_key = 0
 Cadence_Schedule = 2
-Noise_Value = 105
+noise_multiplier = 1.05
 Perlin_Octave_Value = 4
-Perlin_Persistence_Value = 50
+Perlin_Persistence_Value = 0.5
 zero_pan_active = False
 zero_rotate_active = False
 stepit_pan = 0
@@ -80,10 +86,16 @@ replayTo = 0
 replayFPS = 30
 armed_rotation = False
 armed_pan = False
-pstb = False
-pmob = False
+#pstb = False
+#pmob = False
 is_Parseq_Active = False
 showLiveValues = False
+pan_step_input_box_value = "1.0"
+rotate_step_input_box_value = "1.0"
+tilt_step_input_box_value = "1.0"
+zero_pan_step_input_box_value = "0"
+zero_rotate_step_input_box_value = "0"
+
 async def sendAsync(value):
     async with websockets.connect("ws://localhost:8765") as websocket:
         #await websocket.send(pickle.dumps(value))
@@ -329,8 +341,8 @@ class render_window(wx.Frame):
 
 class Mywin(wx.Frame):
     def __init__(self, parent, title):
-        global pmob
-        global pstb
+        #global pmob
+        #global pstb
         global ppb
         super(Mywin, self).__init__(parent, title=title, size=(screenWidth, screenHeight))
         self.panel = wx.Panel(self)
@@ -435,9 +447,9 @@ class Mywin(wx.Frame):
         sizer.Add(self.positive_prompt_input_ctrl_4, 0, wx.ALL | wx.EXPAND, 0)
 
         #Should use Deforum prompt scheduling?
-        self.shouldUseDeforumPromptScheduling_text = wx.StaticText(self.panel, label="Use Deforumation prompt scheduling...", pos=(trbX+580, 10))
-        #self.shouldUseDeforumPromptScheduling_Checkbox = wx.CheckBox(self.panel, label="Use Deforumation prompt scheduling", pos=(trbX+600, 10))
-        #self.shouldUseDeforumPromptScheduling_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+        #self.shouldUseDeforumPromptScheduling_text = wx.StaticText(self.panel, label="Use Deforumation prompt scheduling...", pos=(trbX+580, 10))
+        self.shouldUseDeforumPromptScheduling_Checkbox = wx.CheckBox(self.panel, label="Use Deforumation prompt scheduling", pos=(trbX+600, 10))
+        self.shouldUseDeforumPromptScheduling_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
         #Stay On Top
         self.stayOnTop_Checkbox = wx.CheckBox(self.panel, label="Stay on top", pos=(trbX+1130, 10))
         self.stayOnTop_Checkbox.SetToolTip("This will keep Deforumation and the Live Render window on top, if checked.")
@@ -661,7 +673,7 @@ class Mywin(wx.Frame):
 
         #LOCK FOV TO ZOOM BUTTON
         bmp = wx.Bitmap("./images/lock_off.bmp", wx.BITMAP_TYPE_BMP)
-        self.fov_lock_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(172+trbX, tbrY-5), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.fov_lock_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(172+trbX, tbrY+6), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.fov_lock_button.SetToolTip("Locks the FOV slider to the Zoom slider (bi-directional).")
         self.fov_lock_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.fov_lock_button.SetLabel("LOCK FOV")
@@ -682,39 +694,39 @@ class Mywin(wx.Frame):
         self.step_schedule_Text = wx.StaticText(self.panel, label="Strength Value", pos=(trbX-25, tbrY-70))
 
         #PROMPT ON/OFF BUTTON
-        bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
-        ppb = True
-        bmp = scale_bitmap(bmp, 15, 15)
-        self.parseq_prompt_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos=(trbX+560, 10), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
-        self.parseq_prompt_button.SetToolTip("When activated (red), Deforumations prompt system will be in use, else it will use Deforum's or Parseq's. If Parseq is activated it overrides Deforum's.")
-        self.parseq_prompt_button.Bind(wx.EVT_BUTTON, self.OnClicked)
-        self.parseq_prompt_button.SetLabel("Use Deforumation prompt scheduling")
+        #bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+        #ppb = True
+        #bmp = scale_bitmap(bmp, 15, 15)
+        #self.parseq_prompt_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos=(trbX+560, 10), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
+        #self.parseq_prompt_button.SetToolTip("When activated (red), Deforumations prompt system will be in use, else it will use Deforum's or Parseq's. If Parseq is activated it overrides Deforum's.")
+        #self.parseq_prompt_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        #self.parseq_prompt_button.SetLabel("Use Deforumation prompt scheduling")
 
         #PARSEQ STRENGTH ON/OFF BUTTON
-        if int(readValue("parseq_strength")) == 1:
-            bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
-            pstb = True
-        else:
-            bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
-            pstb = False
-        bmp = scale_bitmap(bmp, 15, 15)
-        self.parseq_strength_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos=(trbX-45, tbrY-46), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
-        self.parseq_strength_button.SetToolTip("When activated (red), both Deforumations Strength and CFG-slider will be used.If not activated, Deforum's or Parseq's values will be used for CFG and maybe Strength (depending on if the \"USE DEFORUMATION\"-checkbox for strength is activated or not. Parseq always overrides Deforum's values if it is active.")
-        self.parseq_strength_button.Bind(wx.EVT_BUTTON, self.OnClicked)
-        self.parseq_strength_button.SetLabel("pstb")
+       # if int(readValue("parseq_strength")) == 1:
+       #     bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
+       #     pstb = True
+       # else:
+       #     bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+       #     pstb = False
+       # bmp = scale_bitmap(bmp, 15, 15)
+       # self.parseq_strength_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos=(trbX-45, tbrY-46), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
+       # self.parseq_strength_button.SetToolTip("When activated (red), both Deforumations Strength and CFG-slider will be used.If not activated, Deforum's or Parseq's values will be used for CFG and maybe Strength (depending on if the \"USE DEFORUMATION\"-checkbox for strength is activated or not. Parseq always overrides Deforum's values if it is active.")
+       # self.parseq_strength_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+       # self.parseq_strength_button.SetLabel("pstb")
 
         #PARSEQ MOVEMENTS ON/OFF BUTTON
-        if int(readValue("parseq_movements")) == 1:
-            bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
-            pmob = True
-        else:
-            bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
-            pmob = False
-        bmp = scale_bitmap(bmp, 20, 20)
-        self.parseq_movements_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos = (trbX+280, tbrY+100), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
-        self.parseq_movements_button.SetToolTip("When activated (red), Deforumations motion controls will be in use (PAN, ROTATION, ZOOM, FOV and TILT). If not activated, Deforum's or Parseq's motion values are added to Deforum's motion values.")
-        self.parseq_movements_button.Bind(wx.EVT_BUTTON, self.OnClicked)
-        self.parseq_movements_button.SetLabel("pmob")
+        #if int(readValue("parseq_movements")) == 1:
+        #    bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
+        #    pmob = True
+        #else:
+        #    bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+        #    pmob = False
+        #bmp = scale_bitmap(bmp, 20, 20)
+        #self.parseq_movements_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos = (trbX+280, tbrY+100), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
+        #self.parseq_movements_button.SetToolTip("When activated (red), Deforumations motion controls will be in use (PAN, ROTATION, ZOOM, FOV and TILT). If not activated, Deforum's or Parseq's motion values are added to Deforum's motion values.")
+        #self.parseq_movements_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        #self.parseq_movements_button.SetLabel("pmob")
 
         #SHOULD USE DEFORUMATION STRENGTH VALUES? CHECK-BOX
         self.should_use_deforumation_strength_checkbox = wx.CheckBox(self.panel, label="USE DEFORUMATION STRENGTH", pos=(trbX+60, tbrY-66))
@@ -725,6 +737,36 @@ class Mywin(wx.Frame):
         self.should_use_deforumation_cfg_checkbox = wx.CheckBox(self.panel, label="USE DEFORUMATION CFG", pos=(trbX+460, tbrY-66))
         self.should_use_deforumation_cfg_checkbox.SetToolTip("When activated, Deforumations CFG value will be used.")
         self.should_use_deforumation_cfg_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
+        #SHOULD USE DEFORUMATION CADENCE VALUES? CHECK-BOX
+        self.should_use_deforumation_cadence_checkbox = wx.CheckBox(self.panel, label="U.D.Ca", pos=(trbX+780, tbrY))
+        self.should_use_deforumation_cadence_checkbox.SetToolTip("When activated, Deforumations Cadence value will be used.")
+        self.should_use_deforumation_cadence_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
+        #SHOULD USE DEFORUMATION NOISE VALUES? CHECK-BOX
+        self.should_use_deforumation_noise_checkbox = wx.CheckBox(self.panel, label="U.D.No", pos=(trbX+720, tbrY+74))
+        self.should_use_deforumation_noise_checkbox.SetToolTip("When activated, Deforumations Noise values will be used.")
+        self.should_use_deforumation_noise_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
+        #SHOULD USE DEFORUMATION PANNING VALUES? CHECK-BOX
+        self.should_use_deforumation_panning_checkbox = wx.CheckBox(self.panel, label="U.D.Pa", pos=(trbX+40, tbrY-8))
+        self.should_use_deforumation_panning_checkbox.SetToolTip("When activated, Deforumations Panning values will be used.")
+        self.should_use_deforumation_panning_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
+        #SHOULD USE DEFORUMATION ZOOM/FOV VALUES? CHECK-BOX
+        self.should_use_deforumation_zoomfov_checkbox = wx.CheckBox(self.panel, label="U.D.Zo", pos=(trbX+172, tbrY-8))
+        self.should_use_deforumation_zoomfov_checkbox.SetToolTip("When activated, Deforumations ZOOM and FOV values will be used.")
+        self.should_use_deforumation_zoomfov_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
+        #SHOULD USE DEFORUMATION ROTATION VALUES? CHECK-BOX
+        self.should_use_deforumation_rotation_checkbox = wx.CheckBox(self.panel, label="U.D.Ro", pos=(trbX+354, tbrY-8))
+        self.should_use_deforumation_rotation_checkbox.SetToolTip("When activated, Deforumations Rotation values will be used.")
+        self.should_use_deforumation_rotation_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
+        #SHOULD USE DEFORUMATION TILT VALUES? CHECK-BOX
+        self.should_use_deforumation_tilt_checkbox = wx.CheckBox(self.panel, label="U.D.Ti", pos=(trbX+480, tbrY+12))
+        self.should_use_deforumation_tilt_checkbox.SetToolTip("When activated, Deforumations Tilt values will be used.")
+        self.should_use_deforumation_tilt_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
         #SAMPLE STEP SLIDER
         self.sample_schedule_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=25, minValue=1, maxValue=200, pos = (trbX-25, tbrY-50-70), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
@@ -885,39 +927,39 @@ class Mywin(wx.Frame):
         self.component_chooser_choice.Bind(wx.EVT_CHOICE, self.OnComponentChoice)
 
         #NOISE SLIDER
-        self.noise_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=65, minValue=0, maxValue=200, pos = (trbX+950-340, tbrY+100), size = (360, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.noise_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=105, minValue=0, maxValue=200, pos = (trbX+950-340, tbrY+110), size = (360, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.noise_slider.SetToolTip("How much uniformed noise should Deforum use. Lower values will loose detail (smoothing things out), and higher values will add more detail making it sharper (too much will result in a scrambled image).")
         self.noise_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.noise_slider.SetTickFreq(1)
         self.noise_slider.SetLabel("Noise")
-        self.noise_slider_Text = wx.StaticText(self.panel, label="Noise", pos=(trbX+1000-340, tbrY+80))
+        self.noise_slider_Text = wx.StaticText(self.panel, label="Noise", pos=(trbX+1000-340, tbrY+95))
         self.noise_slider.Hide()
         self.noise_slider_Text.Hide()
 
         #PERLIN PERSISTENCE SLIDER
-        self.perlin_persistence_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=4, minValue=0, maxValue=100, pos = (trbX+950-340, tbrY+100), size = (360, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.perlin_persistence_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=4, minValue=0, maxValue=100, pos = (trbX+950-340, tbrY+110), size = (360, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.perlin_persistence_slider.SetToolTip("How much perlin persistence should Deforum use. Note that if you choose Noise type \"perlin\", your image seems to must have the dimensions 512x512 (else it will complain).")
         self.perlin_persistence_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.perlin_persistence_slider.SetTickFreq(1)
         self.perlin_persistence_slider.SetLabel("Perlin Persistence")
-        self.perlin_persistence_slider_Text = wx.StaticText(self.panel, label="Perlin persistence", pos=(trbX+1000-340, tbrY+80))
+        self.perlin_persistence_slider_Text = wx.StaticText(self.panel, label="Perlin persistence", pos=(trbX+1000-340, tbrY+95))
         self.perlin_persistence_slider.Hide()
         self.perlin_persistence_slider_Text.Hide()
 
         #PERLIN OCTAVE SLIDER
-        self.perlin_octave_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=4, minValue=1, maxValue=7, pos = (trbX+950-340, tbrY+100), size = (360, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.perlin_octave_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=4, minValue=1, maxValue=7, pos = (trbX+950-340, tbrY+110), size = (360, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.perlin_octave_slider.SetToolTip("How much perlin octave noise should Deforum use. Note that if you choose Noise type \"perlin\", your image seems to must have the dimensions 512x512 (else it will complain).")
         self.perlin_octave_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.perlin_octave_slider.SetTickFreq(1)
         self.perlin_octave_slider.SetLabel("Perlin Octaves")
-        self.perlin_octave_slider_Text = wx.StaticText(self.panel, label="Perlin octaves", pos=(trbX+1000-340, tbrY+80))
+        self.perlin_octave_slider_Text = wx.StaticText(self.panel, label="Perlin octaves", pos=(trbX+1000-340, tbrY+95))
         self.perlin_octave_slider.Hide()
         self.perlin_octave_slider_Text.Hide()
 
         #ControlNet Sliders
         ###############################################################
         #CONTROLNET WEIGHT
-        self.control_net_weight_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_Weight), minValue=0, maxValue=200, pos = (trbX-40, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.control_net_weight_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_Weight*100), minValue=0, maxValue=200, pos = (trbX-40, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.control_net_weight_slider.SetToolTip("Tells, if activated, the first ControlNet, what weight it should use. The slider value is scaled by 100 (actual value 100 times smaller)")
         self.control_net_weight_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.control_net_weight_slider.SetTickFreq(1)
@@ -925,7 +967,7 @@ class Mywin(wx.Frame):
         self.control_net_weight_slider_Text = wx.StaticText(self.panel, label="ControlNet - Weight", pos=(trbX-40, tbrY+160))
 
         #CONTROLNET STARTING CONTROL STEP
-        self.control_net_stepstart_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_StepStart), minValue=0, maxValue=100, pos = (trbX+300, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.control_net_stepstart_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_StepStart*100), minValue=0, maxValue=100, pos = (trbX+300, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.control_net_stepstart_slider.SetToolTip("Tells, if activated, the first ControlNet, what step it should start on. The slider value is scaled by 100 (actual value 100 times smaller)")
         self.control_net_stepstart_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.control_net_stepstart_slider.SetTickFreq(1)
@@ -933,7 +975,7 @@ class Mywin(wx.Frame):
         self.control_net_stepstart_slider_Text = wx.StaticText(self.panel, label="ControlNet - Starting Control Step", pos=(trbX+300, tbrY+160))
 
         #CONTROLNET ENDING CONTROL STEP
-        self.control_net_stepend_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_StepEnd), minValue=0, maxValue=100, pos = (trbX+640, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.control_net_stepend_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_StepEnd*100), minValue=0, maxValue=100, pos = (trbX+640, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.control_net_stepend_slider.SetToolTip("Tells, if activated, the first ControlNet, what step it should end on. The slider value is scaled by 100 (actual value 100 times smaller)")
         self.control_net_stepend_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.control_net_stepend_slider.SetTickFreq(1)
@@ -990,6 +1032,7 @@ class Mywin(wx.Frame):
         self.Fit()
 
         self.loadAllValues()
+        self.setAllComponentValues()
         #KEYBOARD INPUT EVNTG HANDLER
         self.off_grid_input_box.Bind(wx.EVT_KEY_DOWN, self.KeyDown)
         self.off_grid_input_box.SetFocus()
@@ -1129,14 +1172,21 @@ class Mywin(wx.Frame):
         self.FOV_Text.SetPosition((250 + trbX, tbrY + 40))
         self.FOV_Text2.SetPosition((249 + trbX, tbrY + 60))
         self.FOV_Text3.SetPosition((250 + trbX, tbrY + 80))
-        self.fov_lock_button.SetPosition((172 + trbX, tbrY - 5))
+        self.fov_lock_button.SetPosition((172+trbX, tbrY+6))
         self.fov_reverse_lock_button.SetPosition((172 + trbX, tbrY + 120))
         self.strength_schedule_slider.SetPosition((trbX - 25, tbrY - 50))
-        self.parseq_strength_button.SetPosition((trbX-45, tbrY-46))
-        self.parseq_movements_button.SetPosition((trbX+280, tbrY+100))
+        #self.parseq_strength_button.SetPosition((trbX-45, tbrY-46))
+        #self.parseq_movements_button.SetPosition((trbX+280, tbrY+100))
         self.step_schedule_Text.SetPosition((trbX - 25, tbrY - 70))
         self.should_use_deforumation_strength_checkbox.SetPosition((trbX + 160, tbrY - 66))
         self.should_use_deforumation_cfg_checkbox.SetPosition((trbX+460, tbrY-66))
+        self.should_use_deforumation_cadence_checkbox.SetPosition((trbX+780, tbrY))
+        self.should_use_deforumation_noise_checkbox.SetPosition((trbX+720, tbrY+74))
+        self.should_use_deforumation_panning_checkbox.SetPosition((trbX+40, tbrY-8))
+        self.should_use_deforumation_zoomfov_checkbox.SetPosition((trbX + 172, tbrY - 8))
+        self.should_use_deforumation_rotation_checkbox.SetPosition((trbX+354, tbrY-8))
+        self.should_use_deforumation_tilt_checkbox.SetPosition((trbX+480, tbrY+12))
+
         self.sample_schedule_slider.SetPosition((trbX - 25, tbrY - 50 - 70))
         self.strength_schedule_Text.SetPosition((trbX - 25, tbrY - 70 - 64))
         self.seed_schedule_Text.SetPosition((trbX + 340, tbrY - 50 - 80))
@@ -1194,9 +1244,12 @@ class Mywin(wx.Frame):
         self.deforum_cadence_value_info_text.SetPosition((trbX+520, tbrY+310))
         self.component_chooser_choice.SetPosition((trbX+950-150, tbrY+70))
         self.Live_Values_Checkbox.SetPosition((trbX-40, tbrY + 130))
-        self.noise_slider.SetPosition((trbX+950-340, tbrY+100))
-        self.perlin_persistence_slider.SetPosition((trbX+950-340, tbrY+100))
-        self.perlin_octave_slider.SetPosition((trbX+950-340, tbrY+100))
+        self.noise_slider.SetPosition((trbX+950-340, tbrY+110))
+        self.perlin_persistence_slider.SetPosition((trbX+950-340, tbrY+110))
+        self.perlin_octave_slider.SetPosition((trbX+950-340, tbrY+110))
+        self.noise_slider_Text.SetPosition((trbX+1000-340, tbrY+95))
+        self.perlin_octave_slider_Text.SetPosition((trbX+1000-340, tbrY+95))
+        self.perlin_octave_slider_Text.SetPosition((trbX+1000-340, tbrY+95))
 
     def OnResize(self, evt):
         global screenHeight
@@ -1272,7 +1325,7 @@ class Mywin(wx.Frame):
         global is_reverse_fov_locked
         global STEP_Schedule
         global Cadence_Schedule
-        global Noise_Value
+        global noise_multiplier
         global Perlin_Octave_Value
         global Perlin_Persistence_Value
         global is_paused_rendering
@@ -1285,7 +1338,18 @@ class Mywin(wx.Frame):
         global CN_HighT
         global should_use_deforumation_prompt_scheduling
         global should_use_deforumation_cfg
-
+        global should_use_deforumation_cadence
+        global should_use_deforumation_noise
+        global should_use_deforumation_panning
+        global should_use_deforumation_zoomfov
+        global should_use_deforumation_rotation
+        global should_use_deforumation_tilt
+        global pan_step_input_box_value
+        global rotate_step_input_box_value
+        global tilt_step_input_box_value
+        global zero_pan_step_input_box_value
+        global zero_rotate_step_input_box_value
+        global shouldUseDeforumPromptScheduling
         if os.path.isfile(deforumationSettingsPath_Keys):
             deforumFile = open(deforumationSettingsPath_Keys, 'r')
             lines = deforumFile.readlines()
@@ -1316,7 +1380,6 @@ class Mywin(wx.Frame):
                     self.pause_rendering.SetLabel("PUSH TO RESUME RENDERING")
                 else:
                     self.pause_rendering.SetLabel("PUSH TO PAUSE RENDERING")
-
                 self.positive_prompt_input_ctrl.SetValue(deforumFile.readline())
                 self.positive_prompt_input_ctrl_2.SetValue(deforumFile.readline())
                 self.positive_prompt_input_ctrl_3.SetValue(deforumFile.readline())
@@ -1345,26 +1408,49 @@ class Mywin(wx.Frame):
                 self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
                 should_use_deforumation_prompt_scheduling = int(deforumFile.readline().strip().strip('\n'))
                 if should_use_deforumation_prompt_scheduling:
-                    bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
-                    bmp = scale_bitmap(bmp, 15, 15)
-                    self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
+                    #bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+                    #bmp = scale_bitmap(bmp, 15, 15)
+                    #self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
+                    self.shouldUseDeforumPromptScheduling_Checkbox.SetValue(1)
                     self.writeValue("should_use_deforumation_prompt_scheduling", 1)
+                    shouldUseDeforumPromptScheduling = 1
                 else:
-                    bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
-                    bmp = scale_bitmap(bmp, 15, 15)
-                    self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
+                    #bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
+                    #bmp = scale_bitmap(bmp, 15, 15)
+                    #self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
+                    self.shouldUseDeforumPromptScheduling_Checkbox.SetValue(0)
                     self.writeValue("should_use_deforumation_prompt_scheduling", 0)
+                    shouldUseDeforumPromptScheduling = 0
                 should_use_deforumation_strength = int(deforumFile.readline().strip().strip('\n'))
                 self.should_use_deforumation_strength_checkbox.SetValue(int(should_use_deforumation_strength))
                 should_use_deforumation_cfg = int(deforumFile.readline().strip().strip('\n'))
                 self.should_use_deforumation_cfg_checkbox.SetValue(int(should_use_deforumation_cfg))
-                self.pan_step_input_box.SetValue(deforumFile.readline().strip().strip('\n'))
-                self.rotate_step_input_box.SetValue(deforumFile.readline().strip().strip('\n'))
-                self.tilt_step_input_box.SetValue(deforumFile.readline().strip().strip('\n'))
-                self.cadence_slider.SetValue(int(deforumFile.readline().strip().strip('\n')))
-                Cadence_Schedule = int(self.cadence_slider.GetValue())
-                self.zero_pan_step_input_box.SetValue(deforumFile.readline().strip().strip('\n'))
-                self.zero_rotate_step_input_box.SetValue(deforumFile.readline().strip().strip('\n'))
+                should_use_deforumation_cadence = int(deforumFile.readline().strip().strip('\n'))
+                self.should_use_deforumation_cadence_checkbox.SetValue(int(should_use_deforumation_cadence))
+                should_use_deforumation_noise = int(deforumFile.readline().strip().strip('\n'))
+                self.should_use_deforumation_noise_checkbox.SetValue(int(should_use_deforumation_noise))
+                should_use_deforumation_panning = int(deforumFile.readline().strip().strip('\n'))
+                self.should_use_deforumation_panning_checkbox.SetValue(int(should_use_deforumation_panning))
+                should_use_deforumation_zoomfov = int(deforumFile.readline().strip().strip('\n'))
+                self.should_use_deforumation_zoomfov_checkbox.SetValue(int(should_use_deforumation_zoomfov))
+                should_use_deforumation_rotation = int(deforumFile.readline().strip().strip('\n'))
+                self.should_use_deforumation_rotation_checkbox.SetValue(int(should_use_deforumation_rotation))
+                should_use_deforumation_tilt = int(deforumFile.readline().strip().strip('\n'))
+                self.should_use_deforumation_tilt_checkbox.SetValue(int(should_use_deforumation_tilt))
+
+                pan_step_input_box_value = deforumFile.readline().strip().strip('\n')
+                self.pan_step_input_box.SetValue(pan_step_input_box_value)
+                rotate_step_input_box_value = deforumFile.readline().strip().strip('\n')
+                self.rotate_step_input_box.SetValue(rotate_step_input_box_value)
+                tilt_step_input_box_value = deforumFile.readline().strip().strip('\n')
+                self.tilt_step_input_box.SetValue(tilt_step_input_box_value)
+                Cadence_Schedule = int(deforumFile.readline().strip().strip('\n'))
+                #print("CS:"+ str(Cadence_Schedule))
+                self.cadence_slider.SetValue(Cadence_Schedule)
+                zero_pan_step_input_box_value = deforumFile.readline().strip().strip('\n')
+                self.zero_pan_step_input_box.SetValue(zero_pan_step_input_box_value)
+                zero_rotate_step_input_box_value = deforumFile.readline().strip().strip('\n')
+                self.zero_rotate_step_input_box.SetValue(zero_rotate_step_input_box_value)
                 CN_Weight = float(deforumFile.readline().strip().strip('\n'))
                 self.control_net_weight_slider.SetValue(int(CN_Weight*100))
                 CN_StepStart = float(deforumFile.readline().strip().strip('\n'))
@@ -1376,12 +1462,13 @@ class Mywin(wx.Frame):
                 CN_HighT = int(deforumFile.readline().strip().strip('\n'))
                 self.control_net_hight_slider.SetValue(CN_HighT)
 
-                Noise_Value = float(deforumFile.readline().strip().strip('\n'))
-                self.noise_slider.SetValue(int(Noise_Value*100))
+                noise_multiplier = float(deforumFile.readline().strip().strip('\n'))
+                self.noise_slider.SetValue(int(float(noise_multiplier)*100))
                 Perlin_Octave_Value = int(deforumFile.readline().strip().strip('\n'))
                 self.perlin_octave_slider.SetValue(int(Perlin_Octave_Value))
                 Perlin_Persistence_Value = float(deforumFile.readline().strip().strip('\n'))
-                self.perlin_persistence_slider.SetValue(int(Perlin_Persistence_Value*100))
+                #print("Perlin_Persistence_Value"+str('%.2f' % Perlin_Persistence_Value))
+                self.perlin_persistence_slider.SetValue(int(float(Perlin_Persistence_Value)*100))
 
             except Exception as e:
                 print(e)
@@ -1408,10 +1495,15 @@ class Mywin(wx.Frame):
             self.writeValue("rotation_x", Rotation_3D_X)
             self.writeValue("rotation_y", Rotation_3D_Y)
             self.writeValue("rotation_z", Rotation_3D_Z)
-            self.writeValue("rotation_z", Rotation_3D_Z)
             self.writeValue("should_use_deforumation_prompt_scheduling", int(should_use_deforumation_prompt_scheduling))
             self.writeValue("should_use_deforumation_strength", int(should_use_deforumation_strength))
             self.writeValue("should_use_deforumation_cfg", int(should_use_deforumation_cfg))
+            self.writeValue("should_use_deforumation_cadence", int(should_use_deforumation_cadence))
+            self.writeValue("should_use_deforumation_noise", int(should_use_deforumation_noise))
+            self.writeValue("should_use_deforumation_panning", int(should_use_deforumation_panning))
+            self.writeValue("should_use_deforumation_zoomfov", int(should_use_deforumation_zoomfov))
+            self.writeValue("should_use_deforumation_rotation", int(should_use_deforumation_rotation))
+            self.writeValue("should_use_deforumation_tilt", int(should_use_deforumation_tilt))
             self.writeValue("cadence", int(Cadence_Schedule))
             self.writeValue("cn_weight", float(CN_Weight))
             self.writeValue("cn_stepstart", float(CN_StepStart))
@@ -1419,10 +1511,11 @@ class Mywin(wx.Frame):
             self.writeValue("cn_lowt", float(CN_LowT))
             self.writeValue("cn_hight", float(CN_HighT))
 
-            self.writeValue("noise", float(Noise_Value))
+            self.writeValue("noise_multiplier", float(noise_multiplier))
             self.writeValue("perlin_octaves", int(Perlin_Octave_Value))
             self.writeValue("perlin_persistence", float(Perlin_Persistence_Value))
-
+        else:
+            self.writeAllValues()
     def writeValue(self, param, value):
         checkerrorConnecting = True
         while checkerrorConnecting:
@@ -1445,6 +1538,61 @@ class Mywin(wx.Frame):
                 print("Deforumation Mediator Error:" + str(e))
                 print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)...ererror:reading:"+str(param))
                 time.sleep(5)
+    def setAllComponentValues(self):
+        try:
+            if is_paused_rendering:
+                self.pause_rendering.SetLabel("PUSH TO RESUME RENDERING")
+            else:
+                self.pause_rendering.SetLabel("PUSH TO PAUSE RENDERING")
+            self.strength_schedule_slider.SetValue(int(Strength_Scheduler * 100))
+            self.cfg_schedule_slider.SetValue(int(CFG_Scale))
+            self.sample_schedule_slider.SetValue(STEP_Schedule)
+            self.fov_slider.SetValue(int(FOV_Scale))
+            self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+            self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+            self.zoom_slider.SetValue(int(Translation_Z) * 100)
+            self.zoom_value_text.SetLabel('%.2f' % (Translation_Z))
+            self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
+            self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
+            self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
+            if should_use_deforumation_prompt_scheduling:
+                #bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+                #bmp = scale_bitmap(bmp, 15, 15)
+                #self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
+                self.shouldUseDeforumPromptScheduling_Checkbox.SetValue(1)
+                self.writeValue("should_use_deforumation_prompt_scheduling", 1)
+            else:
+                #bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
+                #bmp = scale_bitmap(bmp, 15, 15)
+                #self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
+                self.shouldUseDeforumPromptScheduling_Checkbox.SetValue(0)
+                self.writeValue("should_use_deforumation_prompt_scheduling", 0)
+            self.should_use_deforumation_strength_checkbox.SetValue(int(should_use_deforumation_strength))
+            self.should_use_deforumation_cfg_checkbox.SetValue(int(should_use_deforumation_cfg))
+            self.should_use_deforumation_cadence_checkbox.SetValue(int(should_use_deforumation_cadence))
+            self.should_use_deforumation_noise_checkbox.SetValue(int(should_use_deforumation_noise))
+            self.should_use_deforumation_panning_checkbox.SetValue(int(should_use_deforumation_panning))
+            self.should_use_deforumation_zoomfov_checkbox.SetValue(int(should_use_deforumation_zoomfov))
+            self.should_use_deforumation_rotation_checkbox.SetValue(int(should_use_deforumation_rotation))
+            self.should_use_deforumation_tilt_checkbox.SetValue(int(should_use_deforumation_tilt))
+            self.pan_step_input_box.SetValue(pan_step_input_box_value)
+            self.rotate_step_input_box.SetValue(rotate_step_input_box_value)
+            self.tilt_step_input_box.SetValue(tilt_step_input_box_value)
+            self.cadence_slider.SetValue(Cadence_Schedule)
+            self.zero_pan_step_input_box.SetValue(zero_pan_step_input_box_value)
+            self.zero_rotate_step_input_box.SetValue(zero_rotate_step_input_box_value)
+            self.control_net_weight_slider.SetValue(int(CN_Weight * 100))
+            self.control_net_stepstart_slider.SetValue(int(CN_StepStart * 100))
+            self.control_net_stepend_slider.SetValue(int(CN_StepEnd * 100))
+            self.control_net_lowt_slider.SetValue(CN_LowT)
+            self.control_net_hight_slider.SetValue(CN_HighT)
+
+            self.noise_slider.SetValue(int(float(noise_multiplier) * 100))
+            self.perlin_octave_slider.SetValue(int(Perlin_Octave_Value))
+            self.perlin_persistence_slider.SetValue(int(float(Perlin_Persistence_Value) * 100))
+
+        except Exception as e:
+            print(e)
 
     def writeAllValues(self):
         try:
@@ -1481,6 +1629,12 @@ class Mywin(wx.Frame):
         deforumFile.write(str(int(should_use_deforumation_prompt_scheduling)) + "\n")
         deforumFile.write(str(int(should_use_deforumation_strength))+"\n")
         deforumFile.write(str(int(should_use_deforumation_cfg))+"\n")
+        deforumFile.write(str(int(should_use_deforumation_cadence))+"\n")
+        deforumFile.write(str(int(should_use_deforumation_noise))+"\n")
+        deforumFile.write(str(int(should_use_deforumation_panning))+"\n")
+        deforumFile.write(str(int(should_use_deforumation_zoomfov))+"\n")
+        deforumFile.write(str(int(should_use_deforumation_rotation))+"\n")
+        deforumFile.write(str(int(should_use_deforumation_tilt))+"\n")
         deforumFile.write(self.pan_step_input_box.GetValue().strip().replace('\n', '')+"\n")
         deforumFile.write(self.rotate_step_input_box.GetValue().strip().replace('\n', '')+"\n")
         deforumFile.write(self.tilt_step_input_box.GetValue().strip().replace('\n', '')+"\n")
@@ -1492,7 +1646,7 @@ class Mywin(wx.Frame):
         deforumFile.write(str('%.2f' % CN_StepEnd)+"\n")
         deforumFile.write(str(CN_LowT)+"\n")
         deforumFile.write(str(CN_HighT)+"\n")
-        deforumFile.write(str('%.2f' % Noise_Value)+"\n")
+        deforumFile.write(str('%.2f' % noise_multiplier)+"\n")
         deforumFile.write(str(Perlin_Octave_Value)+"\n")
         deforumFile.write(str('%.2f' % Perlin_Persistence_Value))
 
@@ -1809,7 +1963,7 @@ class Mywin(wx.Frame):
         global current_render_frame
         global should_use_deforumation_strength
         global Cadence_Schedule
-        global Noise_Value
+        global noise_multiplier
         global Perlin_Octave_Value
         global Perlin_Persistence_Value
         global should_stay_on_top
@@ -1835,12 +1989,18 @@ class Mywin(wx.Frame):
         global Rotation_3D_X_ARMED
         global Rotation_3D_Y_ARMED
         global Rotation_3D_Z_ARMED
-        global pstb
-        global pmob
+        #global pstb
+        #global pmob
         global is_Parseq_Active
         global showLiveValues
         global ppb
         global should_use_deforumation_cfg
+        global should_use_deforumation_cadence
+        global should_use_deforumation_noise
+        global should_use_deforumation_panning
+        global should_use_deforumation_zoomfov
+        global should_use_deforumation_rotation
+        global should_use_deforumation_tilt
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
@@ -1949,9 +2109,14 @@ class Mywin(wx.Frame):
                 self.zoom_slider.SetValue(0)
                 self.zoom_value_text.SetLabel("0.00")
                 Translation_Z = 0.0
+                self.writeValue("translation_z", Translation_Z)
                 if is_fov_locked:
-                    FOV_Scale = 70
+                    if is_reverse_fov_locked:
+                        FOV_Scale = 70+(Translation_Z * -5)
+                    else:
+                        FOV_Scale = 70 + (Translation_Z * 5)
                     self.fov_slider.SetValue(int(FOV_Scale))
+                    self.writeValue("fov", FOV_Scale)
             else:
                 Translation_Z = self.zoom_slider.GetValue()/100
                 self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
@@ -2108,8 +2273,8 @@ class Mywin(wx.Frame):
             self.writeValue("cadence", Cadence_Schedule)
             cadenceArray[int(self.readValue("start_frame"))] = Cadence_Schedule
         elif btn == "Noise":
-            Noise_Value = float(self.noise_slider.GetValue())/100
-            self.writeValue("noise", Noise_Value)
+            noise_multiplier = float(self.noise_slider.GetValue())/100
+            self.writeValue("noise_multiplier", noise_multiplier)
         elif btn == "Perlin Octaves":
             Perlin_Octave_Value = int(self.perlin_octave_slider.GetValue())
             self.writeValue("perlin_octaves", Perlin_Octave_Value)
@@ -2237,6 +2402,48 @@ class Mywin(wx.Frame):
             else:
                 self.writeValue("should_use_deforumation_cfg", 0)
                 should_use_deforumation_cfg = 0
+        elif btn == "U.D.Ca":
+            if should_use_deforumation_cadence == 0:
+                self.writeValue("should_use_deforumation_cadence", 1)
+                should_use_deforumation_cadence = 1
+            else:
+                self.writeValue("should_use_deforumation_cadence", 0)
+                should_use_deforumation_cadence = 0
+        elif btn == "U.D.No":
+            if should_use_deforumation_noise == 0:
+                self.writeValue("should_use_deforumation_noise", 1)
+                should_use_deforumation_noise = 1
+            else:
+                self.writeValue("should_use_deforumation_noise", 0)
+                should_use_deforumation_noise = 0
+        elif btn == "U.D.Pa":
+            if should_use_deforumation_panning == 0:
+                self.writeValue("should_use_deforumation_panning", 1)
+                should_use_deforumation_panning = 1
+            else:
+                self.writeValue("should_use_deforumation_panning", 0)
+                should_use_deforumation_panning = 0
+        elif btn == "U.D.Zo":
+            if should_use_deforumation_zoomfov == 0:
+                self.writeValue("should_use_deforumation_zoomfov", 1)
+                should_use_deforumation_zoomfov = 1
+            else:
+                self.writeValue("should_use_deforumation_zoomfov", 0)
+                should_use_deforumation_zoomfov = 0
+        elif btn == "U.D.Ro":
+            if should_use_deforumation_rotation == 0:
+                self.writeValue("should_use_deforumation_rotation", 1)
+                should_use_deforumation_rotation = 1
+            else:
+                self.writeValue("should_use_deforumation_rotation", 0)
+                should_use_deforumation_rotation = 0
+        elif btn == "U.D.Ti":
+            if should_use_deforumation_tilt == 0:
+                self.writeValue("should_use_deforumation_tilt", 1)
+                should_use_deforumation_tilt = 1
+            else:
+                self.writeValue("should_use_deforumation_tilt", 0)
+                should_use_deforumation_tilt = 0
         elif btn == "REPLAY":
             if isReplaying == 0:
                 #print("Starting Replay")
@@ -2316,43 +2523,45 @@ class Mywin(wx.Frame):
                 current_render_frame = -1
         elif btn == "Use Deforumation prompt scheduling":
             if should_use_deforumation_prompt_scheduling == 0:
-                bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
-                bmp = scale_bitmap(bmp, 15, 15)
-                self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
+                #bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+                #bmp = scale_bitmap(bmp, 15, 15)
+                #self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
+                self.shouldUseDeforumPromptScheduling_Checkbox.SetValue(1)
                 self.writeValue("should_use_deforumation_prompt_scheduling", 1)
                 should_use_deforumation_prompt_scheduling = 1
             else:
-                bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
-                bmp = scale_bitmap(bmp, 15, 15)
-                self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
+                #bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
+                #bmp = scale_bitmap(bmp, 15, 15)
+                #self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
+                self.shouldUseDeforumPromptScheduling_Checkbox.SetValue(0)
                 self.writeValue("should_use_deforumation_prompt_scheduling", 0)
                 should_use_deforumation_prompt_scheduling = 0
-        elif btn == "pstb":
-            if pstb:
-                bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
-                bmp = scale_bitmap(bmp, 15, 15)
-                self.parseq_strength_button.SetBitmap(wx.Bitmap(bmp))
-                self.writeValue("parseq_strength", 0)
-                pstb = False
-            else:
-                bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
-                bmp = scale_bitmap(bmp, 15, 15)
-                self.parseq_strength_button.SetBitmap(wx.Bitmap(bmp))
-                self.writeValue("parseq_strength", 1)
-                pstb = True
-        elif btn == "pmob":
-            if pmob:
-                bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
-                bmp = scale_bitmap(bmp, 20, 20)
-                self.parseq_movements_button.SetBitmap(wx.Bitmap(bmp))
-                self.writeValue("parseq_movements", 0)
-                pmob = False
-            else:
-                bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
-                bmp = scale_bitmap(bmp, 20, 20)
-                self.parseq_movements_button.SetBitmap(wx.Bitmap(bmp))
-                self.writeValue("parseq_movements", 1)
-                pmob = True
+       # elif btn == "pstb":
+       #     if pstb:
+       #         bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+       #         bmp = scale_bitmap(bmp, 15, 15)
+       #         self.parseq_strength_button.SetBitmap(wx.Bitmap(bmp))
+       #         self.writeValue("parseq_strength", 0)
+       #         pstb = False
+       #     else:
+       #         bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
+       #         bmp = scale_bitmap(bmp, 15, 15)
+       #         self.parseq_strength_button.SetBitmap(wx.Bitmap(bmp))
+       #         self.writeValue("parseq_strength", 1)
+       #         pstb = True
+        #elif btn == "pmob":
+        #    if pmob:
+        #        bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
+        #        bmp = scale_bitmap(bmp, 20, 20)
+        #        self.parseq_movements_button.SetBitmap(wx.Bitmap(bmp))
+        #        self.writeValue("parseq_movements", 0)
+        #        pmob = False
+        #    else:
+        #        bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
+        #        bmp = scale_bitmap(bmp, 20, 20)
+        #        self.parseq_movements_button.SetBitmap(wx.Bitmap(bmp))
+        #        self.writeValue("parseq_movements", 1)
+        #        pmob = True
 
         elif event.GetId() == 73:
             if is_Parseq_Active == 0:
@@ -2408,42 +2617,71 @@ class Mywin(wx.Frame):
             deforum_fov = readValue("deforum_fov")
             deforum_steps = readValue("deforum_steps")
             deforum_cadence = readValue("deforum_cadence")
-            if pmob:
-                self.pan_X_Value_Text.SetLabel(str('%.2f' % float(deforum_translation_x)))
-                self.pan_Y_Value_Text.SetLabel(str('%.2f' % float(deforum_translation_y)))
-                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_y)))
-                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_x)))
-                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_z)))
-                self.zoom_slider.SetValue(int(float(deforum_translation_z)*100))
-                self.zoom_value_text.SetLabel(str('%.2f' % float(deforum_translation_z)))
-                self.fov_slider.SetValue(int(float(deforum_fov)))
-            else:
+            deforum_noise_multiplier = readValue("deforum_noise_multiplier")
+            deforum_Perlin_Octave_Value = readValue("deforum_perlin_octaves")
+            deforum_Perlin_Persistence_Value = readValue("deforum_perlin_persistence")
+            if should_use_deforumation_panning:
                 if armed_pan:
                     self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
                     self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
                 else:
                     self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
                     self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+            else:
+                self.pan_X_Value_Text.SetLabel(str('%.2f' % float(deforum_translation_x)))
+                self.pan_Y_Value_Text.SetLabel(str('%.2f' % float(deforum_translation_y)))
+
+            if should_use_deforumation_zoomfov:
+                self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
+                self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
+                self.fov_slider.SetValue(int(FOV_Scale))
+            else:
+                self.zoom_slider.SetValue(int(float(deforum_translation_z)*100))
+                self.zoom_value_text.SetLabel(str('%.2f' % float(deforum_translation_z)))
+                self.fov_slider.SetValue(int(float(deforum_fov)))
+
+            if should_use_deforumation_rotation:
                 if armed_rotation:
                     self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
                     self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X_ARMED))
                 else:
                     self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
                     self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
-
-                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Z)))
-                self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
-                self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
-                self.fov_slider.SetValue(int(FOV_Scale))
-
-            if pstb:
-                self.strength_schedule_slider.SetValue(int(float(deforum_strength)*100))
-                self.cfg_schedule_slider.SetValue(int(deforum_cfg))
-                self.cadence_slider.SetValue(int(deforum_cadence))
             else:
+                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_y)))
+                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_x)))
+
+            if should_use_deforumation_tilt:
+                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Z)))
+            else:
+                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_z)))
+
+            if should_use_deforumation_noise:
+                self.noise_slider.SetValue(int(float(noise_multiplier)*100))
+                self.perlin_octave_slider.SetValue(int(Perlin_Octave_Value))
+                self.perlin_persistence_slider.SetValue(int(float(Perlin_Persistence_Value)*100))
+            else:
+                self.noise_slider.SetValue(int(float(deforum_noise_multiplier)*100))
+                self.perlin_octave_slider.SetValue(int(deforum_Perlin_Octave_Value))
+                self.perlin_persistence_slider.SetValue(int(float(deforum_Perlin_Persistence_Value)*100))
+
+
+
+
+            if should_use_deforumation_strength:
                 self.strength_schedule_slider.SetValue(int(float(Strength_Scheduler) * 100))
-                self.cfg_schedule_slider.SetValue(int(CFG_Scale))
+            else:
+                self.strength_schedule_slider.SetValue(int(float(deforum_strength)*100))
+
+            if should_use_deforumation_cfg:
+                    self.cfg_schedule_slider.SetValue(int(CFG_Scale))
+            else:
+                self.cfg_schedule_slider.SetValue(int(deforum_cfg))
+
+            if should_use_deforumation_cadence:
                 self.cadence_slider.SetValue(int(Cadence_Schedule))
+            else:
+                self.cadence_slider.SetValue(int(deforum_cadence))
 
             #Bottom Info Text
             self.deforum_strength_value_info_text.SetLabel("Strength:" + str('%.2f' % float(deforum_strength)))
@@ -2494,5 +2732,5 @@ if __name__ == '__main__':
 
     #anim = pyeaze.Animator(current_value=0, target_value=100, duration=1, fps=40, easing='ease-in-out', reverse=False)
     app = wx.App()
-    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.4.1)')
+    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.4.5)')
     app.MainLoop()
