@@ -28,6 +28,11 @@ Table of Contents
 12. [patreon](#patreon)
 
 
+Support our work via buymeacoffee ( No subscription required )
+===============================================
+([buymeacoffee.com](https://www.buymeacoffee.com/deforumation))
+
+
 Support our work via Patreon<a name="patreon"></a>
 ===============================================
 ([Deforumation Patreon](https://www.patreon.com/Deforumation)) 
