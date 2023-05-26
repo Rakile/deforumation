@@ -30,12 +30,12 @@ Table of Contents
 
 Support our work via buymeacoffee ( No subscription required )
 ===============================================
-([buymeacoffee.com](https://www.buymeacoffee.com/deforumation))
+[buymeacoffee.com](https://www.buymeacoffee.com/deforumation)
 
 
 Support our work via Patreon<a name="patreon"></a>
 ===============================================
-([Deforumation Patreon](https://www.patreon.com/Deforumation)) 
+[Deforumation Patreon](https://www.patreon.com/Deforumation)
 ------------
 Deforumation is a free tool for everyone to use. We appreciate all and any donations/support to keep Deforumation up to date and adding new features together with the community. First thing we aim for is to have enough support to be able to pay for Discord nitro, witch will be beneficial for everyone. 
 
