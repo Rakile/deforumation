@@ -22,5 +22,14 @@ From here run the command: pip install --upgrade gradio
 3. Open up requirements_versions.txt located in the ..\stable-diffusion-webui\ root, and change "gradio==3.29.0" to "gradio"
 4. Open up requirements.txt located in the ..\stable-diffusion-webui\ root, and change "gradio==3.29.0" to "gradio"
 
+2023-05-26  !!!! VERY IMPORTANT !!!!
+-----------------------------------------------------------------
+We have noticed that websocket 11.xxx is a major cause for the current freeze problem. We recommend using deforumation with websocket==10.4
+Check your current websocket version, by typing: python -m websockets --version
+in a CMD window (windows) or terminal (linux).
+If you have "websockets 11.xx.xx", then use, then downgrade to 10.4 through these two commands:
+pip uninstall websockets
+pip install websockets==10.4
 
-That should be it. Kill the cmd window, and start: webui-user.bat or what ever you start-up file is.
+------------------------------------------------------------------------------------------------------------
+That should be it. Kill the cmd window, and start: webui-user.bat or what ever you start-up file is. And restart/start "mediator.py" and then "deforumation.py" normally.
