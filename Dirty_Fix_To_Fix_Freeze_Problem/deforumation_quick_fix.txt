@@ -27,7 +27,7 @@ From here run the command: pip install --upgrade gradio
 We have noticed that websocket 11.xxx is a major cause for the current freeze problem. We recommend using deforumation with websocket==10.4
 Check your current websocket version, by typing: python -m websockets --version
 in a CMD window (windows) or terminal (linux).
-If you have "websockets 11.xx.xx", then use, then downgrade to 10.4 through these two commands:
+If you have "websockets 11.xx.xx", then downgrade to 10.4 through these two commands:
 pip uninstall websockets
 pip install websockets==10.4
 
