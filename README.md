@@ -31,7 +31,7 @@ Table of Contents
 Support our work via buymeacoffee ( No subscription required )
 ===============================================
 [buymeacoffee.com](https://www.buymeacoffee.com/deforumation)
-
+------------
 
 Support our work via Patreon<a name="patreon"></a>
 ===============================================
