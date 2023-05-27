@@ -1980,6 +1980,7 @@ class Mywin(wx.Frame):
         global isReplaying
         global replayFrom
         global replayTo
+        global replayFPS
         global cadenceArray
         global armed_rotation
         global armed_pan
@@ -2144,7 +2145,7 @@ class Mywin(wx.Frame):
             self.writeValue("strength", Strength_Scheduler)
         elif event.GetId() == 3: #Seed Input Box
             seedValue = int(self.seed_input_box.GetValue())
-            #print("SeedValue:"+str(seedValue))
+            print("SeedValue:"+str(seedValue))
             self.writeValue("seed", seedValue)
         elif btn == "LOOK_LEFT":
             if not armed_rotation:
@@ -2449,6 +2450,7 @@ class Mywin(wx.Frame):
                 #print("Starting Replay")
                 replayFrom = int(self.replay_from_input_box.GetValue())
                 replayTo = int(self.replay_to_input_box.GetValue())
+                replayFPS = int(self.replay_fps_input_box.GetValue())
                 if (replayFrom >= 0) and (replayFrom < replayTo):
                     should_render_live = True
                     self.live_render_checkbox.SetValue(1)
@@ -2732,5 +2734,5 @@ if __name__ == '__main__':
 
     #anim = pyeaze.Animator(current_value=0, target_value=100, duration=1, fps=40, easing='ease-in-out', reverse=False)
     app = wx.App()
-    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.4.5)')
+    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.4.7)')
     app.MainLoop()
