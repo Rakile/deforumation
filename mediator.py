@@ -655,7 +655,7 @@ async def main():
 
 if __name__ == '__main__':
     try:
-        print("Starting mediator 0.4.5")
+        print("Starting mediator 0.4.7")
         asyncio.run(main())
     except KeyboardInterrupt:
         serverShutDown = True
