@@ -8,8 +8,11 @@ import keyboard
 import pickle
 from threading import *
 from pathlib import Path
+import json
 import wx.lib.newevent
 import threading
+import requests
+import collections
 #import pyeaze
 
 #import subprocess
@@ -921,6 +924,16 @@ class Mywin(wx.Frame):
         self.cadence_suggestion = wx.StaticText(self.panel, label="(hist cad: ??)", pos=(trbX+1000-140, tbrY))
         self.cadence_suggestion.SetToolTip("This tries to remember what cadence you had at the current frame. It is always good to start with the same cadence after you have rewinded as it for a better transition.")
 
+        #CADENCE SCHEDULE INPUT BOX
+        self.cadence_schedule_input_box = wx.TextCtrl(self.panel, id=1233, size=(150,20), pos=(trbX+1000-220, tbrY-22))
+        self.cadence_schedule_input_box.SetToolTip("Used for scheduling the cadence.")
+        self.cadence_schedule_input_box.SetHint("<Cadence Schedule Here>")
+        self.cadence_schedule_Checkbox = wx.CheckBox(self.panel, label = "Use C.", id=73, pos=(trbX+1000-66, tbrY-20))
+        self.cadence_schedule_Checkbox.SetToolTip("When checked, tells Deforum to use this Cadence Schedule.")
+        self.cadence_schedule_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+        #self.cadence_schedule_input_box.Bind(wx.EVT_TEXT_PASTE, self.OnPaste)
+        self.cadence_schedule_input_box.Bind(wx.EVT_SET_FOCUS, self.OnFocus)
+
         #COMBOBOX FOR CHOOSING A COMPONENT
         languages = ['Noise Multiplier', 'Perlin Octaves', 'Perlin Persistence']
         self.component_chooser_choice = wx.Choice(self.panel, id=wx.ID_ANY,  pos=(trbX+950-150, tbrY+70),size=(140,40), choices=languages, style=0, name="Arne")
@@ -1026,6 +1039,63 @@ class Mywin(wx.Frame):
         self.deforum_steps_value_info_text = wx.StaticText(self.panel, label="Steps:", pos=(trbX+400, tbrY+310))
         self.deforum_cfg_value_info_text = wx.StaticText(self.panel, label="CFG:", pos=(trbX+460, tbrY+310))
         self.deforum_cadence_value_info_text = wx.StaticText(self.panel, label="Cadence:", pos=(trbX+520, tbrY+310))
+
+        #CADENCE RE-SCHEDULER
+        self.cadence_rescheduler_text = wx.StaticText(self.panel, label="CADENCE RE-SCHEDULER", pos=(trbX-40, tbrY+340))
+        font = wx.Font(14, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        self.cadence_rescheduler_text.SetFont(font)
+        #INPUTBOX URL or FILE
+        self.cadence_rescheduler_url_input_box = wx.TextCtrl(self.panel, id=wx.ID_ANY, size=(240,20), pos=(trbX-40, tbrY+380))
+        self.cadence_rescheduler_url_input_box.SetToolTip("Insert a URL or a FILE-path to your JSON parseq file here.")
+        self.cadence_rescheduler_url_input_box.SetHint("<URL or FILE path to parseq file, here>")
+        #CHECKBOX USE DISCO STYLE FROM POSITIVE PROMPT
+        self.cadence_rescheduler_disco_checkbox = wx.CheckBox(self.panel, id=wx.ID_ANY, label="Use the values from \"Positive prompt\" (Deforum/Disco)-style", pos=(trbX+220, tbrY+380))
+        self.cadence_rescheduler_disco_checkbox.SetToolTip("If you check this box, values (Disco style) will be used instead of from a parseq JSON. Values will be taken from the Positive prompt.")
+        self.cadence_rescheduler_disco_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
+        #INPUTBOX CADENCE TO BE USED
+        self.cadence_rescheduler_cadence_text = wx.StaticText(self.panel, label="Cadence value:", pos=(trbX-40, tbrY+402))
+        self.cadence_rescheduler_cadence_input_box = wx.TextCtrl(self.panel, id=wx.ID_ANY, size=(20,20), pos=(trbX+46, tbrY+400))
+        self.cadence_rescheduler_cadence_input_box.SetValue("3")
+        self.cadence_rescheduler_cadence_input_box.SetToolTip("The cadence value to use for the re-schedule.")
+        #INPUTBOX TRIGGER PARAMETER
+        self.cadence_rescheduler_trigger_parameter_text = wx.StaticText(self.panel, label="Trigger parameter:", pos=(trbX-40, tbrY+422))
+        self.cadence_rescheduler_trigger_parameter_input_box = wx.TextCtrl(self.panel, id=wx.ID_ANY, size=(120,20), pos=(trbX+62, tbrY+420))
+        self.cadence_rescheduler_trigger_parameter_input_box.SetValue("strength")
+        self.cadence_rescheduler_trigger_parameter_input_box.SetToolTip("The parameter (like \"strength\" or \"translation_z\") that you use as trigger.")
+        #INPUTBOX MIN AND MAX TRIGGER VALUES
+        self.cadence_rescheduler_trigger_min_text = wx.StaticText(self.panel, label="Min:", pos=(trbX-40, tbrY+442))
+        self.cadence_rescheduler_trigger_min_input_box = wx.TextCtrl(self.panel, id=wx.ID_ANY, size=(40,20), pos=(trbX-10, tbrY+440))
+        self.cadence_rescheduler_trigger_min_input_box.SetValue("0.1")
+        self.cadence_rescheduler_trigger_min_input_box.SetToolTip("The minimum value that your chosen parameter value should trigger on.")
+        self.cadence_rescheduler_trigger_max_text = wx.StaticText(self.panel, label="Max:", pos=(trbX+40, tbrY+442))
+        self.cadence_rescheduler_trigger_max_input_box = wx.TextCtrl(self.panel, id=wx.ID_ANY, size=(40,20), pos=(trbX+70, tbrY+440))
+        self.cadence_rescheduler_trigger_max_input_box.SetValue("0.1")
+        self.cadence_rescheduler_trigger_max_input_box.SetToolTip("The maximum value that your chosen parameter value should trigger on.")
+        #CALCULATE RE-SCHEDULING BUTTON
+        self.cadence_rescheduler_calculate_button = wx.Button(self.panel, id=wx.ID_ANY, label="Re-schedule", pos=(trbX-40, tbrY+470), size=(75, 20))
+        self.cadence_rescheduler_calculate_button.SetToolTip("This will try to re-schedule the cadence in order to meet your set criterias. The result will be outputed in the box to your right, and also be put into the clip-board.")
+        self.cadence_rescheduler_calculate_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        #RESULT OF RE-SCHEDULING BOX
+        self.cadence_rescheduler_result_text = wx.StaticText(self.panel, label="Result:", pos=(trbX+40, tbrY+472))
+        self.cadence_rescheduler_result_input_box = wx.TextCtrl(self.panel, id=wx.ID_ANY, size=(360,20), pos=(trbX+80, tbrY+470))
+        self.cadence_rescheduler_result_input_box.SetHint("<The result, and proposed cadence schedule will be showed here>")
+        self.cadence_rescheduler_result_input_box.SetToolTip("The result, and proposed cadence schedule will be showed here.")
+        #INFORMATIVE MESSAGES OF THE RESULTING CALCULATION
+        self.cadence_rescheduler_result_informational_text = wx.StaticText(self.panel, label="Informational:", pos=(trbX-40, tbrY+492))
+        self.cadence_rescheduler_result_informational_input_box = wx.TextCtrl(self.panel, id=wx.ID_ANY, size=(420,20), pos=(trbX+40, tbrY+490))
+        self.cadence_rescheduler_result_informational_input_box.SetHint("<Informational messages after running a \"Re-schedule\" will be shown here>")
+        self.cadence_rescheduler_result_informational_input_box.SetToolTip("Informational messages after running a \"Re-schedule\" will be shown here.")
+
+
+        #self.cadence_rescheduler_url_input_box.Bind(wx.EVT_SET_FOCUS, self.OnFocus)
+
+
+        #Checkbox stuff
+        #self.cadence_schedule_Checkbox = wx.CheckBox(self.panel, label = "Use C.", id=73, pos=(trbX+1000-66, tbrY-20))
+        #self.cadence_schedule_Checkbox.SetToolTip("When checked, tells Deforum to use this Cadence Schedule.")
+        #self.cadence_schedule_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
 
         self.Centre()
         self.Show()
@@ -1208,6 +1278,8 @@ class Mywin(wx.Frame):
         self.tilt_step_input_box.SetPosition((360 + trbX + 38 + 80, 30 + tbrY))
         self.cadence_slider.SetPosition((trbX + 1000-340, tbrY + 20))
         self.cadence_slider_Text.SetPosition((trbX + 1000-340, tbrY))
+        self.cadence_schedule_input_box.SetPosition((trbX+1000-220, tbrY-22))
+        self.cadence_schedule_Checkbox.SetPosition((trbX+1000-66, tbrY-20))
         self.cadence_suggestion.SetPosition((trbX+1000-140, tbrY))
         self.control_net_weight_slider.SetPosition((trbX-40, tbrY+180))
         self.control_net_weight_slider_Text.SetPosition((trbX-40, tbrY+160))
@@ -1250,6 +1322,23 @@ class Mywin(wx.Frame):
         self.noise_slider_Text.SetPosition((trbX+1000-340, tbrY+95))
         self.perlin_octave_slider_Text.SetPosition((trbX+1000-340, tbrY+95))
         self.perlin_octave_slider_Text.SetPosition((trbX+1000-340, tbrY+95))
+
+        self.cadence_rescheduler_text.SetPosition((trbX-40, tbrY+340))
+        self.cadence_rescheduler_url_input_box.SetPosition((trbX-40, tbrY+380))
+        self.cadence_rescheduler_disco_checkbox.SetPosition((trbX+220, tbrY+380))
+        self.cadence_rescheduler_cadence_text.SetPosition((trbX-40, tbrY+402))
+        self.cadence_rescheduler_cadence_input_box.SetPosition((trbX+46, tbrY+400))
+        self.cadence_rescheduler_trigger_parameter_text.SetPosition((trbX-40, tbrY+422))
+        self.cadence_rescheduler_trigger_parameter_input_box.SetPosition((trbX+62, tbrY+420))
+        self.cadence_rescheduler_trigger_min_text.SetPosition((trbX-40, tbrY+442))
+        self.cadence_rescheduler_trigger_min_input_box.SetPosition((trbX-10, tbrY+440))
+        self.cadence_rescheduler_trigger_max_text.SetPosition((trbX+40, tbrY+442))
+        self.cadence_rescheduler_trigger_max_input_box.SetPosition((trbX+70, tbrY+440))
+        self.cadence_rescheduler_calculate_button.SetPosition((trbX-40, tbrY+470))
+        self.cadence_rescheduler_result_text.SetPosition((trbX+40, tbrY+472))
+        self.cadence_rescheduler_result_input_box.SetPosition((trbX+80, tbrY+470))
+        self.cadence_rescheduler_result_informational_text.SetPosition((trbX-40, tbrY+492))
+        self.cadence_rescheduler_result_informational_input_box.SetPosition((trbX+40, tbrY+490))
 
     def OnResize(self, evt):
         global screenHeight
@@ -1514,6 +1603,8 @@ class Mywin(wx.Frame):
             self.writeValue("noise_multiplier", float(noise_multiplier))
             self.writeValue("perlin_octaves", int(Perlin_Octave_Value))
             self.writeValue("perlin_persistence", float(Perlin_Persistence_Value))
+            self.writeValue("use_deforumation_cadence_scheduling", 0)
+
         else:
             self.writeAllValues()
     def writeValue(self, param, value):
@@ -1942,7 +2033,16 @@ class Mywin(wx.Frame):
 
 
         print("Ending stepper thread")
-#"translation_x"
+
+    def OnFocus(self, event):
+        #if event.GetId() == 1233:
+        print("Entered Input box!")
+        self.cadence_schedule_Checkbox.SetValue(False)
+        self.writeValue("use_deforumation_cadence_scheduling", 0)
+        #self.cadence_schedule_Checkbox.SetCursor(0)
+        event.Skip()
+
+
     def OnClicked(self, event):
         global Translation_X
         global Translation_Y
@@ -2015,6 +2115,152 @@ class Mywin(wx.Frame):
             self.loadCurrentPrompt("N", current_frame, 1)
             is_paused_rendering = False
             self.writeValue("is_paused_rendering", is_paused_rendering)
+        elif btn == "Re-schedule":
+            should_use_disco = False
+            if self.cadence_rescheduler_disco_checkbox.GetValue():
+                should_use_disco = True
+
+            if not should_use_disco:
+                manifestOrUrl = self.cadence_rescheduler_url_input_box.GetValue()
+                try:
+                    if (manifestOrUrl.startswith('http')):
+                        # Using URL
+                        body = requests.get(manifestOrUrl).text
+                        parseq_json = json.loads(body)
+                    else:
+                        f = open(manifestOrUrl)
+                        parseq_json = json.load(f)
+                        f.close()
+                except Exception as e:
+                    wx.MessageBox(str(e), "URL/FILE input error")
+                    return
+                # Get all frames
+                rendered_frames = parseq_json['rendered_frames']
+                # Number of frames to interprete
+                numberOfParseqFrames = len(rendered_frames)
+            else:
+                disco_string = self.positive_prompt_input_ctrl.GetValue().replace('\n', '').replace('\r', '').replace(' ', '').replace('(', '').replace(')', '')
+                my_list = disco_string.split(",")
+                parseq_json = {}
+                for entity in my_list:
+                    two_time = entity.split(":")
+                    parseq_json[f"{two_time[0]}"] = float(two_time[1])
+                # Number of frames to interprete
+                numberOfParseqFrames = len(parseq_json)
+            # Relevant Frames
+            relevant_frames = {}
+            # What is the trigger
+            trigger_param = str(self.cadence_rescheduler_trigger_parameter_input_box.GetValue()).lower()
+            # Value trigger
+            trigger_min = float(self.cadence_rescheduler_trigger_min_input_box.GetValue())
+            trigger_max = float(self.cadence_rescheduler_trigger_max_input_box.GetValue())
+
+
+            # Get all frames
+            if not should_use_disco:
+                for i in range(numberOfParseqFrames):
+                    parseq_frame = -1
+                    for key, value in rendered_frames[i].items():
+                        if key == "frame":
+                            parseq_frame = int(value)
+                        if key == trigger_param:
+                            parseq_value = round(float(value), 3)
+                            if (parseq_value >= float(trigger_min)) and (parseq_value <= float(trigger_max)):
+                                # print("Frame("+str(parseq_frame)+"):"+trigger_param+"("+str(parseq_value)+")")
+                                relevant_frames[parseq_frame] = parseq_value
+            else:
+                #for i in range(numberOfParseqFrames):
+                #    parseq_frame = -1
+                for key, value in parseq_json.items():
+                    parseq_frame = int(key)
+                    parseq_value = round(float(value), 3)
+                    if (parseq_value >= float(trigger_min)) and (parseq_value <= float(trigger_max)):
+                        # print("Frame("+str(parseq_frame)+"):"+trigger_param+"("+str(parseq_value)+")")
+                        relevant_frames[parseq_frame] = parseq_value
+
+            print("Frames that are in scope, from your current settings:")
+            print(str(relevant_frames))
+            number_relevant_frames = len(relevant_frames)
+            relevant_frames = collections.OrderedDict(sorted(relevant_frames.items()))
+
+            # What cadence should be used in the calculation
+            now_cadence = int(self.cadence_rescheduler_cadence_input_box.GetValue())
+            if now_cadence <= 0 or now_cadence >20:
+                wx.MessageBox("Cadence value must be 1 to 20", "Cadence value error")
+                return
+
+            # Relevant Frames
+            relevant_frames_cadence_modulation = {}
+            relevant_frames_cadence_modulation[0] = now_cadence
+
+            number_of_cadence_warning = 0
+            previous_frame_number = 0
+            cadence_rescheduler_result_informational_input_box_message = ""
+            for frame_number, value in relevant_frames.items():
+                frame_modulus = int(frame_number) % now_cadence
+                if frame_modulus != 0:
+                    # print("WARNING! Frame(" + str(frame_number) + "):" + trigger_param + "(" + str(value) + "), might not trigger with start cadence:("+str(now_cadence)+")")
+                    number_of_cadence_warning += 1
+                    if previous_frame_number >= (frame_number - frame_modulus):
+                        print("WARNING!!!, frame number:" + str(
+                            previous_frame_number) + ", will be overriden or \"discarded\" (because they lie too close), by frame:" + str(
+                            frame_number))
+                        cadence_rescheduler_result_informational_input_box_message += "WARNING!!!, frame number:" + str(previous_frame_number) + ", will be overriden or \"discarded\" (because they lie too close), by frame:" + str(frame_number) + "\n"
+                    relevant_frames_cadence_modulation[frame_number - frame_modulus] = frame_modulus
+                    relevant_frames_cadence_modulation[frame_number] = now_cadence
+                previous_frame_number = frame_number
+            if cadence_rescheduler_result_informational_input_box_message != "":
+                self.cadence_rescheduler_result_informational_input_box.SetValue(cadence_rescheduler_result_informational_input_box_message)
+            else:
+                if number_of_cadence_warning == 0:
+                    self.cadence_rescheduler_result_informational_input_box.SetValue("No Schedule Problems Detected")
+                else:
+                    self.cadence_rescheduler_result_informational_input_box.SetValue("No Schedule Problems Detected, but re-scheduling has been done on "+ str(number_of_cadence_warning) +" places where triggering would have been prevented.")
+
+            print("\nOut of " + str(number_relevant_frames) + " trigger points (" + trigger_param + "), " + str(
+                number_of_cadence_warning) + " might not trigger.")
+
+            print("\nSuggested cadence schedule to trigger on all important " + trigger_param + " values\n"
+                                                                                            "------------------------------------------------------------------------\n"
+                                                                                            "Deforumation type schedule:\n")
+            if number_of_cadence_warning == 0:
+                wx.MessageBox("There are no problems in your current cadence scheme, and so no re-scheduling is neccessary!", "You don't need to use re-scheduling!")
+                return
+
+            isFirstValue = True
+            cadence_schedule_string = ""
+            for frame_number, cadence_value in relevant_frames_cadence_modulation.items():
+                if not isFirstValue:
+                    print(",", end="")
+                    cadence_schedule_string = cadence_schedule_string + ","
+                else:
+                    print("{", end="")
+                    cadence_schedule_string = cadence_schedule_string + "{"
+                    isFirstValue = False
+                print("\"" + str(frame_number) + "\":" + str(cadence_value), end="")
+                cadence_schedule_string = cadence_schedule_string + "\"" + str(frame_number) + "\":" + str(cadence_value)
+            print("}")
+            cadence_schedule_string = cadence_schedule_string + "}"
+
+            self.cadence_rescheduler_result_input_box.SetValue(cadence_schedule_string)
+            if wx.TheClipboard.Open():
+                wx.TheClipboard.SetData(wx.TextDataObject(cadence_schedule_string))
+                wx.TheClipboard.Close()
+                wx.MessageBox("The suggested cadence schedule has been sent to the clip-board, and you can use this to paste (\"Ctrl+v\" on Windows) it into the \"<Cadence Schedule Here>\"-input-box.", "Plz read")
+
+
+        elif btn == "Use C.":
+            if self.cadence_schedule_Checkbox.GetValue() == True:
+                cadence_schedule_text = self.cadence_schedule_input_box.GetValue()
+                if cadence_schedule_text == "":
+                    wx.MessageBox("No cadence schedule has been given. No sanity checks are done (for now), so be careful to get it right, else Deforum may go haywire.", "Plz read")
+                    self.cadence_schedule_Checkbox.SetValue(False)
+                    self.writeValue("use_deforumation_cadence_scheduling", 0)
+                else:
+                    self.writeValue("use_deforumation_cadence_scheduling", 1)
+                    self.writeValue("deforumation_cadence_scheduling_manifest", cadence_schedule_text)
+            else:
+                self.writeValue("use_deforumation_cadence_scheduling", 0)
         elif btn == "Stay on top":
             if should_stay_on_top:
                 should_stay_on_top = False
@@ -2734,5 +2980,5 @@ if __name__ == '__main__':
 
     #anim = pyeaze.Animator(current_value=0, target_value=100, duration=1, fps=40, easing='ease-in-out', reverse=False)
     app = wx.App()
-    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.4.7)')
+    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.4.8)')
     app.MainLoop()
