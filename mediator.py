@@ -72,6 +72,9 @@ deforum_perlin_octaves = 4
 perlin_persistence = 0.5
 deforum_perlin_persistence = 0.5
 
+use_deforumation_cadence_scheduling = 0
+
+deforumation_cadence_scheduling_manifest = "0:(3)"
 
 async def echo(websocket):
     global serverShutDown
@@ -132,6 +135,8 @@ async def echo(websocket):
     global should_use_deforumation_zoomfov
     global should_use_deforumation_rotation
     global should_use_deforumation_tilt
+    global use_deforumation_cadence_scheduling
+    global deforumation_cadence_scheduling_manifest
     async for message in websocket:
         #print("Incomming message:"+str(message))
         arr = pickle.loads(message)
@@ -147,7 +152,7 @@ async def echo(websocket):
                     shouldPause = int(value)
                 else:
                     if doVerbose:
-                        print("is_paused_rendering:"+str(parameter))
+                        print("is_paused_rendering:"+str(shouldPause))
                     await websocket.send(str(shouldPause))
             elif str(parameter) == "should_use_deforumation_prompt_scheduling":
                 if shouldWrite:
@@ -156,6 +161,20 @@ async def echo(websocket):
                     if doVerbose:
                         print("should_use_deforumation_prompt_scheduling:" + str(should_use_deforumation_prompt_scheduling))
                     await websocket.send(str(should_use_deforumation_prompt_scheduling))
+            elif str(parameter) == "use_deforumation_cadence_scheduling":
+                if shouldWrite:
+                    use_deforumation_cadence_scheduling = value
+                else:
+                    if doVerbose:
+                        print("use_deforumation_cadence_scheduling:" + str(use_deforumation_cadence_scheduling))
+                    await websocket.send(str(use_deforumation_cadence_scheduling))
+            elif str(parameter) == "deforumation_cadence_scheduling_manifest":
+                if shouldWrite:
+                    deforumation_cadence_scheduling_manifest = value
+                else:
+                    if doVerbose:
+                        print("deforumation_cadence_scheduling_manifest:" + str(deforumation_cadence_scheduling_manifest))
+                    await websocket.send(str(deforumation_cadence_scheduling_manifest))
             elif str(parameter) == "positive_prompt":
                 if shouldWrite:
                     Prompt_Positive = value
@@ -655,7 +674,7 @@ async def main():
 
 if __name__ == '__main__':
     try:
-        print("Starting mediator 0.4.7")
+        print("Starting mediator 0.4.8")
         asyncio.run(main())
     except KeyboardInterrupt:
         serverShutDown = True
