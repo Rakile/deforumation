@@ -35,11 +35,28 @@ from modules import lowvram, devices, sd_hijack
 from .RAFT import RAFT
 #Deforumation_mediator imports/settings
 import pickle
+import json
 from .deforum_mediator import mediator_getValue, mediator_setValue, mediator_set_anim_args
 #End settings
 
-def render_animation(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, root):
 
+#Deforumation_stuff
+deforumation_cadence_scheduling_manifest=""
+#End settings
+
+def get_now_cadence(now_frame):
+    relevant_frames_cadence_modulation = json.loads(deforumation_cadence_scheduling_manifest)
+    cadence_now = -1
+    for frame_number, cadence_value in relevant_frames_cadence_modulation.items():
+        if int(now_frame) >= int(frame_number):
+            cadence_now = cadence_value
+        else:
+            return cadence_now
+
+
+
+def render_animation(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, root):
+    global deforumation_cadence_scheduling_manifest
     #Deforumation_initialization
     usingDeforumation = True
     cadence_was_one = False
@@ -75,12 +92,12 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     #Let the deforum mediator get the anim_args and the args values
     if usingDeforumation:
-        mediator_set_anim_args(anim_args, args)
+        mediator_set_anim_args(anim_args, args, root)
 
     #Deforumation has a chance to overwrite the keys values, if it is using parseq
     use_parseq = 0
     if usingDeforumation:
-        print("Made for Deforumation version: 0.4.7")
+        print("Made for Deforumation version: 0.4.8")
         print("------------------------------------")
         if int(mediator_getValue("use_parseq").strip().strip('\n')) == 1:
             use_parseq = 1
@@ -158,6 +175,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         print("Loading RAFT model...")
         raft_model = RAFT()
 
+    use_deforumation_cadence_scheduling = 0
     # state for interpolating between diffusion steps
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to write the current resume frame properties?
         if int(mediator_getValue("should_use_deforumation_cadence").strip().strip('\n')) == 1:
@@ -166,6 +184,12 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             turbo_steps = 1 if using_vid_init else int(anim_args.diffusion_cadence)
         if turbo_steps == 1:
             cadence_was_one = True
+        #if int(mediator_getValue("use_deforumation_cadence_scheduling").strip().strip('\n')) == 1:
+        #    use_deforumation_cadence_scheduling = 1
+        #    deforumation_cadence_scheduling_manifest = str(mediator_getValue("deforumation_cadence_scheduling_manifest").strip().strip('\n'))
+        #    print("Deforumation cadence scheduling will be used:\n"
+        #          "---------------------------------------------\n"
+        #          + str(deforumation_cadence_scheduling_manifest) + "\n")
     else:
         turbo_steps = 1 if using_vid_init else int(anim_args.diffusion_cadence)
 
@@ -196,7 +220,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         # advance start_frame to next frame
         start_frame = next_frame + 1
 
-    previous_turbo_steps = turbo_steps #usingDeforumation
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to write the current resume frame properties?
         mediator_setValue("should_resume", 0)
         print("DEFORUM, SETTING STARTFRAME:"+str(start_frame))
@@ -208,6 +231,17 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             mediator_setValue("resume_timestring", anim_args.resume_timestring)
         else:
             mediator_setValue("resume_timestring", root.timestring)  
+
+        if int(mediator_getValue("use_deforumation_cadence_scheduling").strip().strip('\n')) == 1:
+            use_deforumation_cadence_scheduling = 1
+            deforumation_cadence_scheduling_manifest = str(mediator_getValue("deforumation_cadence_scheduling_manifest").strip().strip('\n'))
+            print("Deforumation cadence scheduling will be used:\n"
+                  "---------------------------------------------\n"
+                  + str(deforumation_cadence_scheduling_manifest) + "\n")
+            turbo_steps = get_now_cadence(start_frame)
+            print("Starting on frame:"+str(start_frame)+", cadence:"+str(turbo_steps)+", should be used.")
+
+    previous_turbo_steps = turbo_steps #usingDeforumation
 
     frame_idx = start_frame
 
@@ -414,10 +448,43 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         # emit in-between frames
         previous_turbo_steps = turbo_steps #usingDeforumation
         print("previous_turbo_steps:"+str(previous_turbo_steps))
+
+
+        
+           
+        #if use_deforumation_cadence_scheduling == 1:
+        #    deforumation_cadence_scheduling_manifest = str(mediator_getValue("deforumation_cadence_scheduling_manifest").strip().strip('\n'))
+        #    print("Deforumation cadence scheduling will be used:\n"
+        #          "---------------------------------------------\n"
+        #          + str(deforumation_cadence_scheduling_manifest) + "\n")
+        #    turbo_steps = get_now_cadence(start_frame)
+        #    print("Starting on frame:"+str(start_frame)+", cadence:"+str(turbo_steps)+", should be used.")
+
+
         if usingDeforumation: #Should we Connect to the Deforumation websocket server to get CFG values?
+            should_use_deforumation_cadence_schedule = int(mediator_getValue("use_deforumation_cadence_scheduling").strip().strip('\n'))
             if using_vid_init:
                 print("We do use using_vid_init")
                 turbo_steps = 1
+
+            elif should_use_deforumation_cadence_schedule and use_deforumation_cadence_scheduling == 0:
+                use_deforumation_cadence_scheduling = 1
+                deforumation_cadence_scheduling_manifest = str(mediator_getValue("deforumation_cadence_scheduling_manifest").strip().strip('\n'))
+                print("Deforumation cadence scheduling was not used but will now be used!\n"
+                      "------------------------------------------------------------------")
+                get_now_from_frame = frame_idx-previous_turbo_steps
+                if get_now_from_frame < 0:
+                    get_now_from_frame = 0
+                turbo_steps = get_now_cadence(get_now_from_frame)
+                print("get_now_cadence() returned" + str(turbo_steps))
+
+            elif should_use_deforumation_cadence_schedule and use_deforumation_cadence_scheduling == 1:
+                get_now_from_frame = frame_idx-previous_turbo_steps
+                if get_now_from_frame < 0:
+                    get_now_from_frame = 0
+                turbo_steps = get_now_cadence(get_now_from_frame)
+                print("Deforumation cadence scheduling conntineously used, cadence:" + str(turbo_steps))
+
             elif int(mediator_getValue("should_use_deforumation_cadence").strip().strip('\n')) == 1:
                 print("We should use deforumation cadence.")
                 if turbo_steps == 1:
@@ -459,7 +526,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
 
         if turbo_steps > 1:
-            tween_frame_start_idx = max(start_frame, frame_idx - turbo_steps - previous_turbo_steps) #Maybe nee2d to fix .png image #usingDeforumation
+            tween_frame_start_idx = max(start_frame, frame_idx - turbo_steps - previous_turbo_steps) #Maybe need to fix .png image #usingDeforumation
             frame_idx = frame_idx - previous_turbo_steps #usingDeforumation
             cadence_flow = None
             print("start_frame:"+str(start_frame))
@@ -467,6 +534,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             print("frame_idx - turbo_steps:"+str(frame_idx - turbo_steps))
             print("tween_frame_start_idx:"+str(tween_frame_start_idx))
             print("frame_idx:"+str(frame_idx))
+            if frame_idx < 0:
+                print("frame_idx pushed into negative, so adjusting frame_idx to 0.")
+                frame_idx = 0
             if cadence_was_one: #usingDeforumation
                 #tween_frame_start_idx = frame_idx
                 cadence_was_one = False

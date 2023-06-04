@@ -5,6 +5,7 @@ import time
 needToUpdateMediator = False
 anim_args_copy = None
 args_copy = None
+root_copy = None
 async def sendAsync(value):
     async with websockets.connect("ws://localhost:8765") as websocket:
         try:
@@ -19,11 +20,13 @@ async def sendAsync(value):
             message = 0
         return message
 
-def mediator_set_anim_args(anim_args, args):
+def mediator_set_anim_args(anim_args, args, root):
     global anim_args_copy
     global args_copy
+    global root_copy
     anim_args_copy = anim_args
     args_copy = args
+    root_copy = root
 
 def updateMediator(): #No validation is made that  the websocket server (Mediator.py is actually up and running)
     print("Was ordered to update time_string")
@@ -32,9 +35,9 @@ def updateMediator(): #No validation is made that  the websocket server (Mediato
         return_value = asyncio.run(sendAsync([1, "resume_timestring", anim_args_copy.resume_timestring]))
         #mediator_setValue("resume_timestring", anim_args_copy.resume_timestring)
     else:
-        print("Sending Values:" + str(args_copy.timestring))
-        return_value = asyncio.run(sendAsync([1, "resume_timestring", args_copy.timestring]))
-        #mediator_setValue("resume_timestring", args_copy.timestring) 
+        print("Sending Values:" + str(root_copy.timestring))
+        return_value = asyncio.run(sendAsync([1, "resume_timestring", root_copy.timestring]))
+        #mediator_setValue("resume_timestring", root_copy.timestring) 
     #OUTDIR is the same for either you resume or not.
     mediator_setValue("frame_outdir", args_copy.outdir)
 
