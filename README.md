@@ -48,7 +48,9 @@ Latest version / features
 
 Introduction<a name="introduction"></a>
 ------------
-Deforumation is an unofficial extension for Deforum that provides a Graphical User Interface (GUI) to remotely control Deforum 3D motions, zoom and angle , strength value (toggle to use deforum strenght schedule), CFG Scale, sampler steps, seed, cadense scale  and prompts in real-time. It also offers pausing, rewinding, forwarding, and resuming by setting current image to fix any undesired outcomes during the rendering process.
+Deforumation is an unofficial extension for Deforum that provides a Graphical User Interface (GUI) to remotely control Deforum 3D motions, zoom and angle , strength value (toggle to use deforum strenght schedule), CFG Scale, sampler steps, seed, cadense scale  and prompts in real-time. It also offers pausing, rewinding, forwarding, and resuming by setting current image to fix any undesired outcomes during the rendering process. 
+
+Recently added features are checkboxes for enable / disable fuctions from deforumation. Checkboxes are dded to Prompt, Strenght value, CFG scale, Cadense scale, Noise values, camera panning and camera rotation. This makes it possible to apply sceduling to any of those values from Deforum of from Parseq. 
 
 Key Features<a name="key-features"></a>
 ------------
