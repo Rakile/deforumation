@@ -33,6 +33,7 @@ Table of Contents
 Support our work via Patreon or buymeacoffee <a name="patreon"></a>
 ===============================================
 [Deforumation Patreon](https://www.patreon.com/Deforumation)
+------------
 [buymeacoffee.com](https://www.buymeacoffee.com/deforumation)
 ------------
 Deforumation is a free tool for everyone to use. We appreciate all and any donations/support to keep Deforumation up to date and adding new features together with the community.  
