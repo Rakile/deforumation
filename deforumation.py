@@ -1013,7 +1013,7 @@ class Mywin(wx.Frame):
 
         #PARSEQ URL INPUT BOX
         self.Parseq_URL_input_box_text = wx.StaticText(self.panel, label="Use PARSEQ as Guide: ", pos = (trbX + 640, tbrY + 245))
-        self.Parseq_activation_Checkbox = wx.CheckBox(self.panel, id=73, pos=(trbX+760, tbrY + 245))
+        self.Parseq_activation_Checkbox = wx.CheckBox(self.panel, id=73, pos=(trbX+770, tbrY + 245))
         self.Parseq_activation_Checkbox.SetToolTip("Tells, Deforum and Deforumation that Parseq is to be used as scheduler.")
         self.Parseq_activation_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
         self.Parseq_URL_input_box = wx.TextCtrl(self.panel, 28, size=(300,20), style = wx.TE_PROCESS_ENTER, pos = (trbX + 640, tbrY + 265))
