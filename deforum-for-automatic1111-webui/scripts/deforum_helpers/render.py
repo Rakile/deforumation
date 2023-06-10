@@ -97,7 +97,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     #Deforumation has a chance to overwrite the keys values, if it is using parseq
     use_parseq = 0
     if usingDeforumation:
-        print("Made for Deforumation version: 0.4.8")
+        print("Made for Deforumation version: 0.4.9")
         print("------------------------------------")
         if int(mediator_getValue("use_parseq").strip().strip('\n')) == 1:
             use_parseq = 1
@@ -825,16 +825,18 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         #If controlnet is being used, get the values from Deforumation
         if usingDeforumation:
             if is_controlnet_enabled(controlnet_args):
-                setattr(controlnet_args, f'cn_1_weight', "0:(" + str(mediator_getValue("cn_weight").strip().strip('\n')) + ")" )
-                #print(str(getattr(controlnet_args, f'cn_1_weight')))
-                setattr(controlnet_args, f'cn_1_guidance_start', "0:(" + str(mediator_getValue("cn_stepstart").strip().strip('\n')) + ")" )
-                #print(str(getattr(controlnet_args, f'cn_1_guidance_start')))
-                setattr(controlnet_args, f'cn_1_guidance_end', "0:(" + str(mediator_getValue("cn_stepend").strip().strip('\n')) + ")" )
-                #print(str(getattr(controlnet_args, f'cn_1_guidance_end')))
-                setattr(controlnet_args, f'cn_1_threshold_a', int(mediator_getValue("cn_lowt").strip().strip('\n')))
-                #print(str(getattr(controlnet_args, f'cn_1_threshold_a')))
-                setattr(controlnet_args, f'cn_1_threshold_b', int(mediator_getValue("cn_hight").strip().strip('\n')))
-                #print(str(getattr(controlnet_args, f'cn_1_threshold_b')))
+                for cnIndex in range(5):
+                    currCnIndex = cnIndex+1
+                    setattr(controlnet_args, f'cn_{currCnIndex}_weight', "0:(" + str(mediator_getValue("cn_weight"+str(cnIndex+1)).strip().strip('\n')) + ")" )
+                    #print(str(getattr(controlnet_args, f'cn_{currCnIndex}_weight')))
+                    setattr(controlnet_args, f'cn_{currCnIndex}_guidance_start', "0:(" + str(mediator_getValue("cn_stepstart"+str(cnIndex+1)).strip().strip('\n')) + ")" )
+                    #print(str(getattr(controlnet_args, f'cn_{currCnIndex}_guidance_start')))
+                    setattr(controlnet_args, f'cn_{currCnIndex}_guidance_end', "0:(" + str(mediator_getValue("cn_stepend"+str(cnIndex+1)).strip().strip('\n')) + ")" )
+                    #print(str(getattr(controlnet_args, f'cn_{currCnIndex}_guidance_end')))
+                    setattr(controlnet_args, f'cn_{currCnIndex}_threshold_a', int(mediator_getValue("cn_lowt"+str(cnIndex+1)).strip().strip('\n')))
+                    #print(str(getattr(controlnet_args, f'cn_{currCnIndex}_threshold_a')))
+                    setattr(controlnet_args, f'cn_{currCnIndex}_threshold_b', int(mediator_getValue("cn_hight"+str(cnIndex+1)).strip().strip('\n')))
+                    #print(str(getattr(controlnet_args, f'cn_{currCnIndex}_threshold_b')))
                 
         # optical flow redo before generation
         if anim_args.optical_flow_redo_generation != 'None' and prev_img is not None and strength > 0:
