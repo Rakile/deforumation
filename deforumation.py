@@ -63,11 +63,17 @@ should_use_deforumation_zoomfov = 1
 should_use_deforumation_rotation = 1
 should_use_deforumation_tilt = 1
 #ControlNet
-CN_Weight = 1.0
-CN_StepStart = 0.0
-CN_StepEnd = 1.0
-CN_LowT = 0
-CN_HighT = 255
+CN_Weight = []
+CN_StepStart = []
+CN_StepEnd = []
+CN_LowT = []
+CN_HighT = []
+for i in range(5):
+    CN_Weight.append(1.0)
+    CN_StepStart.append(0.0)
+    CN_StepEnd.append(1.0)
+    CN_LowT.append(0)
+    CN_HighT.append(255)
 #KEYBOARD KEYS
 pan_left_key = 0
 pan_right_key = 0
@@ -98,7 +104,7 @@ rotate_step_input_box_value = "1.0"
 tilt_step_input_box_value = "1.0"
 zero_pan_step_input_box_value = "0"
 zero_rotate_step_input_box_value = "0"
-
+current_active_cn_index = 1
 async def sendAsync(value):
     async with websockets.connect("ws://localhost:8765") as websocket:
         #await websocket.send(pickle.dumps(value))
@@ -969,51 +975,79 @@ class Mywin(wx.Frame):
         self.perlin_octave_slider.Hide()
         self.perlin_octave_slider_Text.Hide()
 
+        #CONTROLNET RADIO BUTTON CHOICE
+        ##############################################################
+        lblList = ['CN 1', 'CN 2', 'CN 3', 'CN 4', 'CN 5']
+        self.rbox = wx.RadioBox(self.panel, label='ControlNet', pos = (trbX+640, tbrY+100), choices=lblList, majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+        self.rbox.Bind(wx.EVT_RADIOBOX, self.OnRadioBoxCN)
+        #self.control_net_choice_radiobox = wx.RadioButton(self.panel, id=300, label = "CN 1", pos = (trbX+140, tbrY+180), style = wx.RB_GROUP)
+
         #ControlNet Sliders
         ###############################################################
         #CONTROLNET WEIGHT
-        self.control_net_weight_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_Weight*100), minValue=0, maxValue=200, pos = (trbX-40, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
-        self.control_net_weight_slider.SetToolTip("Tells, if activated, the first ControlNet, what weight it should use. The slider value is scaled by 100 (actual value 100 times smaller)")
-        self.control_net_weight_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
-        self.control_net_weight_slider.SetTickFreq(1)
-        self.control_net_weight_slider.SetLabel("CN WEIGHT")
-        self.control_net_weight_slider_Text = wx.StaticText(self.panel, label="ControlNet - Weight", pos=(trbX-40, tbrY+160))
+        self.control_net_weight_slider = []
+        self.control_net_weight_slider_Text = []
+        self.control_net_stepstart_slider = []
+        self.control_net_stepstart_slider_Text = []
+        self.control_net_stepend_slider = []
+        self.control_net_stepend_slider_Text = []
+        self.control_net_lowt_slider = []
+        self.control_net_lowt_slider_Text = []
+        self.control_net_hight_slider = []
+        self.control_net_hight_slider_Text = []
+        for cnIndex in range(5):
+            self.control_net_weight_slider.append(wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_Weight[cnIndex]*100), minValue=0, maxValue=200, pos = (trbX-40, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS ))
+            self.control_net_weight_slider[cnIndex].SetToolTip("Tells, if activated, the first ControlNet, what weight it should use. The slider value is scaled by 100 (actual value 100 times smaller)")
+            self.control_net_weight_slider[cnIndex].Bind(wx.EVT_SCROLL, self.OnClicked)
+            self.control_net_weight_slider[cnIndex].SetTickFreq(1)
+            self.control_net_weight_slider[cnIndex].SetLabel("CN WEIGHT"+str(cnIndex))
+            self.control_net_weight_slider_Text.append(wx.StaticText(self.panel, label="ControlNet("+str(cnIndex+1)+") - Weight", pos=(trbX-40, tbrY+160)))
+            self.control_net_weight_slider_Text[cnIndex].Hide()
+            self.control_net_weight_slider[cnIndex].Hide()
 
-        #CONTROLNET STARTING CONTROL STEP
-        self.control_net_stepstart_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_StepStart*100), minValue=0, maxValue=100, pos = (trbX+300, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
-        self.control_net_stepstart_slider.SetToolTip("Tells, if activated, the first ControlNet, what step it should start on. The slider value is scaled by 100 (actual value 100 times smaller)")
-        self.control_net_stepstart_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
-        self.control_net_stepstart_slider.SetTickFreq(1)
-        self.control_net_stepstart_slider.SetLabel("CN STEPSTART")
-        self.control_net_stepstart_slider_Text = wx.StaticText(self.panel, label="ControlNet - Starting Control Step", pos=(trbX+300, tbrY+160))
+            #CONTROLNET STARTING CONTROL STEP
+            self.control_net_stepstart_slider.append(wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_StepStart[cnIndex]*100), minValue=0, maxValue=100, pos = (trbX+300, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS ))
+            self.control_net_stepstart_slider[cnIndex].SetToolTip("Tells, if activated, the first ControlNet, what step it should start on. The slider value is scaled by 100 (actual value 100 times smaller)")
+            self.control_net_stepstart_slider[cnIndex].Bind(wx.EVT_SCROLL, self.OnClicked)
+            self.control_net_stepstart_slider[cnIndex].SetTickFreq(1)
+            self.control_net_stepstart_slider[cnIndex].SetLabel("CN STEPSTART"+str(cnIndex))
+            self.control_net_stepstart_slider_Text.append(wx.StaticText(self.panel, label="ControlNet("+str(cnIndex+1)+") - Starting Control Step", pos=(trbX+300, tbrY+160)))
+            self.control_net_stepstart_slider[cnIndex].Hide()
+            self.control_net_stepstart_slider_Text[cnIndex].Hide()
+            #CONTROLNET ENDING CONTROL STEP
+            self.control_net_stepend_slider.append(wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_StepEnd[cnIndex]*100), minValue=0, maxValue=100, pos = (trbX+640, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS ))
+            self.control_net_stepend_slider[cnIndex].SetToolTip("Tells, if activated, the first ControlNet, what step it should end on. The slider value is scaled by 100 (actual value 100 times smaller)")
+            self.control_net_stepend_slider[cnIndex].Bind(wx.EVT_SCROLL, self.OnClicked)
+            self.control_net_stepend_slider[cnIndex].SetTickFreq(1)
+            self.control_net_stepend_slider[cnIndex].SetLabel("CN STEPEND"+str(cnIndex))
+            self.control_net_stepend_slider_Text.append(wx.StaticText(self.panel, label="ControlNet("+str(cnIndex+1)+") - Ending Control Step", pos=(trbX+640, tbrY+160)))
+            self.control_net_stepend_slider[cnIndex].Hide()
+            self.control_net_stepend_slider_Text[cnIndex].Hide()
+            #CONTROLNET LOW THRESHOLD
+            self.control_net_lowt_slider.append(wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_LowT[cnIndex]), minValue=0, maxValue=255, pos = (trbX-40, tbrY+260), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS ))
+            self.control_net_lowt_slider[cnIndex].SetToolTip("Tells, if activated, the first ControlNet, what the lower threshold should be. Values below the low threshold always get discarded. Values in between the the two thresholds may get kept or may get discarded depending on various rules and maths.")
+            self.control_net_lowt_slider[cnIndex].Bind(wx.EVT_SCROLL, self.OnClicked)
+            self.control_net_lowt_slider[cnIndex].SetTickFreq(1)
+            self.control_net_lowt_slider[cnIndex].SetLabel("CN LOWT"+str(cnIndex))
+            self.control_net_lowt_slider_Text.append(wx.StaticText(self.panel, label="ControlNet("+str(cnIndex+1)+") - Low Threshold", pos=(trbX-40, tbrY+240)))
+            self.control_net_lowt_slider[cnIndex].Hide()
+            self.control_net_lowt_slider_Text[cnIndex].Hide()
+            #CONTROLNET HIGH THRESHOLD
+            self.control_net_hight_slider.append(wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_HighT[cnIndex]), minValue=0, maxValue=255, pos = (trbX+300, tbrY+260), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS ))
+            self.control_net_hight_slider[cnIndex].SetToolTip("Tells, if activated, the first ControlNet, what the higher threshold should be. Values below the low threshold always get discarded. Values above the high threshold always get kept. Values in between the the two thresholds may get kept or may get discarded depending on various rules and maths.")
+            self.control_net_hight_slider[cnIndex].Bind(wx.EVT_SCROLL, self.OnClicked)
+            self.control_net_hight_slider[cnIndex].SetTickFreq(1)
+            self.control_net_hight_slider[cnIndex].SetLabel("CN HIGHT"+str(cnIndex))
+            self.control_net_hight_slider_Text.append(wx.StaticText(self.panel, label="ControlNet("+str(cnIndex+1)+") - High Threshold", pos=(trbX+300, tbrY+240)))
+            self.control_net_hight_slider[cnIndex].Hide()
+            self.control_net_hight_slider_Text[cnIndex].Hide()
 
-        #CONTROLNET ENDING CONTROL STEP
-        self.control_net_stepend_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_StepEnd*100), minValue=0, maxValue=100, pos = (trbX+640, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
-        self.control_net_stepend_slider.SetToolTip("Tells, if activated, the first ControlNet, what step it should end on. The slider value is scaled by 100 (actual value 100 times smaller)")
-        self.control_net_stepend_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
-        self.control_net_stepend_slider.SetTickFreq(1)
-        self.control_net_stepend_slider.SetLabel("CN STEPEND")
-        self.control_net_stepend_slider_Text = wx.StaticText(self.panel, label="ControlNet - Ending Control Step", pos=(trbX+640, tbrY+160))
-
-        #CONTROLNET LOW THRESHOLD
-        self.control_net_lowt_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_LowT), minValue=0, maxValue=255, pos = (trbX-40, tbrY+260), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
-        self.control_net_lowt_slider.SetToolTip("Tells, if activated, the first ControlNet, what the lower threshold should be. Values below the low threshold always get discarded. Values in between the the two thresholds may get kept or may get discarded depending on various rules and maths.")
-        self.control_net_lowt_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
-        self.control_net_lowt_slider.SetTickFreq(1)
-        self.control_net_lowt_slider.SetLabel("CN LOWT")
-        self.control_net_lowt_slider_Text = wx.StaticText(self.panel, label="ControlNet - Low Threshold", pos=(trbX-40, tbrY+240))
-
-        #CONTROLNET HIGH THRESHOLD
-        self.control_net_hight_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_HighT), minValue=0, maxValue=255, pos = (trbX+300, tbrY+260), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
-        self.control_net_hight_slider.SetToolTip("Tells, if activated, the first ControlNet, what the higher threshold should be. Values below the low threshold always get discarded. Values above the high threshold always get kept. Values in between the the two thresholds may get kept or may get discarded depending on various rules and maths.")
-        self.control_net_hight_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
-        self.control_net_hight_slider.SetTickFreq(1)
-        self.control_net_hight_slider.SetLabel("CN HIGHT")
-        self.control_net_hight_slider_Text = wx.StaticText(self.panel, label="ControlNet - High Threshold", pos=(trbX+300, tbrY+240))
+        #UN-HIDE CN 0
+        self.SetCurrentActiveCN(1)
 
         #PARSEQ URL INPUT BOX
         self.Parseq_URL_input_box_text = wx.StaticText(self.panel, label="Use PARSEQ as Guide: ", pos = (trbX + 640, tbrY + 245))
-        self.Parseq_activation_Checkbox = wx.CheckBox(self.panel, id=73, pos=(trbX+770, tbrY + 245))
+        self.Parseq_activation_Checkbox = wx.CheckBox(self.panel, id=73, pos=(trbX+780, tbrY + 245))
         self.Parseq_activation_Checkbox.SetToolTip("Tells, Deforum and Deforumation that Parseq is to be used as scheduler.")
         self.Parseq_activation_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
         self.Parseq_URL_input_box = wx.TextCtrl(self.panel, 28, size=(300,20), style = wx.TE_PROCESS_ENTER, pos = (trbX + 640, tbrY + 265))
@@ -1136,7 +1170,12 @@ class Mywin(wx.Frame):
             self.perlin_persistence_slider.Show()
             self.perlin_persistence_slider_Text.Show()
 
-
+    def OnRadioBoxCN(self, event):
+        btn = self.rbox.GetStringSelection()
+        print(btn)
+        currentActive = int(btn[int(len(btn)-1)])
+        print("IT IS CN:"+str(currentActive))
+        self.SetCurrentActiveCN(currentActive)
 
     def OnShouldHide(self, event):
         global tbrY
@@ -1281,20 +1320,24 @@ class Mywin(wx.Frame):
         self.cadence_schedule_input_box.SetPosition((trbX+1000-220, tbrY-22))
         self.cadence_schedule_Checkbox.SetPosition((trbX+1000-66, tbrY-20))
         self.cadence_suggestion.SetPosition((trbX+1000-140, tbrY))
-        self.control_net_weight_slider.SetPosition((trbX-40, tbrY+180))
-        self.control_net_weight_slider_Text.SetPosition((trbX-40, tbrY+160))
-        self.control_net_stepstart_slider.SetPosition((trbX+300, tbrY+180))
-        self.control_net_stepstart_slider_Text.SetPosition((trbX+640, tbrY+160))
-        self.control_net_stepend_slider.SetPosition((trbX+640, tbrY+180))
-        self.control_net_stepend_slider_Text.SetPosition((trbX+300, tbrY+160))
-        self.control_net_lowt_slider.SetPosition((trbX-40, tbrY+260))
-        self.control_net_lowt_slider_Text.SetPosition((trbX-40, tbrY+240))
-        self.control_net_hight_slider.SetPosition((trbX+300, tbrY+260))
-        self.control_net_hight_slider_Text.SetPosition((trbX+300, tbrY+240))
+        #CN
+        self.rbox.SetPosition((trbX + 640, tbrY + 100))
+        for cnIndex in range(5):
+            self.control_net_weight_slider[cnIndex].SetPosition((trbX-40, tbrY+180))
+            self.control_net_weight_slider_Text[cnIndex].SetPosition((trbX-40, tbrY+160))
+            self.control_net_stepstart_slider[cnIndex].SetPosition((trbX+300, tbrY+180))
+            self.control_net_stepstart_slider_Text[cnIndex].SetPosition((trbX+640, tbrY+160))
+            self.control_net_stepend_slider[cnIndex].SetPosition((trbX+640, tbrY+180))
+            self.control_net_stepend_slider_Text[cnIndex].SetPosition((trbX+300, tbrY+160))
+            self.control_net_lowt_slider[cnIndex].SetPosition((trbX-40, tbrY+260))
+            self.control_net_lowt_slider_Text[cnIndex].SetPosition((trbX-40, tbrY+240))
+            self.control_net_hight_slider[cnIndex].SetPosition((trbX+300, tbrY+260))
+            self.control_net_hight_slider_Text[cnIndex].SetPosition((trbX+300, tbrY+240))
+        #END CN
         self.Send_URL_to_Deforum.SetPosition((trbX + 820, tbrY + 242))
         self.Parseq_URL_input_box.SetPosition((trbX + 640, tbrY + 265))
         self.Parseq_URL_input_box_text.SetPosition((trbX + 640, tbrY + 245))
-        self.Parseq_activation_Checkbox.SetPosition((trbX+760, tbrY + 245))
+        self.Parseq_activation_Checkbox.SetPosition((trbX+780, tbrY + 245))
         self.replay_input_box_text.SetPosition((trbX+990, tbrY-130))
         self.replay_from_input_box.SetPosition((trbX+1030, tbrY-131))
         self.replay_to_input_box.SetPosition((trbX+1090, tbrY-131))
@@ -1339,6 +1382,35 @@ class Mywin(wx.Frame):
         self.cadence_rescheduler_result_input_box.SetPosition((trbX+80, tbrY+470))
         self.cadence_rescheduler_result_informational_text.SetPosition((trbX-40, tbrY+492))
         self.cadence_rescheduler_result_informational_input_box.SetPosition((trbX+40, tbrY+490))
+
+    def SetCurrentActiveCN(self, cnSelectIndex):
+        global current_active_cn_index
+        current_active_cn_index = cnSelectIndex
+        #UN-HIDE A CN (LAZY WAY OF HIDE UNHIDE)
+        for cnIndex in range(5):
+            if (cnSelectIndex-1) == cnIndex:
+                self.control_net_weight_slider_Text[cnIndex].Show()
+                self.control_net_weight_slider[cnIndex].Show()
+                self.control_net_stepstart_slider[cnIndex].Show()
+                self.control_net_stepstart_slider_Text[cnIndex].Show()
+                self.control_net_stepend_slider[cnIndex].Show()
+                self.control_net_stepend_slider_Text[cnIndex].Show()
+                self.control_net_lowt_slider[cnIndex].Show()
+                self.control_net_lowt_slider_Text[cnIndex].Show()
+                self.control_net_hight_slider[cnIndex].Show()
+                self.control_net_hight_slider_Text[cnIndex].Show()
+            else:
+                self.control_net_weight_slider_Text[cnIndex].Hide()
+                self.control_net_weight_slider[cnIndex].Hide()
+                self.control_net_stepstart_slider[cnIndex].Hide()
+                self.control_net_stepstart_slider_Text[cnIndex].Hide()
+                self.control_net_stepend_slider[cnIndex].Hide()
+                self.control_net_stepend_slider_Text[cnIndex].Hide()
+                self.control_net_lowt_slider[cnIndex].Hide()
+                self.control_net_lowt_slider_Text[cnIndex].Hide()
+                self.control_net_hight_slider[cnIndex].Hide()
+                self.control_net_hight_slider_Text[cnIndex].Hide()
+
 
     def OnResize(self, evt):
         global screenHeight
@@ -1540,17 +1612,19 @@ class Mywin(wx.Frame):
                 self.zero_pan_step_input_box.SetValue(zero_pan_step_input_box_value)
                 zero_rotate_step_input_box_value = deforumFile.readline().strip().strip('\n')
                 self.zero_rotate_step_input_box.SetValue(zero_rotate_step_input_box_value)
-                CN_Weight = float(deforumFile.readline().strip().strip('\n'))
-                self.control_net_weight_slider.SetValue(int(CN_Weight*100))
-                CN_StepStart = float(deforumFile.readline().strip().strip('\n'))
-                self.control_net_stepstart_slider.SetValue(int(CN_StepStart*100))
-                CN_StepEnd = float(deforumFile.readline().strip().strip('\n'))
-                self.control_net_stepend_slider.SetValue(int(CN_StepEnd*100))
-                CN_LowT = int(deforumFile.readline().strip().strip('\n'))
-                self.control_net_lowt_slider.SetValue(CN_LowT)
-                CN_HighT = int(deforumFile.readline().strip().strip('\n'))
-                self.control_net_hight_slider.SetValue(CN_HighT)
-
+                ###CN
+                for cnIndex in range(5):
+                    CN_Weight[cnIndex] = float(deforumFile.readline().strip().strip('\n'))
+                    self.control_net_weight_slider[cnIndex].SetValue(int(CN_Weight[cnIndex]*100))
+                    CN_StepStart[cnIndex] = float(deforumFile.readline().strip().strip('\n'))
+                    self.control_net_stepstart_slider[cnIndex].SetValue(int(CN_StepStart[cnIndex]*100))
+                    CN_StepEnd[cnIndex] = float(deforumFile.readline().strip().strip('\n'))
+                    self.control_net_stepend_slider[cnIndex].SetValue(int(CN_StepEnd[cnIndex]*100))
+                    CN_LowT[cnIndex] = int(deforumFile.readline().strip().strip('\n'))
+                    self.control_net_lowt_slider[cnIndex].SetValue(CN_LowT[cnIndex])
+                    CN_HighT[cnIndex] = int(deforumFile.readline().strip().strip('\n'))
+                    self.control_net_hight_slider[cnIndex].SetValue(CN_HighT[cnIndex])
+                ##CN END
                 noise_multiplier = float(deforumFile.readline().strip().strip('\n'))
                 self.noise_slider.SetValue(int(float(noise_multiplier)*100))
                 Perlin_Octave_Value = int(deforumFile.readline().strip().strip('\n'))
@@ -1594,11 +1668,12 @@ class Mywin(wx.Frame):
             self.writeValue("should_use_deforumation_rotation", int(should_use_deforumation_rotation))
             self.writeValue("should_use_deforumation_tilt", int(should_use_deforumation_tilt))
             self.writeValue("cadence", int(Cadence_Schedule))
-            self.writeValue("cn_weight", float(CN_Weight))
-            self.writeValue("cn_stepstart", float(CN_StepStart))
-            self.writeValue("cn_stepend", float(CN_StepEnd))
-            self.writeValue("cn_lowt", float(CN_LowT))
-            self.writeValue("cn_hight", float(CN_HighT))
+            for cnIndex in range(5):
+                self.writeValue("cn_weight"+str(cnIndex+1), float(CN_Weight[cnIndex]))
+                self.writeValue("cn_stepstart"+str(cnIndex+1), float(CN_StepStart[cnIndex]))
+                self.writeValue("cn_stepend"+str(cnIndex+1), float(CN_StepEnd[cnIndex]))
+                self.writeValue("cn_lowt"+str(cnIndex+1), float(CN_LowT[cnIndex]))
+                self.writeValue("cn_hight"+str(cnIndex+1), float(CN_HighT[cnIndex]))
 
             self.writeValue("noise_multiplier", float(noise_multiplier))
             self.writeValue("perlin_octaves", int(Perlin_Octave_Value))
@@ -1672,11 +1747,12 @@ class Mywin(wx.Frame):
             self.cadence_slider.SetValue(Cadence_Schedule)
             self.zero_pan_step_input_box.SetValue(zero_pan_step_input_box_value)
             self.zero_rotate_step_input_box.SetValue(zero_rotate_step_input_box_value)
-            self.control_net_weight_slider.SetValue(int(CN_Weight * 100))
-            self.control_net_stepstart_slider.SetValue(int(CN_StepStart * 100))
-            self.control_net_stepend_slider.SetValue(int(CN_StepEnd * 100))
-            self.control_net_lowt_slider.SetValue(CN_LowT)
-            self.control_net_hight_slider.SetValue(CN_HighT)
+            for cnIndex in range(5):
+                self.control_net_weight_slider[cnIndex].SetValue(int(CN_Weight[cnIndex] * 100))
+                self.control_net_stepstart_slider[cnIndex].SetValue(int(CN_StepStart[cnIndex] * 100))
+                self.control_net_stepend_slider[cnIndex].SetValue(int(CN_StepEnd[cnIndex] * 100))
+                self.control_net_lowt_slider[cnIndex].SetValue(CN_LowT[cnIndex])
+                self.control_net_hight_slider[cnIndex].SetValue(CN_HighT[cnIndex])
 
             self.noise_slider.SetValue(int(float(noise_multiplier) * 100))
             self.perlin_octave_slider.SetValue(int(Perlin_Octave_Value))
@@ -1732,11 +1808,13 @@ class Mywin(wx.Frame):
         deforumFile.write(str(self.cadence_slider.GetValue())+"\n")
         deforumFile.write(str(self.zero_pan_step_input_box.GetValue().strip().replace('\n', '')+"\n"))
         deforumFile.write(str(self.zero_rotate_step_input_box.GetValue().strip().replace('\n', ''))+"\n")
-        deforumFile.write(str('%.2f' % CN_Weight)+"\n")
-        deforumFile.write(str('%.2f' % CN_StepStart)+"\n")
-        deforumFile.write(str('%.2f' % CN_StepEnd)+"\n")
-        deforumFile.write(str(CN_LowT)+"\n")
-        deforumFile.write(str(CN_HighT)+"\n")
+        for cnIndex in range(5):
+            deforumFile.write(str('%.2f' % CN_Weight[cnIndex])+"\n")
+            deforumFile.write(str('%.2f' % CN_StepStart[cnIndex])+"\n")
+            deforumFile.write(str('%.2f' % CN_StepEnd[cnIndex])+"\n")
+            deforumFile.write(str(CN_LowT[cnIndex])+"\n")
+            deforumFile.write(str(CN_HighT[cnIndex])+"\n")
+
         deforumFile.write(str('%.2f' % noise_multiplier)+"\n")
         deforumFile.write(str(Perlin_Octave_Value)+"\n")
         deforumFile.write(str('%.2f' % Perlin_Persistence_Value))
@@ -2528,21 +2606,23 @@ class Mywin(wx.Frame):
         elif btn == "Perlin Persistence":
             Perlin_Persistence_Value = float(self.perlin_persistence_slider.GetValue())/100
             self.writeValue("perlin_persistence", Perlin_Persistence_Value)
-        elif btn == "CN WEIGHT":
-            CN_Weight = float(self.control_net_weight_slider.GetValue())*0.01
-            self.writeValue("cn_weight", CN_Weight)
-        elif btn == "CN STEPSTART":
-            CN_StepStart = float(self.control_net_stepstart_slider.GetValue()) * 0.01
-            self.writeValue("cn_stepstart", CN_StepStart)
-        elif btn == "CN STEPEND":
-            CN_StepEnd = float(self.control_net_stepend_slider.GetValue()) * 0.01
-            self.writeValue("cn_stepend", CN_StepEnd)
-        elif btn == "CN LOWT":
-            CN_LowT = int(self.control_net_lowt_slider.GetValue())
-            self.writeValue("cn_lowt", CN_LowT)
-        elif btn == "CN HIGHT":
-            CN_HighT = int(self.control_net_hight_slider.GetValue())
-            self.writeValue("cn_hight", CN_HighT)
+        #########START OF CN STUFF#############################
+        elif btn.startswith("CN WEIGHT"):
+            CN_Weight[current_active_cn_index-1] = float(self.control_net_weight_slider[current_active_cn_index-1].GetValue())*0.01
+            self.writeValue("cn_weight"+str(current_active_cn_index), CN_Weight[current_active_cn_index-1])
+        elif btn.startswith("CN STEPSTART"):
+            CN_StepStart[current_active_cn_index-1] = float(self.control_net_stepstart_slider[current_active_cn_index-1].GetValue()) * 0.01
+            self.writeValue("cn_stepstart"+str(current_active_cn_index), CN_StepStart[current_active_cn_index-1])
+        elif btn.startswith("CN STEPEND"):
+            CN_StepEnd[current_active_cn_index-1] = float(self.control_net_stepend_slider[current_active_cn_index-1].GetValue()) * 0.01
+            self.writeValue("cn_stepend"+str(current_active_cn_index), CN_StepEnd[current_active_cn_index-1])
+        elif btn.startswith("CN LOWT"):
+            CN_LowT[current_active_cn_index-1] = int(self.control_net_lowt_slider[current_active_cn_index-1].GetValue())
+            self.writeValue("cn_lowt"+str(current_active_cn_index), CN_LowT[current_active_cn_index-1])
+        elif btn.startswith("CN HIGHT"):
+            CN_HighT[current_active_cn_index-1] = int(self.control_net_hight_slider[current_active_cn_index-1].GetValue())
+            self.writeValue("cn_hight"+str(current_active_cn_index), CN_HighT[current_active_cn_index-1])
+        #########END OF CN STUFF#############################
         elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2 or btn == "REWIND_CLOSEST" or btn == "FORWARD_CLOSEST":
             current_frame = str(self.readValue("start_frame"))
             #print("Got current start frame:" + current_frame)
@@ -2980,5 +3060,5 @@ if __name__ == '__main__':
 
     #anim = pyeaze.Animator(current_value=0, target_value=100, duration=1, fps=40, easing='ease-in-out', reverse=False)
     app = wx.App()
-    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.4.8)')
+    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.4.9)')
     app.MainLoop()
