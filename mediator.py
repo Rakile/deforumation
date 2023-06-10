@@ -52,11 +52,25 @@ should_use_deforumation_rotation = 1
 should_use_deforumation_tilt = 1
 cadence = 2
 deforum_cadence = 2
-cn_weight = 1.00
-cn_stepstart = 0.0
-cn_stepend = 1.0
-cn_lowt = 0
-cn_hight = 255
+
+cn_weight = []
+cn_stepstart = []
+cn_stepend = []
+cn_lowt = []
+cn_hight = []
+for i in range(5):
+    cn_weight.append(1.0)
+    cn_stepstart.append(0.0)
+    cn_stepend.append(1.0)
+    cn_lowt.append(0)
+    cn_hight.append(255)
+
+#cn_weight = 1.00
+#cn_stepstart = 0.0
+#cn_stepend = 1.0
+#cn_lowt = 0
+#cn_hight = 255
+
 parseq_keys = 0
 use_parseq = 0
 parseq_manifest = ""
@@ -75,6 +89,21 @@ deforum_perlin_persistence = 0.5
 use_deforumation_cadence_scheduling = 0
 
 deforumation_cadence_scheduling_manifest = "0:(3)"
+
+
+def find_str(s, char):
+    index = 0
+
+    if char in s:
+        c = char[0]
+        for ch in s:
+            if ch == c:
+                if s[index:index+len(char)] == char:
+                    return index
+
+            index += 1
+
+    return -1
 
 async def echo(websocket):
     global serverShutDown
@@ -337,49 +366,54 @@ async def echo(websocket):
                     await websocket.send(str(deforum_strength))
             #ControlNet Weight Params
             ###########################################################################
-            elif str(parameter) == "cn_weight":
+            elif str(parameter).startswith("cn_weight"):
+                cnIndex = int(parameter[len(parameter)-1])
                 if shouldWrite:
-                    cn_weight = float(value)
+                    cn_weight[cnIndex-1] = float(value)
                 else:
                     if doVerbose:
-                        print("sending cn_weight:"+str(cn_weight))
-                    await websocket.send(str(cn_weight))
+                        print("sending cn_weight:"+str(cn_weight[cnIndex-1]))
+                    await websocket.send(str(cn_weight[cnIndex-1]))
             #ControlNet step start Params
             ###########################################################################
-            elif str(parameter) == "cn_stepstart":
+            elif str(parameter).startswith("cn_stepstart"):
+                cnIndex = int(parameter[len(parameter)-1])
                 if shouldWrite:
-                    cn_stepstart = float(value)
+                    cn_stepstart[cnIndex-1] = float(value)
                 else:
                     if doVerbose:
-                        print("sending cn_stepstart:"+str(cn_stepstart))
-                    await websocket.send(str(cn_stepstart))
+                        print("sending cn_stepstart:"+str(cn_stepstart[cnIndex-1]))
+                    await websocket.send(str(cn_stepstart[cnIndex-1]))
             #ControlNet step end Params
             ###########################################################################
-            elif str(parameter) == "cn_stepend":
+            elif str(parameter).startswith("cn_stepend"):
+                cnIndex = int(parameter[len(parameter)-1])
                 if shouldWrite:
-                    cn_stepend = float(value)
+                    cn_stepend[cnIndex-1] = float(value)
                 else:
                     if doVerbose:
-                        print("sending cn_stepend:"+str(cn_stepend))
-                    await websocket.send(str(cn_stepend))
+                        print("sending cn_stepend:"+str(cn_stepend[cnIndex-1]))
+                    await websocket.send(str(cn_stepend[cnIndex-1]))
             #ControlNet low threshold Params
             ###########################################################################
-            elif str(parameter) == "cn_lowt":
+            elif str(parameter).startswith("cn_lowt"):
+                cnIndex = int(parameter[len(parameter)-1])
                 if shouldWrite:
-                    cn_lowt = int(value)
+                    cn_lowt[cnIndex-1] = int(value)
                 else:
                     if doVerbose:
-                        print("sending cn_lowt:"+str(cn_lowt))
-                    await websocket.send(str(cn_lowt))
+                        print("sending cn_lowt:"+str(cn_lowt[cnIndex-1]))
+                    await websocket.send(str(cn_lowt[cnIndex-1]))
             #ControlNet high threshold Params
             ###########################################################################
-            elif str(parameter) == "cn_hight":
+            elif str(parameter).startswith("cn_hight"):
+                cnIndex = int(parameter[len(parameter)-1])
                 if shouldWrite:
-                    cn_hight = int(value)
+                    cn_hight[cnIndex-1] = int(value)
                 else:
                     if doVerbose:
-                        print("sending cn_hight:"+str(cn_hight))
-                    await websocket.send(str(cn_hight))
+                        print("sending cn_hight:"+str(cn_hight[cnIndex-1]))
+                    await websocket.send(str(cn_hight[cnIndex-1]))
             #Seed Params
             ###########################################################################
             elif str(parameter) == "seed":
@@ -674,7 +708,7 @@ async def main():
 
 if __name__ == '__main__':
     try:
-        print("Starting mediator 0.4.8")
+        print("Starting mediator 0.4.9")
         asyncio.run(main())
     except KeyboardInterrupt:
         serverShutDown = True
