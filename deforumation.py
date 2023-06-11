@@ -13,7 +13,7 @@ import wx.lib.newevent
 import threading
 import requests
 import collections
-#import pyeaze
+import pyeaze
 
 #import subprocess
 cadenceArray = {}
@@ -105,6 +105,8 @@ tilt_step_input_box_value = "1.0"
 zero_pan_step_input_box_value = "0"
 zero_rotate_step_input_box_value = "0"
 current_active_cn_index = 1
+#Bezier curve stuff
+bezierArray = []
 async def sendAsync(value):
     async with websockets.connect("ws://localhost:8765") as websocket:
         #await websocket.send(pickle.dumps(value))
@@ -944,7 +946,7 @@ class Mywin(wx.Frame):
         languages = ['Noise Multiplier', 'Perlin Octaves', 'Perlin Persistence']
         self.component_chooser_choice = wx.Choice(self.panel, id=wx.ID_ANY,  pos=(trbX+950-150, tbrY+70),size=(140,40), choices=languages, style=0, name="Arne")
         self.component_chooser_choice.Bind(wx.EVT_CHOICE, self.OnComponentChoice)
-
+        self.component_chooser_choice.SetSelection(0)
         #NOISE SLIDER
         self.noise_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=105, minValue=0, maxValue=200, pos = (trbX+950-340, tbrY+110), size = (360, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.noise_slider.SetToolTip("How much uniformed noise should Deforum use. Lower values will loose detail (smoothing things out), and higher values will add more detail making it sharper (too much will result in a scrambled image).")
@@ -952,8 +954,6 @@ class Mywin(wx.Frame):
         self.noise_slider.SetTickFreq(1)
         self.noise_slider.SetLabel("Noise")
         self.noise_slider_Text = wx.StaticText(self.panel, label="Noise", pos=(trbX+1000-340, tbrY+95))
-        self.noise_slider.Hide()
-        self.noise_slider_Text.Hide()
 
         #PERLIN PERSISTENCE SLIDER
         self.perlin_persistence_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=4, minValue=0, maxValue=100, pos = (trbX+950-340, tbrY+110), size = (360, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
@@ -978,7 +978,7 @@ class Mywin(wx.Frame):
         #CONTROLNET RADIO BUTTON CHOICE
         ##############################################################
         lblList = ['CN 1', 'CN 2', 'CN 3', 'CN 4', 'CN 5']
-        self.rbox = wx.RadioBox(self.panel, label='ControlNet', pos = (trbX+640, tbrY+100), choices=lblList, majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+        self.rbox = wx.RadioBox(self.panel, label='ControlNet', pos = (trbX+320, tbrY+124), choices=lblList, majorDimension=1, style=wx.RA_SPECIFY_ROWS)
         self.rbox.Bind(wx.EVT_RADIOBOX, self.OnRadioBoxCN)
         #self.control_net_choice_radiobox = wx.RadioButton(self.panel, id=300, label = "CN 1", pos = (trbX+140, tbrY+180), style = wx.RB_GROUP)
 
@@ -996,36 +996,36 @@ class Mywin(wx.Frame):
         self.control_net_hight_slider = []
         self.control_net_hight_slider_Text = []
         for cnIndex in range(5):
-            self.control_net_weight_slider.append(wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_Weight[cnIndex]*100), minValue=0, maxValue=200, pos = (trbX-40, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS ))
-            self.control_net_weight_slider[cnIndex].SetToolTip("Tells, if activated, the first ControlNet, what weight it should use. The slider value is scaled by 100 (actual value 100 times smaller)")
+            self.control_net_weight_slider.append(wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_Weight[cnIndex]*100), minValue=0, maxValue=200, pos = (trbX-40, tbrY+190), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS ))
+            self.control_net_weight_slider[cnIndex].SetToolTip("Tells, if activated, the ControlNet, what weight it should use. The slider value is scaled by 100 (actual value 100 times smaller)")
             self.control_net_weight_slider[cnIndex].Bind(wx.EVT_SCROLL, self.OnClicked)
             self.control_net_weight_slider[cnIndex].SetTickFreq(1)
             self.control_net_weight_slider[cnIndex].SetLabel("CN WEIGHT"+str(cnIndex))
-            self.control_net_weight_slider_Text.append(wx.StaticText(self.panel, label="ControlNet("+str(cnIndex+1)+") - Weight", pos=(trbX-40, tbrY+160)))
+            self.control_net_weight_slider_Text.append(wx.StaticText(self.panel, label="ControlNet("+str(cnIndex+1)+") - Weight", pos=(trbX-40, tbrY+175)))
             self.control_net_weight_slider_Text[cnIndex].Hide()
             self.control_net_weight_slider[cnIndex].Hide()
 
-            #CONTROLNET STARTING CONTROL STEP
-            self.control_net_stepstart_slider.append(wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_StepStart[cnIndex]*100), minValue=0, maxValue=100, pos = (trbX+300, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS ))
-            self.control_net_stepstart_slider[cnIndex].SetToolTip("Tells, if activated, the first ControlNet, what step it should start on. The slider value is scaled by 100 (actual value 100 times smaller)")
-            self.control_net_stepstart_slider[cnIndex].Bind(wx.EVT_SCROLL, self.OnClicked)
-            self.control_net_stepstart_slider[cnIndex].SetTickFreq(1)
-            self.control_net_stepstart_slider[cnIndex].SetLabel("CN STEPSTART"+str(cnIndex))
-            self.control_net_stepstart_slider_Text.append(wx.StaticText(self.panel, label="ControlNet("+str(cnIndex+1)+") - Starting Control Step", pos=(trbX+300, tbrY+160)))
-            self.control_net_stepstart_slider[cnIndex].Hide()
-            self.control_net_stepstart_slider_Text[cnIndex].Hide()
             #CONTROLNET ENDING CONTROL STEP
-            self.control_net_stepend_slider.append(wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_StepEnd[cnIndex]*100), minValue=0, maxValue=100, pos = (trbX+640, tbrY+180), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS ))
-            self.control_net_stepend_slider[cnIndex].SetToolTip("Tells, if activated, the first ControlNet, what step it should end on. The slider value is scaled by 100 (actual value 100 times smaller)")
+            self.control_net_stepend_slider.append(wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_StepEnd[cnIndex]*100), minValue=0, maxValue=100, pos = (trbX+640, tbrY+190), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS ))
+            self.control_net_stepend_slider[cnIndex].SetToolTip("Tells, if activated, the ControlNet, what step it should end on. The slider value is scaled by 100 (actual value 100 times smaller)")
             self.control_net_stepend_slider[cnIndex].Bind(wx.EVT_SCROLL, self.OnClicked)
             self.control_net_stepend_slider[cnIndex].SetTickFreq(1)
             self.control_net_stepend_slider[cnIndex].SetLabel("CN STEPEND"+str(cnIndex))
-            self.control_net_stepend_slider_Text.append(wx.StaticText(self.panel, label="ControlNet("+str(cnIndex+1)+") - Ending Control Step", pos=(trbX+640, tbrY+160)))
+            self.control_net_stepend_slider_Text.append(wx.StaticText(self.panel, label="ControlNet("+str(cnIndex+1)+") - Ending Control Step", pos=(trbX+640, tbrY+175)))
             self.control_net_stepend_slider[cnIndex].Hide()
             self.control_net_stepend_slider_Text[cnIndex].Hide()
+            #CONTROLNET STARTING CONTROL STEP
+            self.control_net_stepstart_slider.append(wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_StepStart[cnIndex]*100), minValue=0, maxValue=100, pos = (trbX+300, tbrY+190), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS ))
+            self.control_net_stepstart_slider[cnIndex].SetToolTip("Tells, if activated, the ControlNet, what step it should start on. The slider value is scaled by 100 (actual value 100 times smaller)")
+            self.control_net_stepstart_slider[cnIndex].Bind(wx.EVT_SCROLL, self.OnClicked)
+            self.control_net_stepstart_slider[cnIndex].SetTickFreq(1)
+            self.control_net_stepstart_slider[cnIndex].SetLabel("CN STEPSTART"+str(cnIndex))
+            self.control_net_stepstart_slider_Text.append(wx.StaticText(self.panel, label="ControlNet("+str(cnIndex+1)+") - Starting Control Step", pos=(trbX+300, tbrY+175)))
+            self.control_net_stepstart_slider[cnIndex].Hide()
+            self.control_net_stepstart_slider_Text[cnIndex].Hide()
             #CONTROLNET LOW THRESHOLD
             self.control_net_lowt_slider.append(wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_LowT[cnIndex]), minValue=0, maxValue=255, pos = (trbX-40, tbrY+260), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS ))
-            self.control_net_lowt_slider[cnIndex].SetToolTip("Tells, if activated, the first ControlNet, what the lower threshold should be. Values below the low threshold always get discarded. Values in between the the two thresholds may get kept or may get discarded depending on various rules and maths.")
+            self.control_net_lowt_slider[cnIndex].SetToolTip("Tells, if activated, the ControlNet, what the lower threshold should be. Values below the low threshold always get discarded. Values in between the the two thresholds may get kept or may get discarded depending on various rules and maths.")
             self.control_net_lowt_slider[cnIndex].Bind(wx.EVT_SCROLL, self.OnClicked)
             self.control_net_lowt_slider[cnIndex].SetTickFreq(1)
             self.control_net_lowt_slider[cnIndex].SetLabel("CN LOWT"+str(cnIndex))
@@ -1034,7 +1034,7 @@ class Mywin(wx.Frame):
             self.control_net_lowt_slider_Text[cnIndex].Hide()
             #CONTROLNET HIGH THRESHOLD
             self.control_net_hight_slider.append(wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_HighT[cnIndex]), minValue=0, maxValue=255, pos = (trbX+300, tbrY+260), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS ))
-            self.control_net_hight_slider[cnIndex].SetToolTip("Tells, if activated, the first ControlNet, what the higher threshold should be. Values below the low threshold always get discarded. Values above the high threshold always get kept. Values in between the the two thresholds may get kept or may get discarded depending on various rules and maths.")
+            self.control_net_hight_slider[cnIndex].SetToolTip("Tells, if activated, the ControlNet, what the higher threshold should be. Values below the low threshold always get discarded. Values above the high threshold always get kept. Values in between the the two thresholds may get kept or may get discarded depending on various rules and maths.")
             self.control_net_hight_slider[cnIndex].Bind(wx.EVT_SCROLL, self.OnClicked)
             self.control_net_hight_slider[cnIndex].SetTickFreq(1)
             self.control_net_hight_slider[cnIndex].SetLabel("CN HIGHT"+str(cnIndex))
@@ -1122,8 +1122,19 @@ class Mywin(wx.Frame):
         self.cadence_rescheduler_result_informational_input_box.SetToolTip("Informational messages after running a \"Re-schedule\" will be shown here.")
 
 
-        #self.cadence_rescheduler_url_input_box.Bind(wx.EVT_SET_FOCUS, self.OnFocus)
+        #COMBOBOX FOR CHOOSING A BEZIER CURVE
+        beziers = ['ease', 'linear', 'ease-in', 'ease-out', 'ease-in-out']
+        self.bezier_chooser_choice = wx.Choice(self.panel, id=wx.ID_ANY,  pos=(trbX+560, tbrY+46),size=(100,40), choices=beziers, style=0, name="Arne")
+        self.bezier_chooser_choice.SetToolTip("Choose the curve that should be used when using the \"arm\"-functionality on a motion")
+        self.bezier_chooser_choice.Bind(wx.EVT_CHOICE, self.OnBezierChoice)
+        self.bezier_chooser_choice.SetSelection(1)
 
+        #INPUT BOX FOR BEZIER POINTS
+        self.bezier_points_input_box = wx.TextCtrl(self.panel, id=wx.ID_ANY, size=(160, 20), pos=(trbX + 560, tbrY+70))
+        self.bezier_points_input_box.SetToolTip("The cubic bezier point, which can be changed or will be populated accoring to what pre-defined curve you chose above.")
+        self.bezier_points_input_box.SetValue("((0, 0), (0, 0), (1, 1), (1, 1))")
+
+        #self.cadence_rescheduler_url_input_box.Bind(wx.EVT_SET_FOCUS, self.OnFocus)
 
         #Checkbox stuff
         #self.cadence_schedule_Checkbox = wx.CheckBox(self.panel, label = "Use C.", id=73, pos=(trbX+1000-66, tbrY-20))
@@ -1144,6 +1155,23 @@ class Mywin(wx.Frame):
         self.Layout()
         self.Bind(wx.EVT_SIZING, self.OnResize)
         self.panel.Bind(wx.EVT_LEFT_DOWN, self.PanelClicked)
+
+    def OnBezierChoice(self, event):
+        global bezierArray
+        selectionString = self.bezier_chooser_choice.GetString(self.bezier_chooser_choice.GetSelection())
+        print("You choose:" + self.bezier_chooser_choice.GetString(self.bezier_chooser_choice.GetSelection()))
+
+        if selectionString == 'ease':
+            self.bezier_points_input_box.SetValue("((0, 0), (0.25, 0.1), (0.25, 1), (1, 1))")
+        elif selectionString == 'linear':
+            self.bezier_points_input_box.SetValue("((0, 0), (0, 0), (1, 1), (1, 1))")
+        elif selectionString == 'ease-in':
+            self.bezier_points_input_box.SetValue("((0, 0), (.42, 0), (1, 1), (1, 1))")
+        elif selectionString == 'ease-out':
+            self.bezier_points_input_box.SetValue("((0, 0), (0, 0), (.58, 1), (1, 1))")
+        elif selectionString == 'ease-in-out':
+            self.bezier_points_input_box.SetValue("((0, 0), (.42, 0), (.58, 1), (1, 1))")
+
 
     def OnComponentChoice(self, event):
         print("You choose:"+ self.component_chooser_choice.GetString(self.component_chooser_choice.GetSelection()))
@@ -1321,14 +1349,14 @@ class Mywin(wx.Frame):
         self.cadence_schedule_Checkbox.SetPosition((trbX+1000-66, tbrY-20))
         self.cadence_suggestion.SetPosition((trbX+1000-140, tbrY))
         #CN
-        self.rbox.SetPosition((trbX + 640, tbrY + 100))
+        self.rbox.SetPosition((trbX+320, tbrY+124))
         for cnIndex in range(5):
-            self.control_net_weight_slider[cnIndex].SetPosition((trbX-40, tbrY+180))
-            self.control_net_weight_slider_Text[cnIndex].SetPosition((trbX-40, tbrY+160))
-            self.control_net_stepstart_slider[cnIndex].SetPosition((trbX+300, tbrY+180))
-            self.control_net_stepstart_slider_Text[cnIndex].SetPosition((trbX+640, tbrY+160))
-            self.control_net_stepend_slider[cnIndex].SetPosition((trbX+640, tbrY+180))
-            self.control_net_stepend_slider_Text[cnIndex].SetPosition((trbX+300, tbrY+160))
+            self.control_net_weight_slider[cnIndex].SetPosition((trbX-40, tbrY+190))
+            self.control_net_weight_slider_Text[cnIndex].SetPosition((trbX-40, tbrY+175))
+            self.control_net_stepstart_slider[cnIndex].SetPosition((trbX+300, tbrY+190))
+            self.control_net_stepstart_slider_Text[cnIndex].SetPosition((trbX+300, tbrY+175))
+            self.control_net_stepend_slider[cnIndex].SetPosition((trbX+640, tbrY+190))
+            self.control_net_stepend_slider_Text[cnIndex].SetPosition((trbX+640, tbrY+175))
             self.control_net_lowt_slider[cnIndex].SetPosition((trbX-40, tbrY+260))
             self.control_net_lowt_slider_Text[cnIndex].SetPosition((trbX-40, tbrY+240))
             self.control_net_hight_slider[cnIndex].SetPosition((trbX+300, tbrY+260))
@@ -1382,6 +1410,8 @@ class Mywin(wx.Frame):
         self.cadence_rescheduler_result_input_box.SetPosition((trbX+80, tbrY+470))
         self.cadence_rescheduler_result_informational_text.SetPosition((trbX-40, tbrY+492))
         self.cadence_rescheduler_result_informational_input_box.SetPosition((trbX+40, tbrY+490))
+        self.bezier_chooser_choice.SetPosition((trbX+560, tbrY+46))
+        self.bezier_points_input_box.SetPosition((trbX + 560, tbrY+70))
 
     def SetCurrentActiveCN(self, cnSelectIndex):
         global current_active_cn_index
@@ -1981,11 +2011,22 @@ class Mywin(wx.Frame):
         global stepit_rotate
         global zero_pan_active
         global zero_rotate_active
+
         print("Zero stepper thread started for:"+str(parameter_value))
         is_negative = 0
         zero_frame_steps = frame_steps
         if zero_frame_steps == want_value:
             return
+
+        #Prepare the bezier curve that should be followed:
+        bezier_from_input_box_string = self.bezier_points_input_box.GetValue()
+        bezier_from_input_box_array = bezier_from_input_box_string.replace('(', '').replace(')', '').replace(' ','').split(',')
+        bezierTupple = list(((0, 0), (0, 0), (0, 0), (0, 0)))
+        bezierTupple[0] = (float(bezier_from_input_box_array[0]), float(bezier_from_input_box_array[1]))
+        bezierTupple[1] = (float(bezier_from_input_box_array[2]), float(bezier_from_input_box_array[3]))
+        bezierTupple[2] = (float(bezier_from_input_box_array[4]), float(bezier_from_input_box_array[5]))
+        bezierTupple[3] = (float(bezier_from_input_box_array[6]), float(bezier_from_input_box_array[7]))
+
         now_frame = int(readValue("start_frame"))
         zero_frame_steps_n_frame = want_value
         if parameter_value == "translation_x":
@@ -1994,12 +2035,14 @@ class Mywin(wx.Frame):
                 zero_frame_steps_n_frame = float((want_value - Translation_X) / zero_frame_steps)
             if Translation_X < 0:
                 is_negative = 1
+            bezierArray = pyeaze.Animator(current_value=Translation_X, target_value=want_value, duration=1, fps=zero_frame_steps, easing=bezierTupple, reverse=False)
         elif parameter_value == "translation_y":
             stepit_pan = 1
             if Translation_Y != want_value:
                 zero_frame_steps_n_frame = float((want_value - Translation_Y) / zero_frame_steps)
                 if Translation_Y < 0:
                     is_negative = 1
+            bezierArray = pyeaze.Animator(current_value=Translation_Y, target_value=want_value, duration=1, fps=zero_frame_steps, easing=bezierTupple, reverse=False)
         elif parameter_value == "rotation_x":
             stepit_rotate = 1
             if Rotation_3D_X != want_value:
@@ -2007,6 +2050,7 @@ class Mywin(wx.Frame):
                 #print("zero_frame_steps:" + str(zero_frame_steps_n_frame))
                 if Rotation_3D_Y < 0:
                     is_negative = 1
+            bezierArray = pyeaze.Animator(current_value=Rotation_3D_X, target_value=want_value, duration=1, fps=zero_frame_steps, easing=bezierTupple, reverse=False)
         elif parameter_value == "rotation_y":
             stepit_rotate = 1
             if Rotation_3D_Y != want_value:
@@ -2014,7 +2058,11 @@ class Mywin(wx.Frame):
                 #print("zero_frame_steps:" + str(zero_frame_steps_n_frame))
                 if Rotation_3D_Y < 0:
                     is_negative = 1
+            bezierArray = pyeaze.Animator(current_value=Rotation_3D_Y, target_value=want_value, duration=1, fps=zero_frame_steps, easing=bezierTupple, reverse=False)
+        print(bezierArray.values)
 
+        numberOfFramesInBezierArray = len(bezierArray)
+        indexInBezierArray = 0
         while zero_frame_steps_n_frame != 0:
             if (parameter_value == "translation_x" or parameter_value == "translation_y") and stepit_pan == 0:
                 break
@@ -2022,87 +2070,105 @@ class Mywin(wx.Frame):
                 break
 
             current_step_frame = int(readValue("start_frame"))
-            if (int(current_step_frame) > int(now_frame)):
-                now_frame = current_step_frame
-                if parameter_value == "translation_x":
-                    Translation_X = Translation_X + float(zero_frame_steps_n_frame)
-                elif parameter_value == "translation_y":
-                    Translation_Y = Translation_Y + float(zero_frame_steps_n_frame)
-                elif parameter_value == "rotation_x":
-                    Rotation_3D_X = Rotation_3D_X + float(zero_frame_steps_n_frame)
-                elif parameter_value == "rotation_y":
-                    Rotation_3D_Y = Rotation_3D_Y + float(zero_frame_steps_n_frame)
 
+            #Rewritten to follow bezier
+            if indexInBezierArray == numberOfFramesInBezierArray:
+                break
+            if (int(current_step_frame) > int(now_frame)):
                 if parameter_value == "translation_x":
-                    if zero_frame_steps_n_frame > 0:
-                        if Translation_X >= want_value:
-                            Translation_X = want_value
-                            self.writeValue(parameter_value, Translation_X)
-                            self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
-                            break
-                    elif zero_frame_steps_n_frame < 0:
-                        if Translation_X <= want_value:
-                            Translation_X = want_value
-                            self.writeValue(parameter_value, Translation_X)
-                            self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
-                            break
+                    Translation_X = float(bezierArray.values[indexInBezierArray])
                 elif parameter_value == "translation_y":
-                    if zero_frame_steps_n_frame > 0:
-                        if Translation_Y >= want_value:
-                            Translation_Y = want_value
-                            self.writeValue(parameter_value, Translation_Y)
-                            self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
-                            break
-                    elif zero_frame_steps_n_frame < 0:
-                        if Translation_Y <= want_value:
-                            Translation_Y = want_value
-                            self.writeValue(parameter_value, Translation_Y)
-                            self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
-                            break
+                    Translation_Y = float(bezierArray.values[indexInBezierArray])
                 elif parameter_value == "rotation_x":
-                    if zero_frame_steps_n_frame > 0:
-                        if Rotation_3D_X >= want_value:
-                            Rotation_3D_X = want_value
-                            self.writeValue(parameter_value, Rotation_3D_X)
-                            self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
-                            break
-                    elif zero_frame_steps_n_frame < 0:
-                        if Rotation_3D_X <= want_value:
-                            Rotation_3D_X = want_value
-                            self.writeValue(parameter_value, Rotation_3D_X)
-                            self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
-                            break
+                    Rotation_3D_X = float(bezierArray.values[indexInBezierArray])
                 elif parameter_value == "rotation_y":
-                    if zero_frame_steps_n_frame > 0:
-                        if Rotation_3D_Y >= want_value:
-                            Rotation_3D_Y = want_value
-                            self.writeValue(parameter_value, Rotation_3D_Y)
-                            self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
-                            break
-                    elif zero_frame_steps_n_frame < 0:
-                        if Rotation_3D_Y <= want_value:
-                            Rotation_3D_Y = want_value
-                            self.writeValue(parameter_value, Rotation_3D_Y)
-                            self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
-                            break
+                    Rotation_3D_Y = float(bezierArray.values[indexInBezierArray])
+                indexInBezierArray += 1
+
+
+            #if (int(current_step_frame) > int(now_frame)):
+            #    now_frame = current_step_frame
+            #    if parameter_value == "translation_x":
+            #        Translation_X = Translation_X + float(zero_frame_steps_n_frame)
+            #    elif parameter_value == "translation_y":
+            #        Translation_Y = Translation_Y + float(zero_frame_steps_n_frame)
+            #    elif parameter_value == "rotation_x":
+            #        Rotation_3D_X = Rotation_3D_X + float(zero_frame_steps_n_frame)
+            #    elif parameter_value == "rotation_y":
+            #        Rotation_3D_Y = Rotation_3D_Y + float(zero_frame_steps_n_frame)
+
+            #    if parameter_value == "translation_x":
+            #        if zero_frame_steps_n_frame > 0:
+            #            if Translation_X >= want_value:
+            #                Translation_X = want_value
+            #                self.writeValue(parameter_value, Translation_X)
+            #                self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+            #                break
+            #        elif zero_frame_steps_n_frame < 0:
+            #            if Translation_X <= want_value:
+            #                Translation_X = want_value
+            #                self.writeValue(parameter_value, Translation_X)
+            #                self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+            #                break
+            #    elif parameter_value == "translation_y":
+            #        if zero_frame_steps_n_frame > 0:
+            #            if Translation_Y >= want_value:
+            #                Translation_Y = want_value
+            #                self.writeValue(parameter_value, Translation_Y)
+            #                self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+            #                break
+            #        elif zero_frame_steps_n_frame < 0:
+            #            if Translation_Y <= want_value:
+            #                Translation_Y = want_value
+            #                self.writeValue(parameter_value, Translation_Y)
+            #                self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+            #                break
+            #    elif parameter_value == "rotation_x":
+            #        if zero_frame_steps_n_frame > 0:
+            #            if Rotation_3D_X >= want_value:
+            #                Rotation_3D_X = want_value
+            #                self.writeValue(parameter_value, Rotation_3D_X)
+            #                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
+            #                break
+            #        elif zero_frame_steps_n_frame < 0:
+            #            if Rotation_3D_X <= want_value:
+            #                Rotation_3D_X = want_value
+            #                self.writeValue(parameter_value, Rotation_3D_X)
+            #                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
+            #                break
+            #    elif parameter_value == "rotation_y":
+            #        if zero_frame_steps_n_frame > 0:
+            #            if Rotation_3D_Y >= want_value:
+            #                Rotation_3D_Y = want_value
+            #                self.writeValue(parameter_value, Rotation_3D_Y)
+            #                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
+            #                break
+            #        elif zero_frame_steps_n_frame < 0:
+            #            if Rotation_3D_Y <= want_value:
+            #                Rotation_3D_Y = want_value
+            #                self.writeValue(parameter_value, Rotation_3D_Y)
+            #                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
+            #                break
 
             if parameter_value == "translation_x":
                 self.writeValue(parameter_value, Translation_X)
                 self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
-                #print("Translation_X:" + str(Translation_X))
+                print("Translation_X:" + str(Translation_X))
             elif parameter_value == "translation_y":
                 self.writeValue(parameter_value, Translation_Y)
                 self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
-                #print("Translation_Y:" + str(Translation_Y))
+                print("Translation_Y:" + str(Translation_Y))
             elif parameter_value == "rotation_x":
                 self.writeValue(parameter_value, Rotation_3D_X)
                 self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
-                #print("Rotaion_X:" + str(Rotation_3D_X))
+                print("Rotaion_X:" + str(Rotation_3D_X))
             elif parameter_value == "rotation_y":
                 self.writeValue(parameter_value, Rotation_3D_Y)
                 self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
-                #print("Rotaion_Y:" + str(Rotation_3D_Y))
+                print("Rotaion_Y:" + str(Rotation_3D_Y))
             time.sleep(0.25)
+
+
         self.writeAllValues()
         if (parameter_value == "translation_x" or parameter_value == "translation_y"):
             zero_pan_active = False
@@ -3058,7 +3124,6 @@ class Mywin(wx.Frame):
 
 if __name__ == '__main__':
 
-    #anim = pyeaze.Animator(current_value=0, target_value=100, duration=1, fps=40, easing='ease-in-out', reverse=False)
     app = wx.App()
-    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.4.9)')
+    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.5.0)')
     app.MainLoop()
