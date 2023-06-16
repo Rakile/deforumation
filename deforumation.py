@@ -14,6 +14,8 @@ import threading
 import requests
 import collections
 import pyeaze
+import win32pipe, win32file, pywintypes
+import sys
 
 #import subprocess
 cadenceArray = {}
@@ -108,19 +110,29 @@ current_active_cn_index = 1
 #Bezier curve stuff
 bezierArray = []
 async def sendAsync(value):
-    async with websockets.connect("ws://localhost:8765") as websocket:
-        #await websocket.send(pickle.dumps(value))
-        try:
-            await asyncio.wait_for(websocket.send(pickle.dumps(value)), timeout=10.0)
-            message = await asyncio.wait_for(websocket.recv(), timeout=10.0)
-        except TimeoutError:
-            print('timeout!')
-        if message == None:
-            message = "-NO CONNECTION-"
+    if shouldUseNamedPipes:
+        handle = win32file.CreateFile('\\\\.\\pipe\\Deforumation', win32file.GENERIC_READ | win32file.GENERIC_WRITE, 0, None,
+                                      win32file.OPEN_EXISTING, 0, None)
+        res = win32pipe.SetNamedPipeHandleState(handle, win32pipe.PIPE_READMODE_MESSAGE, None, None)
+        bytesToSend = pickle.dumps(value)
+        win32file.WriteFile(handle, bytesToSend)
+        message = win32file.ReadFile(handle, 64 * 1024)
+        win32file.CloseHandle(handle)
+        return message[1].decode()
+    else:
+        async with websockets.connect("ws://localhost:8765") as websocket:
+            # await websocket.send(pickle.dumps(value))
+            try:
+                await asyncio.wait_for(websocket.send(pickle.dumps(value)), timeout=10.0)
+                message = await asyncio.wait_for(websocket.recv(), timeout=10.0)
+            except TimeoutError:
+                print('timeout!')
+            if message == None:
+                message = "-NO CONNECTION-"
+            # asyncio.ensure_future(message=websocket.recv())
+            # print(str(message))
+            return message
 
-        #asyncio.ensure_future(message=websocket.recv())
-        #print(str(message))
-        return message
 def scale_bitmap(bitmap, width, height):
     if bitmap.IsOk():
         image = bitmap.ConvertToImage()
@@ -155,9 +167,9 @@ def writeValue(param, value):
             asyncio.run(sendAsync([1, param, value]))
             checkerrorConnecting = False
         except Exception as e:
-            print("Deforumation Mediator Error:" + str(e))
-            print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)")
-            time.sleep(5)
+            #print("Deforumation Mediator Error:" + str(e))
+            #print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)")
+            time.sleep(0.05)
 
 def readValue(param):
     checkerrorConnecting = True
@@ -171,9 +183,9 @@ def readValue(param):
             #        continue
                 return return_value
         except Exception as e:
-            print("Deforumation Mediator Error:" + str(e))
-            print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)")
-            time.sleep(5)
+            #print("Deforumation Mediator Error:" + str(e))
+            #print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)")
+            time.sleep(0.05)
 
 def changeBitmapWorker(parent):
     #global current_render_frame
@@ -1719,9 +1731,9 @@ class Mywin(wx.Frame):
                 asyncio.run(sendAsync([1, param, value]))
                 checkerrorConnecting = False
             except Exception as e:
-                print("Deforumation Mediator Error:" + str(e))
-                print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)...writing:"+str(param))
-                time.sleep(5)
+                #print("Deforumation Mediator Error:" + str(e))
+                #print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)...writing:"+str(param))
+                time.sleep(0.05)
 
     def readValue(self, param):
         checkerrorConnecting = True
@@ -1731,9 +1743,9 @@ class Mywin(wx.Frame):
                 #print("All good reading:" + str(param))
                 return return_value
             except Exception as e:
-                print("Deforumation Mediator Error:" + str(e))
-                print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)...ererror:reading:"+str(param))
-                time.sleep(5)
+                #print("Deforumation Mediator Error:" + str(e))
+                #print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)...ererror:reading:"+str(param))
+                time.sleep(0.05)
     def setAllComponentValues(self):
         try:
             if is_paused_rendering:
@@ -2879,7 +2891,7 @@ class Mywin(wx.Frame):
 
                 #current_frame = current_frame.zfill(9)
                 #imagePath = get_current_image_path()
-                if not is_paused_rendering or current_render_frame < 0:
+                if not int(is_paused_rendering) or int(current_render_frame) < 0:
                     imagePath = get_current_image_path_f(current_frame)
                 else:
                     imagePath = get_current_image_path_f(current_render_frame)
@@ -3123,7 +3135,16 @@ class Mywin(wx.Frame):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print("Starting Deforumation with WebSocket communication")
+        shouldUseNamedPipes = False
+    else:
+        print("Starting Deforumation with Named Pipes communication")
+        shouldUseNamedPipes = True
 
     app = wx.App()
-    Mywin(None, 'Deforumation @ Rakile & Lainol, 2023 (version 0.5.0)')
+    if len(sys.argv) < 2:
+        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.0 using WebSockets)')
+    else:
+        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.0 using named pipes)')
     app.MainLoop()
