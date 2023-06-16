@@ -1326,8 +1326,6 @@ if __name__ == '__main__':
         shouldUseNamedPipes = True
 
     try:
-        print("Starting mediator_v2 0.5.0 (named pipes)")
-
         if len(sys.argv) < 2:
             asyncio.run(main_websockets())
         else:
