@@ -60,7 +60,7 @@ Key Features<a name="key-features"></a>
 - Live manipulation of controlnets
 - Pause, rewind, and redo functions
 - Ability to import parseq json files to use as guide
-- Two diffrent communications protocols, websockets and named pipes. This is due to problem with freezing renders.
+- Two different communication protocols, websockets and named pipes. This is due to problem with freezing renders.
 
 Prerequisites<a name="prerequisites"></a>
 ------------
