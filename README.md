@@ -56,6 +56,7 @@ Cadence Schedule due to "tween" pictures not reacting to schedueled values.
 
 Key Features<a name="key-features"></a>
 ------------
+- Live View (separate window) of the rendered pictures. 
 - Separate prompting input boxes with prioritising possibility  
 - Controlling movements while rendering, now with armed movements and presetted curves 
 - Live manipulation of key values that effects the animation
