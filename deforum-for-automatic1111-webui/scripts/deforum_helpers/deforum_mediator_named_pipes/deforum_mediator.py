@@ -67,8 +67,8 @@ def mediator_getValue(param):
         except Exception as e:
             print("Deforum Mediator Error:" + str(e))
             print("...while trying to get parameter ("+str(param)+")")
-            print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)")
-            time.sleep(5)
+            print("The Deforumation Mediator, is probably not connected (waiting 0.2 seconds, before trying to reconnect...)")
+            time.sleep(0.2)
             needToUpdateMediator = True
 
 def mediator_setValue(param, value):
@@ -85,6 +85,6 @@ def mediator_setValue(param, value):
         except Exception as e:
             print("Deforum Mediator Error:" + str(e))
             print("...while trying to send parameter ("+str(param)+") with value("+str(value)+")")
-            print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)")
-            time.sleep(5)
+            print("The Deforumation Mediator, is probably not connected (waiting 0.2 seconds, before trying to reconnect...)")
+            time.sleep(0.2)
             needToUpdateMediator = True
