@@ -1402,6 +1402,7 @@ class Mywin(wx.Frame):
         self.replay_input_divider_box_text.SetPosition((trbX+1077, tbrY-130))
         self.replay_button.SetPosition((trbX + 1145, tbrY -135))
         self.fps_input_box_text.SetPosition((trbX+1180, tbrY-130))
+        self.fix_aspect_ratio_liverender_button.SetPosition((trbX+1244, tbrY-132))
         self.replay_fps_input_box.SetPosition((trbX+1200, tbrY-131))
         self.arm_pan_button.SetPosition((trbX-15, tbrY))
         self.arm_rotation_button.SetPosition((240+trbX+80, tbrY))
