@@ -84,7 +84,7 @@ Installation Guide<a name="installation-guide"></a>
 
 Installation Tutorial<a name="installation-Tutorial"></a>
 -------------
-[Installation Tutorial](https://youtu.be/7KmtmPlhzNs)
+[Installation Tutorial](https://youtu.be/7KmtmPlhzNs)  (Tutorial is for websocket protocol, follow above instalation guide to use named pipes protocol)
 
 Compatibility<a name="compatibility"></a>
 -------------
