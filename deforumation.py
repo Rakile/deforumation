@@ -64,6 +64,8 @@ should_use_deforumation_panning = 1
 should_use_deforumation_zoomfov = 1
 should_use_deforumation_rotation = 1
 should_use_deforumation_tilt = 1
+renderWindowX = 100
+renderWindowY = 100
 #ControlNet
 CN_Weight = []
 CN_StepStart = []
@@ -323,15 +325,25 @@ class render_window(wx.Frame):
             self.ToggleWindowStyle(wx.STAY_ON_TOP | wx.BORDER_DEFAULT)
         self.Bind(wx.EVT_CLOSE, self.OnExit)
         self.Bind(wx.EVT_SIZING, self.OnResize)
+        self.Bind(wx.EVT_MOVE, self.OnMove)
         #panel = wx.Panel(self)
         self.panel = MyPanel(self)
         self.panel.SetBackgroundColour(wx.Colour(100, 100, 100))
         self.panel.SetDoubleBuffered(True)
         self.bitmap = None
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
+    def OnMove(self, evt):
+        global renderWindowX, renderWindowY
+        x, y = self.GetPosition()
+        renderWindowX = x
+        renderWindowY = y
+        #print("X:"+str(x)+" Y:"+str(y))
     def OnResize(self, evt):
         self.current_width, self.current_height = self.GetSize()
+        #aspectRatio = (self.BestSize.Height-18)/(self.BestSize.Width-40)
+        #self.current_height = int(aspectRatio*self.current_width)
         self.panel.resize(self.current_width, self.current_height)
+        #self.Refresh()
         #print("width=" + str(self.current_width))
         #print("height=" + str(self.current_height))
     def OnErase(self, evt):
@@ -568,11 +580,17 @@ class Mywin(wx.Frame):
         self.replay_button.SetToolTip("This will replay the range given in the input boxes to the left. The replay will take place in the Live Render window.")
         self.replay_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.replay_button.SetLabel("REPLAY")
+
         #REPLAY FPS BOX
         self.fps_input_box_text = wx.StaticText(self.panel, label="fps", pos=(trbX+1180, tbrY-130))
         self.replay_fps_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX+1200, tbrY-131))
         self.replay_fps_input_box.SetToolTip("When doing a replay, this is the fps that should be used to replay the images. How ever, because the replay is done through converting .PNG files to bitmaps (takes a long time), the speed will not be accurate.")
         self.replay_fps_input_box.SetValue("30")
+
+        #FIX ASPECT RATIO
+        self.fix_aspect_ratio_liverender_button = wx.Button(self.panel, label="Fix Aspect Ratio", pos=(trbX+1244, tbrY-132))
+        self.fix_aspect_ratio_liverender_button.SetToolTip("This will adjust the Live Render Windows aspect ratio (using width as the leading value).")
+        self.fix_aspect_ratio_liverender_button.Bind(wx.EVT_BUTTON, self.OnClicked)
 
         #SAVE PROMPTS BUTTON
         self.update_prompts = wx.Button(self.panel, label="SAVE PROMPTS")
@@ -2881,6 +2899,49 @@ class Mywin(wx.Frame):
                 bmp = wx.Bitmap("./images/play.bmp", wx.BITMAP_TYPE_BMP)
                 bmp = scale_bitmap(bmp, 18, 18)
                 self.replay_button.SetBitmap(bmp)
+        elif btn == "Fix Aspect Ratio":
+            if should_render_live == True:
+                if not int(is_paused_rendering) or int(current_render_frame) < 0:
+                    imagePath = get_current_image_path_f(current_frame)
+                else:
+                    imagePath = get_current_image_path_f(current_render_frame)
+                if os.path.isfile(imagePath):
+                    self.img_render = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
+                    imgWidth = self.img_render.GetWidth()
+                    imgHeight = self.img_render.GetHeight()
+                    aspectRatio = imgHeight / imgWidth
+                    framer_Width, framer_Height = self.framer.GetSize()
+                    framer_Height = int(framer_Width * aspectRatio)
+                    if int(is_paused_rendering):
+                        self.img_render = self.img_render.Scale(framer_Width, framer_Height, wx.IMAGE_QUALITY_HIGH)
+                        self.framer.SetSize(framer_Width, framer_Height)
+                        self.framer.bitmap = wx.StaticBitmap(self.framer, -1, self.img_render)
+                        self.framer.Refresh()
+                    else:
+                        self.framer.SetSize(framer_Width, framer_Height) #18,40
+                        self.framer.panel.resize(framer_Width, framer_Height)
+                        self.framer.Layout()
+                        self.framer.panel.Refresh()
+        elif btn == "Fix Aspect Ratiod":
+            if should_render_live == True:
+                current_frame = str(self.readValue("start_frame"))
+                # print("Got current start frame:" + current_frame)
+                current_render_frame = int(current_frame)
+                outdir = str(readValue("frame_outdir")).replace('\\', '/').replace('\n', '')
+                resume_timestring = str(readValue("resume_timestring"))
+                imagePath = get_current_image_path_f(0)
+                if os.path.isfile(imagePath):
+                    self.img_render = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
+                    imgWidth = self.img_render.GetWidth()
+                    imgHeight = self.img_render.GetHeight()
+                    aspectRatio = imgHeight/imgWidth
+                    if self.framer != None:
+                        framer_Width, framer_Height = self.framer.GetSize()
+                        framer_Height = int (framer_Width*aspectRatio)
+                        self.framer.SetSize(framer_Width, framer_Height) #18,40
+                        self.framer.panel.resize(framer_Width, framer_Height)
+                        self.framer.Layout()
+                        self.framer.panel.Refresh()
         elif btn == "LIVE RENDER":
             current_frame = str(self.readValue("start_frame"))
             #print("should_render_live: "+str(should_render_live))
@@ -2915,6 +2976,7 @@ class Mywin(wx.Frame):
                         imgHeight = self.img_render.GetHeight()
                         if self.framer == None:
                             self.framer = render_window(self, 'Render Image')
+                            self.framer.Move(renderWindowX, renderWindowY)
                             self.framer.Show()
                         self.framer.SetSize(imgWidth+18, imgHeight+40) #18,40
                         self.framer.bitmap = wx.StaticBitmap(self.framer, -1, self.img_render)
@@ -3144,7 +3206,7 @@ if __name__ == '__main__':
 
     app = wx.App()
     if len(sys.argv) < 2:
-        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.0 using WebSockets)')
+        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.1 using WebSockets)')
     else:
-        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.0 using named pipes)')
+        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.1 using named pipes)')
     app.MainLoop()
