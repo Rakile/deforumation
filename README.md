@@ -73,18 +73,19 @@ Prerequisites<a name="prerequisites"></a>
 Installation Guide<a name="installation-guide"></a>
 -------------------
 1. **Clone or download** the git repository  `git clone https://github.com/Rakile/deforumation`  (https://github.com/Rakile/deforumation) and unpack the zip file. Keep deforumation folder outside your `"stable-diffusion-webui"` path.
-2. **Replace files** (render.py, animation.py, deforum_mediator.py) in the Automatic1111 path ".\extensions\deforum-for-automatic1111-webui\scripts\deforum_helpers\" with the downloaded files from Deforumation.
+2. **Replace files** (render.py, animation.py, deforum_mediator.py) in the Automatic1111 path ".\extensions\deforum-for-automatic1111-webui\scripts\deforum_helpers\" with the downloaded files from Deforumation. To use the "named pipes" protocol the `"mediator".py` file must be copied from the `"deforum_mediator_named_pipes"` folder to your `"\\stable-diffusion-webui-02\extensions\deforum-for-automatic1111-webui\scripts\deforum_helpers"`
 3. **Install dependencies** by running `python -m pip install -r requirements.txt` or using the `"run_me_first_install_requirements.bat"` file.
 4. **!!IMPORTANT!!** Check that you have installed websocket version 10.4.(the correct version is included in the reqirements.txt) Do this by running the command: python -m websockets --version
    in a CMD (command line window) window. People have noticed that python websocket library, with a version higher or equal to 11.0, makes Deforum and Deforumation freeze.
    See (https://github.com/Rakile/deforumation/blob/main/Dirty_Fix_To_Fix_Freeze_Problem/deforumation_quick_fix.txt) for more information.
 5. To start Deforumation using websocket protocol **Run the Mediator** (mediator.py) `H:\named\deforumation>python mediator.py` and the **Deforumation GUI** (deforumation.py) `H:\named\deforumation>python deforumation.py` in CMD inside deforumation path. Or use the `"Deforumation_start_websockets.bat"` file.
 6. To start Deforumation using websocket named pipes protocol **Run the Mediator** (mediator.py) `H:\named\deforumation>python mediator.py pipes` and the **Deforumation GUI** (deforumation.py) `H:\named\deforumation>python deforumation.py pipes` in CMD inside deforumation path. Or use the `"Deforumation_start_named_pipes.bat"` file.
-7. **Set to 3D in keyframes TAB** In the Deforum extention in the `Keyframes TAB, you have to choose "3D"`, else it will not work.
+7. To use the `"named pipes"` protocol the correct `"mediator".py` file must be copied from the `"deforum_mediator_named_pipes"` folder to your `"\\stable-diffusion-webui-02\extensions\deforum-for-automatic1111-webui\scripts\deforum_helpers"`
+8. **Set to 3D in keyframes TAB** In the Deforum extention in the `Keyframes TAB, you have to choose "3D"`, else it will not work.
 
 Installation Tutorial<a name="installation-Tutorial"></a>
 -------------
-[Installation Tutorial](https://youtu.be/7KmtmPlhzNs)  (Tutorial is for websocket protocol, follow above instalation guide to use named pipes protocol)
+[Installation Tutorial](https://youtu.be/7KmtmPlhzNs)  (Tutorial is for websocket protocol, follow the above installation guide to use named pipes protocol)
 
 Compatibility<a name="compatibility"></a>
 -------------
