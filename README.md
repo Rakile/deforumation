@@ -43,7 +43,7 @@ Deforumation is a free tool for everyone to use. We appreciate all and any donat
 
 Latest version / features
 -----------------
-[Latest version](#Latest-version)   (2023-05-03)
+[Latest version](#Latest-version)   (2023-06-18)
 
 
 Introduction<a name="introduction"></a>
