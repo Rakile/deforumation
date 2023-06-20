@@ -91,14 +91,17 @@ Perlin_Octave_Value = 4
 Perlin_Persistence_Value = 0.5
 zero_pan_active = False
 zero_rotate_active = False
+zero_zoom_active = False
 stepit_pan = 0
 stepit_rotate = 0
+stepit_zoom = 0
 isReplaying = 0
 replayFrom = 0
 replayTo = 0
 replayFPS = 30
 armed_rotation = False
 armed_pan = False
+armed_zoom = False
 #pstb = False
 #pmob = False
 is_Parseq_Active = False
@@ -108,6 +111,7 @@ rotate_step_input_box_value = "1.0"
 tilt_step_input_box_value = "1.0"
 zero_pan_step_input_box_value = "0"
 zero_rotate_step_input_box_value = "0"
+zero_zoom_step_input_box_value = "0"
 current_active_cn_index = 1
 #Bezier curve stuff
 bezierArray = []
@@ -726,6 +730,29 @@ class Mywin(wx.Frame):
         self.fov_reverse_lock_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.fov_reverse_lock_button.SetLabel("REVERSE FOV")
 
+        #ARM ZOOM VALUE BUTTON
+        bmp = wx.Bitmap("./images/arm_off.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = scale_bitmap(bmp, 10, 10)
+        self.arm_zoom_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+230, tbrY-10), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.arm_zoom_button.SetToolTip("When activated, you enter arming mode for zooming. In arming mode, these zoom values are separate from the actual zoom values. These values are the end point when doing a transitioning of the current zoom values. Such a transition is started by pushing the \"0\"-button.")
+        self.arm_zoom_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.arm_zoom_button.SetLabel("ARM_ZOOM")
+
+        #ZERO ARM STEP INPUT BOX STRING
+        self.zero_zoom_step_input_box_text = wx.StaticText(self.panel, label="0-Steps", pos=(trbX+256, tbrY-15))
+        #ZERO PAN STEP INPUT BOX
+        self.zero_zoom_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX+254, tbrY))
+        self.zero_zoom_step_input_box.SetToolTip("The number of frames that it will take a for a zooming transition to go from the current zoom value to the armed zoom value.")
+        self.zero_zoom_step_input_box.SetLabel("0")
+
+        #ZERO ZOOM BUTTTON
+        bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = scale_bitmap(bmp, 18, 18)
+        self.zoom_zero_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX+258, tbrY+20), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.zoom_zero_button.SetToolTip("Will start a transition from the current zoom values, to the armed zoom values.")
+        self.zoom_zero_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.zoom_zero_button.SetLabel("ZERO ZOOM")
+
         #STRENGTH SCHEDULE SLIDER
         self.strength_schedule_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=65, minValue=1, maxValue=100, pos = (trbX-25, tbrY-50), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.strength_schedule_slider.SetToolTip("Sets the Strength value. The scale shown is 100 times larger than the actual value (so when using strength==100 it's actually 1.0)")
@@ -733,41 +760,6 @@ class Mywin(wx.Frame):
         self.strength_schedule_slider.SetTickFreq(1)
         self.strength_schedule_slider.SetLabel("STRENGTH SCHEDULE")
         self.step_schedule_Text = wx.StaticText(self.panel, label="Strength Value", pos=(trbX-25, tbrY-70))
-
-        #PROMPT ON/OFF BUTTON
-        #bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
-        #ppb = True
-        #bmp = scale_bitmap(bmp, 15, 15)
-        #self.parseq_prompt_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos=(trbX+560, 10), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
-        #self.parseq_prompt_button.SetToolTip("When activated (red), Deforumations prompt system will be in use, else it will use Deforum's or Parseq's. If Parseq is activated it overrides Deforum's.")
-        #self.parseq_prompt_button.Bind(wx.EVT_BUTTON, self.OnClicked)
-        #self.parseq_prompt_button.SetLabel("Use Deforumation prompt scheduling")
-
-        #PARSEQ STRENGTH ON/OFF BUTTON
-       # if int(readValue("parseq_strength")) == 1:
-       #     bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
-       #     pstb = True
-       # else:
-       #     bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
-       #     pstb = False
-       # bmp = scale_bitmap(bmp, 15, 15)
-       # self.parseq_strength_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos=(trbX-45, tbrY-46), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
-       # self.parseq_strength_button.SetToolTip("When activated (red), both Deforumations Strength and CFG-slider will be used.If not activated, Deforum's or Parseq's values will be used for CFG and maybe Strength (depending on if the \"USE DEFORUMATION\"-checkbox for strength is activated or not. Parseq always overrides Deforum's values if it is active.")
-       # self.parseq_strength_button.Bind(wx.EVT_BUTTON, self.OnClicked)
-       # self.parseq_strength_button.SetLabel("pstb")
-
-        #PARSEQ MOVEMENTS ON/OFF BUTTON
-        #if int(readValue("parseq_movements")) == 1:
-        #    bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
-        #    pmob = True
-        #else:
-        #    bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
-        #    pmob = False
-        #bmp = scale_bitmap(bmp, 20, 20)
-        #self.parseq_movements_button = wx.BitmapButton(self.panel, bitmap=bmp, id=wx.ID_ANY, pos = (trbX+280, tbrY+100), size=(bmp.GetWidth() + 2, bmp.GetHeight() + 2))
-        #self.parseq_movements_button.SetToolTip("When activated (red), Deforumations motion controls will be in use (PAN, ROTATION, ZOOM, FOV and TILT). If not activated, Deforum's or Parseq's motion values are added to Deforum's motion values.")
-        #self.parseq_movements_button.Bind(wx.EVT_BUTTON, self.OnClicked)
-        #self.parseq_movements_button.SetLabel("pmob")
 
         #SHOULD USE DEFORUMATION STRENGTH VALUES? CHECK-BOX
         self.should_use_deforumation_strength_checkbox = wx.CheckBox(self.panel, label="USE DEFORUMATION STRENGTH", pos=(trbX+60, tbrY-66))
@@ -795,7 +787,7 @@ class Mywin(wx.Frame):
         self.should_use_deforumation_panning_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
         #SHOULD USE DEFORUMATION ZOOM/FOV VALUES? CHECK-BOX
-        self.should_use_deforumation_zoomfov_checkbox = wx.CheckBox(self.panel, label="U.D.Zo", pos=(trbX+172, tbrY-8))
+        self.should_use_deforumation_zoomfov_checkbox = wx.CheckBox(self.panel, label="U.D.Zo", pos=(trbX+172, tbrY-6))
         self.should_use_deforumation_zoomfov_checkbox.SetToolTip("When activated, Deforumations ZOOM and FOV values will be used.")
         self.should_use_deforumation_zoomfov_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
@@ -1152,6 +1144,9 @@ class Mywin(wx.Frame):
         self.cadence_rescheduler_result_informational_input_box.SetToolTip("Informational messages after running a \"Re-schedule\" will be shown here.")
 
 
+        #COMBOBOX TEXT FOR CHOOSING A BEZIER CURVE
+        self.bezier_points_input_box_text = wx.StaticText(self.panel, label="Curve type", pos=(trbX+560, tbrY+26))
+
         #COMBOBOX FOR CHOOSING A BEZIER CURVE
         beziers = ['ease', 'linear', 'ease-in', 'ease-out', 'ease-in-out']
         self.bezier_chooser_choice = wx.Choice(self.panel, id=wx.ID_ANY,  pos=(trbX+560, tbrY+46),size=(100,40), choices=beziers, style=0, name="Arne")
@@ -1160,9 +1155,9 @@ class Mywin(wx.Frame):
         self.bezier_chooser_choice.SetSelection(1)
 
         #INPUT BOX FOR BEZIER POINTS
-        self.bezier_points_input_box = wx.TextCtrl(self.panel, id=wx.ID_ANY, size=(160, 20), pos=(trbX + 560, tbrY+70))
+        self.bezier_points_input_box = wx.TextCtrl(self.panel, id=wx.ID_ANY, size=(100, 20), pos=(trbX + 560, tbrY+70))
         self.bezier_points_input_box.SetToolTip("The cubic bezier point, which can be changed or will be populated accoring to what pre-defined curve you chose above.")
-        self.bezier_points_input_box.SetValue("((0, 0), (0, 0), (1, 1), (1, 1))")
+        self.bezier_points_input_box.SetValue("(0, 0), (1, 1)")
 
         #self.cadence_rescheduler_url_input_box.Bind(wx.EVT_SET_FOCUS, self.OnFocus)
 
@@ -1192,15 +1187,15 @@ class Mywin(wx.Frame):
         print("You choose:" + self.bezier_chooser_choice.GetString(self.bezier_chooser_choice.GetSelection()))
 
         if selectionString == 'ease':
-            self.bezier_points_input_box.SetValue("((0, 0), (0.25, 0.1), (0.25, 1), (1, 1))")
+            self.bezier_points_input_box.SetValue("(0.25, 0.1), (0.25, 1)")
         elif selectionString == 'linear':
-            self.bezier_points_input_box.SetValue("((0, 0), (0, 0), (1, 1), (1, 1))")
+            self.bezier_points_input_box.SetValue("(0, 0), (1, 1)")
         elif selectionString == 'ease-in':
-            self.bezier_points_input_box.SetValue("((0, 0), (.42, 0), (1, 1), (1, 1))")
+            self.bezier_points_input_box.SetValue("(.42, 0), (1, 1)")
         elif selectionString == 'ease-out':
-            self.bezier_points_input_box.SetValue("((0, 0), (0, 0), (.58, 1), (1, 1))")
+            self.bezier_points_input_box.SetValue("(0, 0), (.58, 1)")
         elif selectionString == 'ease-in-out':
-            self.bezier_points_input_box.SetValue("((0, 0), (.42, 0), (.58, 1), (1, 1))")
+            self.bezier_points_input_box.SetValue("(.42, 0), (.58, 1)")
 
 
     def OnComponentChoice(self, event):
@@ -1341,6 +1336,12 @@ class Mywin(wx.Frame):
         self.FOV_Text3.SetPosition((250 + trbX, tbrY + 80))
         self.fov_lock_button.SetPosition((172+trbX, tbrY+6))
         self.fov_reverse_lock_button.SetPosition((172 + trbX, tbrY + 120))
+
+        self.arm_zoom_button.SetPosition((trbX+230, tbrY-10))
+        self.zero_zoom_step_input_box_text.SetPosition((trbX+256, tbrY-15))
+        self.zero_zoom_step_input_box.SetPosition((trbX+254, tbrY))
+        self.zoom_zero_button.SetPosition((trbX+258, tbrY+20))
+
         self.strength_schedule_slider.SetPosition((trbX - 25, tbrY - 50))
         #self.parseq_strength_button.SetPosition((trbX-45, tbrY-46))
         #self.parseq_movements_button.SetPosition((trbX+280, tbrY+100))
@@ -1442,6 +1443,7 @@ class Mywin(wx.Frame):
         self.cadence_rescheduler_result_informational_text.SetPosition((trbX-40, tbrY+492))
         self.cadence_rescheduler_result_informational_input_box.SetPosition((trbX+40, tbrY+490))
         self.bezier_chooser_choice.SetPosition((trbX+560, tbrY+46))
+        self.bezier_points_input_box_text.SetPosition((trbX + 560, tbrY + 26))
         self.bezier_points_input_box.SetPosition((trbX + 560, tbrY+70))
 
     def SetCurrentActiveCN(self, cnSelectIndex):
@@ -1571,6 +1573,7 @@ class Mywin(wx.Frame):
         global tilt_step_input_box_value
         global zero_pan_step_input_box_value
         global zero_rotate_step_input_box_value
+        global zero_zoom_step_input_box_value
         global shouldUseDeforumPromptScheduling
         if os.path.isfile(deforumationSettingsPath_Keys):
             deforumFile = open(deforumationSettingsPath_Keys, 'r')
@@ -1673,6 +1676,9 @@ class Mywin(wx.Frame):
                 self.zero_pan_step_input_box.SetValue(zero_pan_step_input_box_value)
                 zero_rotate_step_input_box_value = deforumFile.readline().strip().strip('\n')
                 self.zero_rotate_step_input_box.SetValue(zero_rotate_step_input_box_value)
+                zero_zoom_step_input_box_value = deforumFile.readline().strip().strip('\n')
+                self.zero_zoom_step_input_box.SetValue(zero_zoom_step_input_box_value)
+
                 ###CN
                 for cnIndex in range(5):
                     CN_Weight[cnIndex] = float(deforumFile.readline().strip().strip('\n'))
@@ -1808,6 +1814,7 @@ class Mywin(wx.Frame):
             self.cadence_slider.SetValue(Cadence_Schedule)
             self.zero_pan_step_input_box.SetValue(zero_pan_step_input_box_value)
             self.zero_rotate_step_input_box.SetValue(zero_rotate_step_input_box_value)
+            self.zero_zoom_step_input_box.SetValue(zero_zoom_step_input_box_value)
             for cnIndex in range(5):
                 self.control_net_weight_slider[cnIndex].SetValue(int(CN_Weight[cnIndex] * 100))
                 self.control_net_stepstart_slider[cnIndex].SetValue(int(CN_StepStart[cnIndex] * 100))
@@ -1869,6 +1876,7 @@ class Mywin(wx.Frame):
         deforumFile.write(str(self.cadence_slider.GetValue())+"\n")
         deforumFile.write(str(self.zero_pan_step_input_box.GetValue().strip().replace('\n', '')+"\n"))
         deforumFile.write(str(self.zero_rotate_step_input_box.GetValue().strip().replace('\n', ''))+"\n")
+        deforumFile.write(str(self.zero_zoom_step_input_box.GetValue().strip().replace('\n', '')+"\n"))
         for cnIndex in range(5):
             deforumFile.write(str('%.2f' % CN_Weight[cnIndex])+"\n")
             deforumFile.write(str('%.2f' % CN_StepStart[cnIndex])+"\n")
@@ -2036,12 +2044,15 @@ class Mywin(wx.Frame):
     def ZeroStepper(self, parameter_value, frame_steps, want_value):
         global Translation_X
         global Translation_Y
+        global Translation_Z
         global Rotation_3D_X
         global Rotation_3D_Y
         global stepit_pan
         global stepit_rotate
+        global stepit_zoom
         global zero_pan_active
         global zero_rotate_active
+        global zero_zoom_active
 
         print("Zero stepper thread started for:"+str(parameter_value))
         is_negative = 0
@@ -2051,6 +2062,7 @@ class Mywin(wx.Frame):
 
         #Prepare the bezier curve that should be followed:
         bezier_from_input_box_string = self.bezier_points_input_box.GetValue()
+        bezier_from_input_box_string = "((0, 0)," + bezier_from_input_box_string + ",(1, 1))"
         bezier_from_input_box_array = bezier_from_input_box_string.replace('(', '').replace(')', '').replace(' ','').split(',')
         bezierTupple = list(((0, 0), (0, 0), (0, 0), (0, 0)))
         bezierTupple[0] = (float(bezier_from_input_box_array[0]), float(bezier_from_input_box_array[1]))
@@ -2074,6 +2086,13 @@ class Mywin(wx.Frame):
                 if Translation_Y < 0:
                     is_negative = 1
             bezierArray = pyeaze.Animator(current_value=Translation_Y, target_value=want_value, duration=1, fps=zero_frame_steps, easing=bezierTupple, reverse=False)
+        elif parameter_value == "translation_z":
+            stepit_zoom = 1
+            if Translation_Z != want_value:
+                zero_frame_steps_n_frame = float((want_value - Translation_Z) / zero_frame_steps)
+                if Translation_Z < 0:
+                    is_negative = 1
+            bezierArray = pyeaze.Animator(current_value=Translation_Z, target_value=want_value, duration=1, fps=zero_frame_steps, easing=bezierTupple, reverse=False)
         elif parameter_value == "rotation_x":
             stepit_rotate = 1
             if Rotation_3D_X != want_value:
@@ -2099,6 +2118,8 @@ class Mywin(wx.Frame):
                 break
             if (parameter_value == "rotation_x" or parameter_value == "rotation_y") and stepit_rotate == 0:
                 break
+            if (parameter_value == "translation_z") and stepit_zoom == 0:
+                break
 
             current_step_frame = int(readValue("start_frame"))
 
@@ -2110,6 +2131,8 @@ class Mywin(wx.Frame):
                     Translation_X = float(bezierArray.values[indexInBezierArray])
                 elif parameter_value == "translation_y":
                     Translation_Y = float(bezierArray.values[indexInBezierArray])
+                elif parameter_value == "translation_z":
+                    Translation_Z = float(bezierArray.values[indexInBezierArray])
                 elif parameter_value == "rotation_x":
                     Rotation_3D_X = float(bezierArray.values[indexInBezierArray])
                 elif parameter_value == "rotation_y":
@@ -2189,6 +2212,11 @@ class Mywin(wx.Frame):
                 self.writeValue(parameter_value, Translation_Y)
                 self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
                 print("Translation_Y:" + str(Translation_Y))
+            elif parameter_value == "translation_z":
+                self.writeValue(parameter_value, Translation_Z)
+                self.zoom_value_text.SetLabel(str('%.2f' % Translation_Z))
+                self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
+                print("Translation_Z:" + str(Translation_Z))
             elif parameter_value == "rotation_x":
                 self.writeValue(parameter_value, Rotation_3D_X)
                 self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
@@ -2205,7 +2233,8 @@ class Mywin(wx.Frame):
             zero_pan_active = False
         if (parameter_value == "rotation_x" or parameter_value == "rotation_y"):
             zero_rotate_active = False
-
+        if (parameter_value == "translation_z"):
+            zero_zoom_active = False
 
         print("Ending stepper thread")
 
@@ -2245,6 +2274,7 @@ class Mywin(wx.Frame):
         global should_use_deforumation_prompt_scheduling
         global zero_pan_active
         global zero_rotate_active
+        global zero_zoom_active
         global stepit_pan
         global stepit_rotate
         global CN_Weight
@@ -2259,6 +2289,7 @@ class Mywin(wx.Frame):
         global cadenceArray
         global armed_rotation
         global armed_pan
+        global armed_zoom
         global Translation_X_ARMED
         global Translation_Y_ARMED
         global Translation_Z_ARMED
@@ -2527,31 +2558,54 @@ class Mywin(wx.Frame):
         elif btn == "ZOOM":
             currentEventTypeID = event.GetEventType()
 
-            if self.eventDict[currentEventTypeID] == "EVT_RIGHT_UP":
-                self.zoom_slider.SetValue(0)
-                self.zoom_value_text.SetLabel("0.00")
-                Translation_Z = 0.0
-                self.writeValue("translation_z", Translation_Z)
-                if is_fov_locked:
-                    if is_reverse_fov_locked:
-                        FOV_Scale = 70+(Translation_Z * -5)
-                    else:
-                        FOV_Scale = 70 + (Translation_Z * 5)
-                    self.fov_slider.SetValue(int(FOV_Scale))
-                    self.writeValue("fov", FOV_Scale)
-            else:
-                Translation_Z = self.zoom_slider.GetValue()/100
-                self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
+            if not armed_zoom:
+                if self.eventDict[currentEventTypeID] == "EVT_RIGHT_UP":
+                    self.zoom_slider.SetValue(0)
+                    self.zoom_value_text.SetLabel("0.00")
+                    Translation_Z = 0.0
+                    self.writeValue("translation_z", Translation_Z)
+                    if is_fov_locked:
+                        if is_reverse_fov_locked:
+                            FOV_Scale = 70+(Translation_Z * -5)
+                        else:
+                            FOV_Scale = 70 + (Translation_Z * 5)
+                        self.fov_slider.SetValue(int(FOV_Scale))
+                        self.writeValue("fov", FOV_Scale)
+                else:
+                    Translation_Z = self.zoom_slider.GetValue()/100
+                    self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
 
-                #print(str(Translation_Z))
-                self.writeValue("translation_z", Translation_Z)
-                if is_fov_locked:
-                    if is_reverse_fov_locked:
-                        FOV_Scale = 70+(Translation_Z * -5)
-                    else:
-                        FOV_Scale = 70 + (Translation_Z * 5)
-                    self.fov_slider.SetValue(int(FOV_Scale))
-                    self.writeValue("fov", FOV_Scale)
+                    #print(str(Translation_Z))
+                    self.writeValue("translation_z", Translation_Z)
+                    if is_fov_locked:
+                        if is_reverse_fov_locked:
+                            FOV_Scale = 70+(Translation_Z * -5)
+                        else:
+                            FOV_Scale = 70 + (Translation_Z * 5)
+                        self.fov_slider.SetValue(int(FOV_Scale))
+                        self.writeValue("fov", FOV_Scale)
+            else:
+                if self.eventDict[currentEventTypeID] == "EVT_RIGHT_UP":
+                    self.zoom_slider.SetValue(0)
+                    self.zoom_value_text.SetLabel("0.00")
+                    Translation_Z_ARMED = 0.0
+                    if is_fov_locked:
+                        if is_reverse_fov_locked:
+                            FOV_Scale = 70 + (Translation_Z_ARMED * -5)
+                        else:
+                            FOV_Scale = 70 + (Translation_Z_ARMED * 5)
+                        self.fov_slider.SetValue(int(FOV_Scale))
+                else:
+                    Translation_Z_ARMED = self.zoom_slider.GetValue() / 100
+                    self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z_ARMED)))
+                    # print(str(Translation_Z))
+                    if is_fov_locked:
+                        if is_reverse_fov_locked:
+                            FOV_Scale = 70 + (Translation_Z_ARMED * -5)
+                        else:
+                            FOV_Scale = 70 + (Translation_Z_ARMED * 5)
+                        self.fov_slider.SetValue(int(FOV_Scale))
+
         elif event.GetId() == 151:
             minmaxval = self.zoom_step_input_box.GetValue()
             self.zoom_slider.SetMin(int(-float(minmaxval)*100))
@@ -2560,6 +2614,23 @@ class Mywin(wx.Frame):
             self.zoom_value_low_text.SetLabel("-"+minmaxval)
             self.zoom_slider.SetTickFreq(int(float(minmaxval)*100/10))
             #float(minmaxval)/20
+        elif btn == "ZERO ZOOM":
+            if not zero_zoom_active:
+                #Start a ZERO step thread.
+                frame_steps = int(self.zero_zoom_step_input_box.GetValue())
+                if frame_steps == 0:
+                    Translation_Z = 0
+                    self.writeValue("translation_z", Translation_Z)
+                elif (Translation_Z == Translation_Z_ARMED):
+                    zero_zoom_active = False
+                else:
+                    zero_zoom_active = True
+                    self.zero_step_thread_z = threading.Thread(target=self.ZeroStepper, args=("translation_z", frame_steps, Translation_Z_ARMED))
+                    self.zero_step_thread_z.daemon = True
+                    self.zero_step_thread_z.start()
+            else:
+                stepit_zoom = 0
+                zero_zoom_active = False
 
         elif btn == "STRENGTH SCHEDULE":
             Strength_Scheduler = float(self.strength_schedule_slider.GetValue())*0.01
@@ -2655,6 +2726,19 @@ class Mywin(wx.Frame):
                 bmp = scale_bitmap(bmp, 10, 10)
                 self.arm_pan_button.SetBitmap(bmp)
                 self.arm_pan_button.SetSize(bmp.GetWidth()+10, bmp.GetHeight()+10)
+        elif btn == "ARM_ZOOM":
+            if armed_zoom:
+                armed_zoom = False
+                bmp = wx.Bitmap("./images/arm_off.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 10, 10)
+                self.arm_zoom_button.SetBitmap(bmp)
+                self.arm_zoom_button.SetSize(bmp.GetWidth()+10, bmp.GetHeight()+10)
+            else:
+                armed_zoom = True
+                bmp = wx.Bitmap("./images/arm_on.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 10, 10)
+                self.arm_zoom_button.SetBitmap(bmp)
+                self.arm_zoom_button.SetSize(bmp.GetWidth()+10, bmp.GetHeight()+10)
         elif btn == "FOV":
             FOV_Scale = float(self.fov_slider.GetValue())
             self.writeValue("fov", FOV_Scale)
@@ -3069,6 +3153,14 @@ class Mywin(wx.Frame):
                 self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
                 self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' %Rotation_3D_X))
 
+            if armed_zoom:
+                self.zoom_value_text.SetLabel(str('%.2f' %Translation_Z_ARMED))
+                self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
+            else:
+                self.zoom_value_text.SetLabel(str('%.2f' %Translation_Z))
+                self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
+                #self.fov_slider.SetValue(int(FOV_Scale))
+
             self.rotation_Z_Value_Text.SetLabel(str('%.2f' %Rotation_3D_Z))
 
         self.writeAllValues()
@@ -3101,9 +3193,14 @@ class Mywin(wx.Frame):
                 self.pan_Y_Value_Text.SetLabel(str('%.2f' % float(deforum_translation_y)))
 
             if should_use_deforumation_zoomfov:
-                self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
-                self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
-                self.fov_slider.SetValue(int(FOV_Scale))
+                if armed_zoom:
+                    self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
+                    self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z_ARMED)))
+                    self.fov_slider.SetValue(int(FOV_Scale))
+                else:
+                    self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
+                    self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
+                    self.fov_slider.SetValue(int(FOV_Scale))
             else:
                 self.zoom_slider.SetValue(int(float(deforum_translation_z)*100))
                 self.zoom_value_text.SetLabel(str('%.2f' % float(deforum_translation_z)))
@@ -3181,7 +3278,10 @@ class Mywin(wx.Frame):
 
         self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Z)))
         self.fov_slider.SetValue(int(FOV_Scale))
-        self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
+        if armed_zoom:
+            self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
+        else:
+            self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
         self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
         self.cfg_schedule_slider.SetValue(int(CFG_Scale))
         self.strength_schedule_slider.SetValue(int(float(Strength_Scheduler)*100))
@@ -3207,7 +3307,7 @@ if __name__ == '__main__':
 
     app = wx.App()
     if len(sys.argv) < 2:
-        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.1 using WebSockets)')
+        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.2 using WebSockets)')
     else:
-        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.1 using named pipes)')
+        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.2 using named pipes)')
     app.MainLoop()
