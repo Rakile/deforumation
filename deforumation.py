@@ -2127,6 +2127,7 @@ class Mywin(wx.Frame):
             if indexInBezierArray == numberOfFramesInBezierArray:
                 break
             if (int(current_step_frame) > int(now_frame)):
+                now_frame = current_step_frame
                 if parameter_value == "translation_x":
                     Translation_X = float(bezierArray.values[indexInBezierArray])
                 elif parameter_value == "translation_y":
