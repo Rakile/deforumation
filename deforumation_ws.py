@@ -278,13 +278,180 @@ class MyPanel(wx.Panel):
         self.t = threading.Thread(target=changeBitmapWorker, args=(self,))
         self.t.daemon = True
         self.t.start()
+
+        # Variables for rectangle drawing
+        self.start_pos = None
+        self.current_pos = None
+        self.rectangle = wx.Rect()
+
+        # Bind mouse events to the bitmap
+        self.Bind(wx.EVT_RIGHT_DOWN, self.on_mouse_right_down)
+        self.Bind(wx.EVT_LEFT_DOWN, self.on_mouse_left_down)
+        self.Bind(wx.EVT_LEFT_UP, self.on_mouse_left_up)
+        self.Bind(wx.EVT_MOTION, self.on_mouse_motion)
+
+        #self.Bind(wx.EVT_PAINT, self.on_paint)
+
+    def setXYRotation(self, event):
+        global Rotation_3D_X
+        global Rotation_3D_Y
+        global Rotation_3D_Y_ARMED
+        global Rotation_3D_X_ARMED
+
+        pos = event.GetPosition()
+        clicked_bitmap = event.GetEventObject()
+
+        # Get the underlying image of the clicked bitmap
+        image = self.bitmap #clicked_bitmap.GetBitmap().ConvertToImage()
+
+        # Get the image size
+        image_width = image.GetWidth()
+        image_height = image.GetHeight()
+
+        print("x:", pos.x, " y:", pos.y, " width:", image_width, " height:", image_height)
+        # Normalize the click position to a range of -7 to 7 on both axes
+        # Old calculation below
+        # normalized_x = (pos.x / image_width) * 14 - 7
+        # normalized_y = (pos.y / image_height) * 14 - 7
+        # New calculation reflects the zoom granularity
+        zoom_granularity_value = float(self.parent.parent.zoom_step_input_box.GetValue())
+        normalized_x = ((pos.x / image_width) * zoom_granularity_value * 2) - zoom_granularity_value
+        normalized_y = ((pos.y / image_height) * zoom_granularity_value * 2) - zoom_granularity_value
+
+        # Print the normalized click position
+        print("Normalized Click Position:", normalized_x, normalized_y)
+        Rotation_3D_Y_ARMED = 0.0
+        Rotation_3D_X_ARMED = 0.0
+        Rotation_3D_Y = normalized_x
+        Rotation_3D_X = -normalized_y
+
+        print("Normalized Click Position:", Rotation_3D_Y_ARMED, Rotation_3D_X_ARMED, Rotation_3D_Y, Rotation_3D_X)
+
+    def on_mouse_right_down(self, event):
+        self.setXYRotation(event)
+
+        event = wx.PyCommandEvent(wx.EVT_BUTTON.typeId)
+        event.SetEventObject(self.parent.parent.rotate_zero_button)
+        event.SetId(self.parent.parent.rotate_zero_button.GetId())
+        self.parent.parent.rotate_zero_button.GetEventHandler().ProcessEvent(event)
+
+    def on_mouse_left_down(self, event):
+        self.start_pos = event.GetPosition()
+
+    def on_mouse_motion(self, event):
+        if event.Dragging() and event.LeftIsDown():
+            self.current_pos = event.GetPosition()
+            self.rectangle = self.calculate_rectangle()
+            self.Refresh()  # Redraw the bitmap with the rectangle
+
+    def calculate_rectangle(self):
+        x = min(self.start_pos.x, self.current_pos.x)
+        y = min(self.start_pos.y, self.current_pos.y)
+        width = abs(self.current_pos.x - self.start_pos.x)
+        height = abs(self.current_pos.y - self.start_pos.y)
+
+        return wx.Rect(x, y, width, height)
+
+    def on_paint(self, event):
+        if self.bitmap != None:
+            dc = wx.BufferedPaintDC(self.bitmap)
+            dc.Clear()
+            dc.DrawBitmap(self.bitmap.GetBitmap(), 0, 0)
+
+            #if self.start_pos and self.current_pos:
+            #    self.draw_rectangle(dc)
+        else:
+            pass
+
+    def draw_rectangle(self, dc):
+        pen = wx.Pen(wx.Colour(255, 0, 0), width=2)
+        dc.SetPen(pen)
+        dc.SetBrush(wx.TRANSPARENT_BRUSH)
+        dc.DrawRectangle(self.rectangle)
+
+    def calculate_midpoint(self, point1, point2):
+        x1, y1 = point1
+        x2, y2 = point2
+
+        midpoint_x = (x1 + x2) / 2
+        midpoint_y = (y1 + y2) / 2
+
+        midpoint = (midpoint_x, midpoint_y)
+
+        return midpoint
+
+    def on_mouse_left_up(self, event):
+        if self.start_pos and self.current_pos:
+            # Print rectangle position and size
+            print("Rectangle Position:", self.rectangle.GetPosition())
+            print("Rectangle Size:", self.rectangle.GetSize())
+            # normalise
+            image_size = self.bitmap.GetSize()
+            rectangle_width = self.rectangle.GetSize()[0]
+            rectangle_height = self.rectangle.GetSize()[1]
+
+            #Below, is OLD zoom_factor
+            #zoom_factor = min(image_size[0] / rectangle_width, image_size[1] / rectangle_height)*3
+            #Here is the new calculated zoom_factor
+            zoom_granularity_value = float(self.parent.parent.zoom_step_input_box.GetValue())
+            if rectangle_width <= rectangle_height:
+                zoom_delta = zoom_granularity_value / (image_size[0] / rectangle_width)
+                zoom_factor = zoom_granularity_value - zoom_delta
+            else:
+                zoom_delta = zoom_granularity_value / (image_size[1] / rectangle_height)
+                zoom_factor = zoom_granularity_value - zoom_delta
+
+            print("zoom_factor:", zoom_factor)
+            self.Translation_Z_ARMED = 0.0
+            self.Translation_Z = zoom_factor
+            print("Translation_Z:" + str(self.Translation_Z))
+
+            # fire slider event
+            evt = wx.PyCommandEvent(wx.EVT_SCROLL.typeId)
+            evt.SetEventObject(self.parent.parent.zoom_slider)
+            evt.SetId(self.parent.parent.zoom_slider.GetId())
+            self.parent.parent.zoom_slider.SetValue(int(self.Translation_Z * 100))
+            self.parent.parent.zoom_slider.GetEventHandler().ProcessEvent(evt)
+
+            # fire zero zoom button pressed
+            event = wx.PyCommandEvent(wx.EVT_BUTTON.typeId)
+            event.SetEventObject(self.parent.parent.zoom_zero_button)
+            event.SetId(self.parent.parent.zoom_zero_button.GetId())
+            self.parent.parent.zoom_zero_button.GetEventHandler().ProcessEvent(event)
+
+            # fire right mouse button on image
+            midpoint = self.calculate_midpoint(self.start_pos, self.current_pos)
+            print("midpoint", midpoint)
+            # event = wx.PyCommandEvent(wx.EVT_RIGHT_DOWN.typeId)
+            # event.SetEventObject(self.bitmap)
+            # event.SetId(self.bitmap.GetId())
+            # event.SetPosition(midpoint)
+            # self.bitmap.GetEventHandler().ProcessEvent(event)
+
+            event = wx.MouseEvent(wx.EVT_RIGHT_DOWN.typeId)
+            event.SetEventObject(self)#.bitmap)
+            event.SetId(self.GetId()) #self.bitmap.GetId())
+            point = wx.Point(int(midpoint[0]), int(midpoint[1]))
+            event.SetPosition(point)
+            self.ProcessEvent(event)
+
+            self.start_pos = None
+            self.current_pos = None
+            self.Refresh()  # Redraw the bitmap without the rectangle
+
     def OnExit(self, event):
         self.shouldRun = False
     def OnPaint(self, evt):
+        if self.bitmap == None:
+            self.current_width, self.current_height = self.GetSize()
+            self.resize(self.current_width, self.current_height)
+        #    self.bitmap = self.parent.bitmap
         if self.bitmap != None:
             dc = wx.BufferedPaintDC(self)
             dc.Clear()
             dc.DrawBitmap(self.bitmap, 0,0)
+            if self.start_pos and self.current_pos:
+                self.draw_rectangle(dc)
         else:
             pass
     def DeInitialize(self):
@@ -325,6 +492,7 @@ class render_window(wx.Frame):
         self.panel.SetDoubleBuffered(True)
         self.bitmap = None
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
+
     def OnMove(self, evt):
         global renderWindowX, renderWindowY
         x, y = self.GetPosition()
@@ -558,6 +726,19 @@ class Mywin(wx.Frame):
         img = wx.Image(256, 256)
         self.bitmap = wx.StaticBitmap(self.panel, wx.ID_ANY, wx.Bitmap(img), pos=(trbX + 650 +340, tbrY - 100))
         self.bitmap.SetToolTip("This is a preview window, that will only update to the current image through using the \"Show current frame\"-button, or by using the controls for rewinding or forwarding.")
+
+        # Variables for rectangle drawing
+        self.start_pos = None
+        self.current_pos = None
+        self.rectangle = wx.Rect()
+
+        # Bind mouse events to the bitmap
+        self.bitmap.Bind(wx.EVT_RIGHT_DOWN, self.on_mouse_right_down)
+        self.bitmap.Bind(wx.EVT_LEFT_DOWN, self.on_mouse_left_down)
+        self.bitmap.Bind(wx.EVT_LEFT_UP, self.on_mouse_left_up)
+        self.bitmap.Bind(wx.EVT_MOTION, self.on_mouse_motion)
+        self.bitmap.Bind(wx.EVT_PAINT, self.on_paint)
+
         #REPLAY BUTTON
         self.replay_input_box_text = wx.StaticText(self.panel, label="Replay", pos=(trbX+990, tbrY-130))
         self.replay_from_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX+1030, tbrY-131))
@@ -2267,6 +2448,7 @@ class Mywin(wx.Frame):
         global zero_zoom_active
         global stepit_pan
         global stepit_rotate
+        global stepit_zoom
         global CN_Weight
         global CN_StepStart
         global CN_StepEnd
@@ -2988,31 +3170,15 @@ class Mywin(wx.Frame):
                     framer_Width, framer_Height = self.framer.GetSize()
                     framer_Height = int(framer_Width * aspectRatio)
                     if int(is_paused_rendering):
-                        self.img_render = self.img_render.Scale(framer_Width, framer_Height, wx.IMAGE_QUALITY_HIGH)
+                        self.img_render = self.img_render.Scale(framer_Width-18, framer_Height-40, wx.IMAGE_QUALITY_HIGH)
                         self.framer.SetSize(framer_Width, framer_Height)
+                        self.framer.panel.current_width = framer_Width
+                        self.framer.panel.current_height = framer_Height
                         self.framer.bitmap = wx.StaticBitmap(self.framer, -1, self.img_render)
+                        self.framer.panel.resize(framer_Width, framer_Height)
+                        self.framer.panel.bitmap = None
                         self.framer.Refresh()
                     else:
-                        self.framer.SetSize(framer_Width, framer_Height) #18,40
-                        self.framer.panel.resize(framer_Width, framer_Height)
-                        self.framer.Layout()
-                        self.framer.panel.Refresh()
-        elif btn == "Fix Aspect Ratiod":
-            if should_render_live == True:
-                current_frame = str(self.readValue("start_frame"))
-                # print("Got current start frame:" + current_frame)
-                current_render_frame = int(current_frame)
-                outdir = str(readValue("frame_outdir")).replace('\\', '/').replace('\n', '')
-                resume_timestring = str(readValue("resume_timestring"))
-                imagePath = get_current_image_path_f(0)
-                if os.path.isfile(imagePath):
-                    self.img_render = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
-                    imgWidth = self.img_render.GetWidth()
-                    imgHeight = self.img_render.GetHeight()
-                    aspectRatio = imgHeight/imgWidth
-                    if self.framer != None:
-                        framer_Width, framer_Height = self.framer.GetSize()
-                        framer_Height = int (framer_Width*aspectRatio)
                         self.framer.SetSize(framer_Width, framer_Height) #18,40
                         self.framer.panel.resize(framer_Width, framer_Height)
                         self.framer.Layout()
@@ -3286,8 +3452,159 @@ class Mywin(wx.Frame):
         print("CLOSING!")
         wx.Exit()
 
+    def setXYRotation(self, event):
+        global Rotation_3D_X
+        global Rotation_3D_Y
+        global Rotation_3D_Y_ARMED
+        global Rotation_3D_X_ARMED
+
+        pos = event.GetPosition()
+        clicked_bitmap = event.GetEventObject()
+
+        # Get the underlying image of the clicked bitmap
+        image = clicked_bitmap.GetBitmap().ConvertToImage()
+
+        # Get the image size
+        image_width = image.GetWidth()
+        image_height = image.GetHeight()
+
+        print("x:", pos.x, " y:", pos.y, " width:", image_width, " height:", image_height)
+        # Normalize the click position to a range of -7 to 7 on both axes
+        #Old calculation below
+        #normalized_x = (pos.x / image_width) * 14 - 7
+        #normalized_y = (pos.y / image_height) * 14 - 7
+        # New calculation reflects the zoom granularity
+        zoom_granularity_value = float(self.zoom_step_input_box.GetValue())
+        normalized_x = ((pos.x / image_width) * zoom_granularity_value*2) - zoom_granularity_value
+        normalized_y = ((pos.y / image_height) * zoom_granularity_value*2) - zoom_granularity_value
+
+        # Print the normalized click position
+        print("Normalized Click Position:", normalized_x, normalized_y)
+        Rotation_3D_Y_ARMED = 0.0
+        Rotation_3D_X_ARMED = 0.0
+        Rotation_3D_Y = normalized_x
+        Rotation_3D_X = -normalized_y
+
+        print("Normalized Click Position:", Rotation_3D_Y_ARMED, Rotation_3D_X_ARMED, Rotation_3D_Y, Rotation_3D_X)
+
+    def on_mouse_right_down(self, event):
+        self.setXYRotation(event)
+
+        event = wx.PyCommandEvent(wx.EVT_BUTTON.typeId)
+        event.SetEventObject(self.rotate_zero_button)
+        event.SetId(self.rotate_zero_button.GetId())
+        self.rotate_zero_button.GetEventHandler().ProcessEvent(event)
+
+    def on_mouse_left_down(self, event):
+        self.bitmap.SetToolTip("")
+        self.start_pos = event.GetPosition()
+
+    def on_mouse_motion(self, event):
+        if event.Dragging() and event.LeftIsDown():
+            self.current_pos = event.GetPosition()
+            self.rectangle = self.calculate_rectangle()
+            self.Refresh()  # Redraw the bitmap with the rectangle
+
+    def calculate_midpoint(self, point1, point2):
+        x1, y1 = point1
+        x2, y2 = point2
+
+        midpoint_x = (x1 + x2) / 2
+        midpoint_y = (y1 + y2) / 2
+
+        midpoint = (midpoint_x, midpoint_y)
+
+        return midpoint
+    def on_mouse_left_up(self, event):
+        if self.start_pos and self.current_pos:
+            # Print rectangle position and size
+            print("Rectangle Position:", self.rectangle.GetPosition())
+            print("Rectangle Size:", self.rectangle.GetSize())
+            # normalise
+            image_size = self.bitmap.GetSize()
+            rectangle_width = self.rectangle.GetSize()[0]
+            rectangle_height = self.rectangle.GetSize()[1]
+
+            #Below, is OLD zoom_factor
+            #zoom_factor = min(image_size[0] / rectangle_width, image_size[1] / rectangle_height)*3
+            #Here is the new calculated zoom_factor
+            zoom_granularity_value = float(self.zoom_step_input_box.GetValue())
+            if rectangle_width <= rectangle_height:
+                zoom_delta = zoom_granularity_value / (image_size[0] / rectangle_width)
+                zoom_factor = zoom_granularity_value - zoom_delta
+            else:
+                zoom_delta = zoom_granularity_value / (image_size[1] / rectangle_height)
+                zoom_factor = zoom_granularity_value - zoom_delta
+
+            print("zoom_factor:", zoom_factor)
+            self.Translation_Z_ARMED = 0.0
+            self.Translation_Z = zoom_factor
+            print("Translation_Z:" + str(self.Translation_Z))
+
+            # fire slider event
+            evt = wx.PyCommandEvent(wx.EVT_SCROLL.typeId)
+            evt.SetEventObject(self.zoom_slider)
+            evt.SetId(self.zoom_slider.GetId())
+            self.zoom_slider.SetValue(int(self.Translation_Z * 100))
+            self.zoom_slider.GetEventHandler().ProcessEvent(evt)
+
+            # fire zero zoom button pressed
+            event = wx.PyCommandEvent(wx.EVT_BUTTON.typeId)
+            event.SetEventObject(self.zoom_zero_button)
+            event.SetId(self.zoom_zero_button.GetId())
+            self.zoom_zero_button.GetEventHandler().ProcessEvent(event)
+
+            # fire right mouse button on image
+            midpoint = self.calculate_midpoint(self.start_pos, self.current_pos)
+            print("midpoint", midpoint)
+            # event = wx.PyCommandEvent(wx.EVT_RIGHT_DOWN.typeId)
+            # event.SetEventObject(self.bitmap)
+            # event.SetId(self.bitmap.GetId())
+            # event.SetPosition(midpoint)
+            # self.bitmap.GetEventHandler().ProcessEvent(event)
+
+            event = wx.MouseEvent(wx.EVT_RIGHT_DOWN.typeId)
+            event.SetEventObject(self.bitmap)
+            event.SetId(self.bitmap.GetId())
+            point = wx.Point(int(midpoint[0]), int(midpoint[1]))
+            event.SetPosition(point)
+            self.bitmap.ProcessEvent(event)
+
+            self.start_pos = None
+            self.current_pos = None
+            self.Refresh()  # Redraw the bitmap without the rectangle
+            self.bitmap.SetToolTip("This is a preview window, that will only update to the current image through using the \"Show current frame\"-button, or by using the controls for rewinding or forwarding.")
+
+    def calculate_rectangle(self):
+        x = min(self.start_pos.x, self.current_pos.x)
+        y = min(self.start_pos.y, self.current_pos.y)
+        width = abs(self.current_pos.x - self.start_pos.x)
+        height = abs(self.current_pos.y - self.start_pos.y)
+
+        return wx.Rect(x, y, width, height)
+
+    def on_paint(self, event):
+        if self.bitmap != None:
+            dc = wx.BufferedPaintDC(self.bitmap)
+            dc.Clear()
+            dc.DrawBitmap(self.bitmap.GetBitmap(), 0, 0)
+
+            if self.start_pos and self.current_pos:
+                self.draw_rectangle(dc)
+        else:
+            pass
+
+    def draw_rectangle(self, dc):
+        pen = wx.Pen(wx.Colour(255, 0, 0), width=2)
+        dc.SetPen(pen)
+        dc.SetBrush(wx.TRANSPARENT_BRUSH)
+        dc.DrawRectangle(self.rectangle)
 
 if __name__ == '__main__':
+    print("Starting Deforumation with WebSocket communication")
+    print("Special thank you to our contributers:")
+    print("@nhoj - for rectangular zoom")
+
     app = wx.App()
-    Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.2 using WebSockets)')
+    Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.3 using WebSockets)')
     app.MainLoop()
