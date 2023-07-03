@@ -707,12 +707,12 @@ class Mywin(wx.Frame):
         self.opticalflow_checkbox.SetValue(True)
         #SET CADENCE FLOW FACTOR INPUT BOX
         self.cadence_flow_factor_box = wx.TextCtrl(self.panel, 1241, size=(28,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+1130-320, tbrY-54))
-        self.cadence_flow_factor_box.SetToolTip("This is the cadence flow factor that will be used if Optical flow is turned on.")
+        self.cadence_flow_factor_box.SetToolTip("This is the cadence flow factor that will be used if Optical flow is turned on. Press ENTER to save.")
         self.cadence_flow_factor_box.SetLabel("1")
         self.cadence_flow_factor_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=1241)
         #SET GENERATION FLOW FACTOR INPUT BOX
         self.generation_flow_factor_box = wx.TextCtrl(self.panel, 1242, size=(28,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+1130-290, tbrY-54))
-        self.generation_flow_factor_box.SetToolTip("This is the generation flow factor that will be used if Optical flow is turned on.")
+        self.generation_flow_factor_box.SetToolTip("This is the generation flow factor that will be used if Optical flow is turned on. Press ENTER to save.")
         self.generation_flow_factor_box.SetLabel("1")
         self.generation_flow_factor_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=1242)
 
