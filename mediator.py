@@ -56,6 +56,9 @@ should_use_deforumation_rotation = 1
 should_use_deforumation_tilt = 1
 cadence = 2
 deforum_cadence = 2
+should_use_optical_flow = 1
+cadence_flow_factor = 1
+generation_flow_factor = 1
 
 cn_weight = []
 cn_stepstart = []
@@ -171,6 +174,10 @@ async def main_websocket(websocket):
     global should_use_deforumation_tilt
     global use_deforumation_cadence_scheduling
     global deforumation_cadence_scheduling_manifest
+    global should_use_optical_flow
+    global cadence_flow_factor
+    global generation_flow_factor
+
     async for message in websocket:
         # print("Incomming message:"+str(message))
         arr = pickle.loads(message)
@@ -647,13 +654,13 @@ async def main_websocket(websocket):
                     if doVerbose2:
                         print("sending parseq_manifest:")
                     await websocket.send(str(parseq_manifest))
-            # elif str(parameter) == "parseq_prompt":
-            #    if shouldWrite:
-            #        parseq_prompt = value
-            #    else:
-            #        if doVerbose2:
-            #            print("sending parseq_prompt:")
-            #        await websocket.send(str(parseq_prompt))
+            elif str(parameter) == "should_use_optical_flow":
+                if shouldWrite:
+                    should_use_optical_flow = value
+                else:
+                    if doVerbose2:
+                        print("sending should_use_optical_flow:")
+                    await websocket.send(str(should_use_optical_flow))
             elif str(parameter) == "parseq_strength":
                 if shouldWrite:
                     parseq_strength = value
@@ -669,6 +676,21 @@ async def main_websocket(websocket):
                     if doVerbose2:
                         print("sending parseq_movements:" + str(parseq_movements))
                     await websocket.send(str(parseq_movements))
+            elif str(parameter) == "cadence_flow_factor":
+                if shouldWrite:
+                    cadence_flow_factor = value
+                else:
+                    if doVerbose2:
+                        print("sending cadence_flow_factor:" + str(cadence_flow_factor))
+                    await websocket.send(str(cadence_flow_factor))
+            elif str(parameter) == "generation_flow_factor":
+                if shouldWrite:
+                    generation_flow_factor = value
+                else:
+                    if doVerbose2:
+                        print("sending generation_flow_factor:" + str(generation_flow_factor))
+                    await websocket.send(str(generation_flow_factor))
+
             elif str(parameter) == "shutdown":
                 serverShutDown = True
             else:
@@ -749,6 +771,9 @@ def main_named_pipe(pipeName):
     global should_use_deforumation_tilt
     global use_deforumation_cadence_scheduling
     global deforumation_cadence_scheduling_manifest
+    global should_use_optical_flow
+    global cadence_flow_factor
+    global generation_flow_factor
 
     print("pipe server:" + str(pipeName))
     count = 0
@@ -1242,13 +1267,13 @@ def main_named_pipe(pipeName):
                         if doVerbose2:
                             print("sending parseq_manifest:")
                         win32file.WriteFile(pipe, str.encode(str(parseq_manifest)))
-                # elif str(parameter) == "parseq_prompt":
-                #    if shouldWrite:
-                #        parseq_prompt = value
-                #    else:
-                #        if doVerbose2:
-                #            print("sending parseq_prompt:")
-                #        win32file.WriteFile(pipe, str.encode(str(parseq_prompt))
+                elif str(parameter) == "should_use_optical_flow":
+                    if shouldWrite:
+                        should_use_optical_flow = value
+                    else:
+                        if doVerbose2:
+                            print("sending should_use_optical_flow:")
+                        win32file.WriteFile(pipe, str.encode(str(should_use_optical_flow)))
                 elif str(parameter) == "parseq_strength":
                     if shouldWrite:
                         parseq_strength = value
@@ -1264,6 +1289,21 @@ def main_named_pipe(pipeName):
                         if doVerbose2:
                             print("sending parseq_movements:" + str(parseq_movements))
                         win32file.WriteFile(pipe, str.encode(str(parseq_movements)))
+                elif str(parameter) == "cadence_flow_factor":
+                    if shouldWrite:
+                        cadence_flow_factor = value
+                    else:
+                        if doVerbose2:
+                            print("sending cadence_flow_factor:" + str(cadence_flow_factor))
+                        win32file.WriteFile(pipe, str.encode(str(cadence_flow_factor)))
+                elif str(parameter) == "generation_flow_factor":
+                    if shouldWrite:
+                        generation_flow_factor = value
+                    else:
+                        if doVerbose2:
+                            print("sending generation_flow_factor:" + str(generation_flow_factor))
+                        win32file.WriteFile(pipe, str.encode(str(generation_flow_factor)))
+
                 elif str(parameter) == "shutdown":
                     serverShutDown = True
                 else:
@@ -1319,10 +1359,10 @@ async def main_websockets():
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Starting Mediator with WebSocket communication")
+        print("Starting Mediator with WebSocket communication, version 0.5.4")
         shouldUseNamedPipes = False
     else:
-        print("Starting Mediator with Named Pipes communication")
+        print("Starting Mediator with Named Pipes communication, version 0.5.4")
         shouldUseNamedPipes = True
 
     try:
