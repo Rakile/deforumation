@@ -14,6 +14,7 @@ import threading
 import requests
 import collections
 import pyeaze
+import win32pipe, win32file, pywintypes
 import sys
 
 #import subprocess
@@ -112,6 +113,9 @@ zero_pan_step_input_box_value = "0"
 zero_rotate_step_input_box_value = "0"
 zero_zoom_step_input_box_value = "0"
 current_active_cn_index = 1
+should_use_optical_flow = 1
+cadence_flow_factor = 1
+generation_flow_factor = 1
 #Bezier curve stuff
 bezierArray = []
 async def sendAsync(value):
@@ -595,6 +599,7 @@ class Mywin(wx.Frame):
         self.positive_prompt_input_ctrl = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(-1,100))
         self.positive_prompt_input_ctrl.SetToolTip("This is the main positive prompt window. When \"Save Prompts\" is pushed, this prompt will belong to the current image frame.")
         sizer.Add(self.positive_prompt_input_ctrl, 0, wx.ALL | wx.EXPAND, 0)
+        self.positive_prompt_input_ctrl.Bind(wx.EVT_KEY_UP, self.OnKeyEvent)
 
         self.positive_prompt_input_ctrl_2_prio = wx.TextCtrl(self.panel, size=(20,20))
         sizer3.Add(self.positive_prompt_input_ctrl_2_prio, 0, wx.ALL, 0)
@@ -610,6 +615,7 @@ class Mywin(wx.Frame):
         self.positive_prompt_input_ctrl_2 = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(-1,50))
         self.positive_prompt_input_ctrl_2.SetToolTip("This is a secondary positive prompt window. When \"Save Prompts\" is pushed, it will be part of the combined positive prompts. It doesn't belong to a certain frame.")
         sizer.Add(self.positive_prompt_input_ctrl_2, 0, wx.ALL | wx.EXPAND, 0)
+        self.positive_prompt_input_ctrl_2.Bind(wx.EVT_KEY_UP, self.OnKeyEvent)
 
         self.positive_prompt_input_ctrl_3_prio = wx.TextCtrl(self.panel, size=(20,20))
         sizer4.Add(self.positive_prompt_input_ctrl_3_prio, 0, wx.ALL, 0)
@@ -626,6 +632,7 @@ class Mywin(wx.Frame):
         self.positive_prompt_input_ctrl_3 = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(-1,50))
         self.positive_prompt_input_ctrl_3.SetToolTip("This is a secondary positive prompt window. When \"Save Prompts\" is pushed, it will be part of the combined positive prompts. It doesn't belong to a certain frame.")
         sizer.Add(self.positive_prompt_input_ctrl_3, 0, wx.ALL | wx.EXPAND, 0)
+        self.positive_prompt_input_ctrl_3.Bind(wx.EVT_KEY_UP, self.OnKeyEvent)
 
         self.positive_prompt_input_ctrl_4_prio = wx.TextCtrl(self.panel, size=(20,20))
         sizer5.Add(self.positive_prompt_input_ctrl_4_prio, 0, wx.ALL, 0)
@@ -641,6 +648,7 @@ class Mywin(wx.Frame):
         self.positive_prompt_input_ctrl_4 = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(-1,50))
         self.positive_prompt_input_ctrl_4.SetToolTip("This is a secondary positive prompt window. When \"Save Prompts\" is pushed, it will be part of the combined positive prompts. It doesn't belong to a certain frame.")
         sizer.Add(self.positive_prompt_input_ctrl_4, 0, wx.ALL | wx.EXPAND, 0)
+        self.positive_prompt_input_ctrl_4.Bind(wx.EVT_KEY_UP, self.OnKeyEvent)
 
         #Should use Deforum prompt scheduling?
         #self.shouldUseDeforumPromptScheduling_text = wx.StaticText(self.panel, label="Use Deforumation prompt scheduling...", pos=(trbX+580, 10))
@@ -670,6 +678,8 @@ class Mywin(wx.Frame):
         self.negative_prompt_input_ctrl = wx.TextCtrl(self.panel,style=wx.TE_MULTILINE, size=(-1,100))
         self.negative_prompt_input_ctrl.SetToolTip("This is the negative prompt window. When \"Save Prompts\" is pushed, this prompt will belong to the current image frame.")
         sizer.Add(self.negative_prompt_input_ctrl, 0, wx.ALL | wx.EXPAND, 0)
+        self.negative_prompt_input_ctrl.Bind(wx.EVT_KEY_UP, self.OnKeyEvent)
+
         #if os.path.isfile(deforumationSettingsPath):
         #    self.negative_prompt_input_ctrl.SetValue(promptfileRead.readline())
         #    promptfileRead.close()
@@ -679,6 +689,22 @@ class Mywin(wx.Frame):
         self.live_render_checkbox = wx.CheckBox(self.panel, label="LIVE RENDER", pos=(trbX+1130-340, tbrY-110))
         self.live_render_checkbox.SetToolTip("Shows another window, that displays the current frame that is being generated, or if in paused mode, the frame choosen with the \"frame picker input box\".")
         self.live_render_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
+        #TURN ON/OFF OPTICAL FLOW
+        self.opticalflow_checkbox = wx.CheckBox(self.panel, label="Optical flow on/off", pos=(trbX+1130-320, tbrY-74))
+        self.opticalflow_checkbox.SetToolTip("When checked, uses the \"Coherence\\Optical flow cadence & Optical flow generation\", else None is used")
+        self.opticalflow_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+        self.opticalflow_checkbox.SetValue(True)
+        #SET CADENCE FLOW FACTOR INPUT BOX
+        self.cadence_flow_factor_box = wx.TextCtrl(self.panel, 1241, size=(28,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+1130-320, tbrY-54))
+        self.cadence_flow_factor_box.SetToolTip("This is the cadence flow factor that will be used if Optical flow is turned on.")
+        self.cadence_flow_factor_box.SetLabel("1")
+        self.cadence_flow_factor_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=1241)
+        #SET GENERATION FLOW FACTOR INPUT BOX
+        self.generation_flow_factor_box = wx.TextCtrl(self.panel, 1242, size=(28,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+1130-290, tbrY-54))
+        self.generation_flow_factor_box.SetToolTip("This is the generation flow factor that will be used if Optical flow is turned on.")
+        self.generation_flow_factor_box.SetLabel("1")
+        self.generation_flow_factor_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=1242)
 
         #OFF GRID BUTTON FOR KEYBOARD INPUT
         #self.off_grid_input_box = wx.Button(panel, label="", pos=(-1000, -1000))
@@ -1351,6 +1377,17 @@ class Mywin(wx.Frame):
         self.Bind(wx.EVT_SIZING, self.OnResize)
         self.panel.Bind(wx.EVT_LEFT_DOWN, self.PanelClicked)
 
+    def OnKeyEvent(self, e):
+        keycode = e.GetKeyCode()
+        controlDown = e.CmdDown()
+        altDown = e.AltDown()
+        shiftDown = e.ShiftDown()
+        if keycode == 83 and controlDown:
+            event = wx.PyCommandEvent(wx.EVT_BUTTON.typeId)
+            event.SetEventObject(self.update_prompts)
+            event.SetId(self.update_prompts.GetId())
+            self.update_prompts.GetEventHandler().ProcessEvent(event)
+
     def OnBezierChoice(self, event):
         global bezierArray
         selectionString = self.bezier_chooser_choice.GetString(self.bezier_chooser_choice.GetSelection())
@@ -1615,6 +1652,10 @@ class Mywin(wx.Frame):
         self.bezier_chooser_choice.SetPosition((trbX+560, tbrY+46))
         self.bezier_points_input_box_text.SetPosition((trbX + 560, tbrY + 26))
         self.bezier_points_input_box.SetPosition((trbX + 560, tbrY+70))
+        self.opticalflow_checkbox.SetPosition((trbX+1130-320, tbrY-74))
+        self.cadence_flow_factor_box.SetPosition((trbX+1130-320, tbrY-54))
+        self.generation_flow_factor_box.SetPosition((trbX+1130-290, tbrY-54))
+
 
     def SetCurrentActiveCN(self, cnSelectIndex):
         global current_active_cn_index
@@ -1745,6 +1786,10 @@ class Mywin(wx.Frame):
         global zero_rotate_step_input_box_value
         global zero_zoom_step_input_box_value
         global shouldUseDeforumPromptScheduling
+        global should_use_optical_flow
+        global cadence_flow_factor
+        global generation_flow_factor
+
         if os.path.isfile(deforumationSettingsPath_Keys):
             deforumFile = open(deforumationSettingsPath_Keys, 'r')
             lines = deforumFile.readlines()
@@ -1867,8 +1912,19 @@ class Mywin(wx.Frame):
                 Perlin_Octave_Value = int(deforumFile.readline().strip().strip('\n'))
                 self.perlin_octave_slider.SetValue(int(Perlin_Octave_Value))
                 Perlin_Persistence_Value = float(deforumFile.readline().strip().strip('\n'))
-                #print("Perlin_Persistence_Value"+str('%.2f' % Perlin_Persistence_Value))
                 self.perlin_persistence_slider.SetValue(int(float(Perlin_Persistence_Value)*100))
+
+                #Optical Flow values
+
+                should_use_optical_flow = int(deforumFile.readline().strip().strip('\n'))
+                self.opticalflow_checkbox.SetValue(int(should_use_optical_flow))
+
+                #self.opticalflow_checkbox
+                cadence_flow_factor = int(deforumFile.readline().strip().strip('\n'))
+                generation_flow_factor = int(deforumFile.readline().strip().strip('\n'))
+                self.cadence_flow_factor_box.SetValue(str(cadence_flow_factor))
+                self.generation_flow_factor_box.SetValue(str(generation_flow_factor))
+
 
             except Exception as e:
                 print(e)
@@ -1916,6 +1972,10 @@ class Mywin(wx.Frame):
             self.writeValue("perlin_octaves", int(Perlin_Octave_Value))
             self.writeValue("perlin_persistence", float(Perlin_Persistence_Value))
             self.writeValue("use_deforumation_cadence_scheduling", 0)
+
+            self.writeValue("should_use_optical_flow", int(should_use_optical_flow))
+            self.writeValue("cadence_flow_factor", int(cadence_flow_factor))
+            self.writeValue("generation_flow_factor", int(generation_flow_factor))
 
         else:
             self.writeAllValues()
@@ -1996,6 +2056,11 @@ class Mywin(wx.Frame):
             self.perlin_octave_slider.SetValue(int(Perlin_Octave_Value))
             self.perlin_persistence_slider.SetValue(int(float(Perlin_Persistence_Value) * 100))
 
+            self.opticalflow_checkbox.SetValue(int(should_use_optical_flow))
+            self.cadence_flow_factor_box.SetValue(str(cadence_flow_factor))
+            self.generation_flow_factor_box.SetValue(str(generation_flow_factor))
+
+
         except Exception as e:
             print(e)
 
@@ -2056,7 +2121,11 @@ class Mywin(wx.Frame):
 
         deforumFile.write(str('%.2f' % noise_multiplier)+"\n")
         deforumFile.write(str(Perlin_Octave_Value)+"\n")
-        deforumFile.write(str('%.2f' % Perlin_Persistence_Value))
+        deforumFile.write(str('%.2f' % Perlin_Persistence_Value)+"\n")
+
+        deforumFile.write(str(should_use_optical_flow)+"\n")
+        deforumFile.write(str(cadence_flow_factor)+"\n")
+        deforumFile.write(str(generation_flow_factor))
 
         deforumFile.close()
 
@@ -2480,6 +2549,10 @@ class Mywin(wx.Frame):
         global should_use_deforumation_zoomfov
         global should_use_deforumation_rotation
         global should_use_deforumation_tilt
+        global should_use_optical_flow
+        global cadence_flow_factor
+        global generation_flow_factor
+
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
@@ -2777,6 +2850,13 @@ class Mywin(wx.Frame):
                         else:
                             FOV_Scale = 70 + (Translation_Z_ARMED * 5)
                         self.fov_slider.SetValue(int(FOV_Scale))
+
+        elif event.GetId() == 1241:
+            cadence_flow_factor = int(self.cadence_flow_factor_box.GetValue())
+            self.writeValue("cadence_flow_factor", cadence_flow_factor)
+        elif event.GetId() == 1242:
+            generation_flow_factor = int(self.generation_flow_factor_box.GetValue())
+            self.writeValue("generation_flow_factor", generation_flow_factor)
 
         elif event.GetId() == 151:
             minmaxval = self.zoom_step_input_box.GetValue()
@@ -3183,11 +3263,18 @@ class Mywin(wx.Frame):
                         self.framer.panel.resize(framer_Width, framer_Height)
                         self.framer.Layout()
                         self.framer.panel.Refresh()
+        elif btn == "Optical flow on/off":
+            if should_use_optical_flow == 0:
+                should_use_optical_flow = 1
+                self.writeValue("should_use_optical_flow", 1)
+            else:
+                self.writeValue("should_use_optical_flow", 0)
+                should_use_optical_flow = 0
         elif btn == "LIVE RENDER":
             current_frame = str(self.readValue("start_frame"))
             #print("should_render_live: "+str(should_render_live))
-            if should_render_live == False:
-                should_render_live = True
+            if should_render_live == 0:
+                should_render_live = 1
                 outdir = str(self.readValue("frame_outdir")).replace('\\', '/').replace('\n', '')
                 resume_timestring = str(self.readValue("resume_timestring"))
 
@@ -3606,5 +3693,5 @@ if __name__ == '__main__':
     print("@nhoj - for rectangular zoom")
 
     app = wx.App()
-    Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.3 using WebSockets)')
+    Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.4 using WebSockets)')
     app.MainLoop()
