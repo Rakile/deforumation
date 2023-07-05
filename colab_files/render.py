@@ -54,6 +54,55 @@ def get_now_cadence(now_frame):
         else:
             return cadence_now
 
+#Planted a "copy" for Deforumation convenience
+def get_resume_vars_d(folder, timestring, cadence,startframe=-1):
+    DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
+    # count previous frames
+    frame_count = 0
+    if startframe != -1:
+        frame_count = startframe
+    else:
+        for item in os.listdir(folder):
+            # don't count txt files or mp4 files
+            if ".txt" in item or ".mp4" in item: 
+                pass
+            else:
+                filename = item.split("_")
+                # other image file types may be supported in the future,
+                # so we just count files containing timestring
+                # that don't contain the depth keyword (depth maps are saved in same folder)
+                if timestring in filename and "depth" not in filename:
+                    frame_count += 1
+                    # add this to debugging var
+                    if DEBUG_MODE:
+                        print(f"\033[36mResuming:\033[0m File: {filename}")
+
+    print(f"\033[36mResuming:\033[0m Current frame count: {frame_count}")
+
+    # get last frame from frame count corrected for any trailing cadence frames
+    last_frame = frame_count - (frame_count % cadence)
+
+    # calculate previous actual frame
+    prev_frame = last_frame - cadence
+
+    # calculate next actual frame
+    next_frame = last_frame - 1
+   
+    # get prev_img/next_img from prev/next frame index (files start at 0, so subtract 1 for index var)
+    path = os.path.join(folder, f"{timestring}_{prev_frame:09}.png")  
+    prev_img = cv2.imread(path)
+    path = os.path.join(folder, f"{timestring}_{next_frame:09}.png")  
+    next_img = cv2.imread(path)
+
+    # report resume last/next in console
+    print(f"\033[36mResuming:\033[0m Last frame: {prev_frame} - Next frame: {next_frame} ")
+
+    # returns:
+    #   last frame count, accounting for cadence
+    #   next frame count, accounting for cadence
+    #   prev frame's image cv2 BGR
+    #   next frame's image cv2 BGR
+    return prev_frame, next_frame, prev_img, next_img
 
 
 def render_animation(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, root):
@@ -245,6 +294,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         else:
             mediator_setValue("resume_timestring", root.timestring)  
 
+        #Should we use parseq? (use_deforumation_cadence_scheduling = parseq should be used)
         if int(mediator_getValue("use_deforumation_cadence_scheduling").strip().strip('\n')) == 1:
             use_deforumation_cadence_scheduling = 1
             deforumation_cadence_scheduling_manifest = str(mediator_getValue("deforumation_cadence_scheduling_manifest").strip().strip('\n'))
@@ -321,41 +371,73 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 time.sleep(0.5)
             if ispaused:
                 print("** RESUMING **")
-            shouldResume = int(mediator_getValue("should_resume").strip().strip('\n'))  #should_resume should be set when third party chooses another frame (rewinding forward, etc), it doesn't need to happen in paused mode       
-            if shouldResume == 1: #If shouldResume == 1, then third party has choosen to jump to a non continues frame
-                start_frame = int(mediator_getValue("start_frame").strip().strip('\n'))
+
+
+            if int(mediator_getValue("should_use_deforumation_cadence").strip().strip('\n')) == 1:
+                turbo_steps = int(mediator_getValue("cadence").strip().strip('\n'))
+            #if start_frame == 0:
+            #    start_frame = start_frame + turbo_steps
+            #print("\n** RESUMING FROM FRAME: " + str(start_frame)+" **")
+            # resume animation (requires at least two frames - see function)
+            # determine last frame and frame to start on
+            # get last frame from frame count corrected for any trailing cadence frames
+            should_use_deforumation_cadence_schedule = int(mediator_getValue("use_deforumation_cadence_scheduling").strip().strip('\n'))
+            if using_vid_init:
+                print("We do use using_vid_init")
+                turbo_steps = 1
+
+            elif should_use_deforumation_cadence_schedule and use_deforumation_cadence_scheduling == 0:
+                use_deforumation_cadence_scheduling = 1
+                deforumation_cadence_scheduling_manifest = str(mediator_getValue("deforumation_cadence_scheduling_manifest").strip().strip('\n'))
+                print("Deforumation cadence scheduling was not used but will now be used!\n"
+                      "------------------------------------------------------------------")
+                turbo_steps = get_now_cadence(frame_idx)
+                print("get_now_cadence() returned" + str(turbo_steps))
                 if int(mediator_getValue("should_use_deforumation_cadence").strip().strip('\n')) == 1:
                     turbo_steps = int(mediator_getValue("cadence").strip().strip('\n'))
-                if start_frame == 0:
-                    start_frame = start_frame + turbo_steps
-                print("\n** RESUMING FROM FRAME: " + str(start_frame)+" **")
-                # resume animation (requires at least two frames - see function)
-                # determine last frame and frame to start on
-                # get last frame from frame count corrected for any trailing cadence frames
-                last_frame = start_frame - (start_frame % turbo_steps)
-
-                # calculate previous actual frame
-                prev_frame = last_frame - turbo_steps
-
-                # calculate next actual frame
-                next_frame = last_frame - 1
-
-                path = os.path.join(args.outdir, f"{root.timestring}_{prev_frame:09}.png")  
-                prev_img = cv2.imread(path)
-                path = os.path.join(args.outdir, f"{root.timestring}_{next_frame:09}.png")  
-                next_img = cv2.imread(path)
-
-                # set up turbo step vars (We temporarily set turbo_steps to 1)
-                turbo_prev_image, turbo_prev_frame_idx = prev_img, prev_frame
-                turbo_next_image, turbo_next_frame_idx = next_img, next_frame
-                # advance start_frame to next frame
-                start_frame = last_frame
-                frame_idx = start_frame
-
-                color_match_sample = None
-                mediator_setValue("should_resume", 0)
+            elif should_use_deforumation_cadence_schedule and use_deforumation_cadence_scheduling == 1:
+                turbo_steps = get_now_cadence(frame_idx)
+                print("Deforumation cadence scheduling conntineously used, cadence:" + str(turbo_steps))
+            elif int(mediator_getValue("should_use_deforumation_cadence").strip().strip('\n')) == 1:
+                turbo_steps = int(mediator_getValue("cadence").strip().strip('\n'))
+                #print("Cadence value read from Deforumation:"+str(turbo_steps))
+                mediator_setValue("deforum_cadence", turbo_steps)
             else:
-                donothing = 0
+                print("Cadence value read from Deforum:"+str(turbo_steps))
+                turbo_steps = int(anim_args.diffusion_cadence)
+
+            shouldResume = int(mediator_getValue("should_resume").strip().strip('\n'))  #should_resume should be set when third party chooses another frame (rewinding forward, etc), it doesn't need to happen in paused mode       
+            if (previous_turbo_steps != turbo_steps) or (shouldResume == 1):
+                if shouldResume == 1: #If shouldResume == 1, then third party has choosen to jump to a non continues frame
+                    start_frame = int(mediator_getValue("start_frame").strip().strip('\n'))
+                    if start_frame < frame_idx:
+                        frame_idx = start_frame - (start_frame%turbo_steps)
+                    color_match_sample = None
+                    mediator_setValue("should_resume", 0)
+                else:                    
+                    frame_idx = frame_idx - previous_turbo_steps - (frame_idx%turbo_steps)
+                prev_frame, next_frame, prev_img, next_img = get_resume_vars_d(
+                    folder=args.outdir,
+                    timestring=root.timestring,
+                    cadence=turbo_steps,
+                    startframe=frame_idx
+                )
+                # set up turbo step vars
+                if turbo_steps > 1:
+                    turbo_prev_image, turbo_prev_frame_idx = prev_img, prev_frame
+                    turbo_next_image, turbo_next_frame_idx = next_img, next_frame
+                # advance start_frame to next frame
+                start_frame = next_frame + 1
+                frame_idx = start_frame
+                state.job_no = frame_idx + 1
+
+            mediator_setValue("deforum_cadence", turbo_steps)
+            previous_turbo_steps = turbo_steps #usingDeforumation
+            print("previous_turbo_steps:"+str(previous_turbo_steps))
+
+
+            #else:
+            #    donothing = 0
 
         print(f"\033[36mAnimation frame: \033[0m{frame_idx}/{anim_args.max_frames}  ")
 
@@ -458,20 +540,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             write_frame_subtitle(srt_filename, frame_idx, srt_frame_duration, f"F#: {frame_idx}; Cadence: false; Seed: {args.seed}; {params_string}")
             params_string = None
 
-        # emit in-between frames
-        previous_turbo_steps = turbo_steps #usingDeforumation
-        print("previous_turbo_steps:"+str(previous_turbo_steps))
-
-
-        
-           
-        #if use_deforumation_cadence_scheduling == 1:
-        #    deforumation_cadence_scheduling_manifest = str(mediator_getValue("deforumation_cadence_scheduling_manifest").strip().strip('\n'))
-        #    print("Deforumation cadence scheduling will be used:\n"
-        #          "---------------------------------------------\n"
-        #          + str(deforumation_cadence_scheduling_manifest) + "\n")
-        #    turbo_steps = get_now_cadence(start_frame)
-        #    print("Starting on frame:"+str(start_frame)+", cadence:"+str(turbo_steps)+", should be used.")
 
 
         if usingDeforumation: #Should we Connect to the Deforumation websocket server to get CFG values?
@@ -485,75 +553,61 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 deforumation_cadence_scheduling_manifest = str(mediator_getValue("deforumation_cadence_scheduling_manifest").strip().strip('\n'))
                 print("Deforumation cadence scheduling was not used but will now be used!\n"
                       "------------------------------------------------------------------")
-                get_now_from_frame = frame_idx-previous_turbo_steps
-                if get_now_from_frame < 0:
-                    get_now_from_frame = 0
-                turbo_steps = get_now_cadence(get_now_from_frame)
+                turbo_steps = get_now_cadence(frame_idx)
                 print("get_now_cadence() returned" + str(turbo_steps))
-
+                if int(mediator_getValue("should_use_deforumation_cadence").strip().strip('\n')) == 1:
+                    turbo_steps = int(mediator_getValue("cadence").strip().strip('\n'))
             elif should_use_deforumation_cadence_schedule and use_deforumation_cadence_scheduling == 1:
-                get_now_from_frame = frame_idx-previous_turbo_steps
-                if get_now_from_frame < 0:
-                    get_now_from_frame = 0
-                turbo_steps = get_now_cadence(get_now_from_frame)
+                turbo_steps = get_now_cadence(frame_idx)
                 print("Deforumation cadence scheduling conntineously used, cadence:" + str(turbo_steps))
-
             elif int(mediator_getValue("should_use_deforumation_cadence").strip().strip('\n')) == 1:
-                print("We should use deforumation cadence.")
-                if turbo_steps == 1:
-                    cadence_flow = None
-                    print("Setting cadence_flow = None.")
                 turbo_steps = int(mediator_getValue("cadence").strip().strip('\n'))
-                print("Cadence value read from Deforumation:"+str(turbo_steps))
+                #print("Cadence value read from Deforumation:"+str(turbo_steps))
                 mediator_setValue("deforum_cadence", turbo_steps)
-
-
             else:
-                print("Cadence value read from Deforum:"+str(turbo_steps))
+                #print("Cadence value read from Deforum:"+str(turbo_steps))
                 turbo_steps = int(anim_args.diffusion_cadence)
-                mediator_setValue("deforum_cadence", turbo_steps)
 
 
-            if previous_turbo_steps > turbo_steps:
-                previous_turbo_steps = previous_turbo_steps - turbo_steps
-                print("Lower cadence than before, so need to adjust with -"+str(previous_turbo_steps)+" image number .png generation")
-                if turbo_steps <= 1: #usingDeforumation
-                    frame_idx = frame_idx - previous_turbo_steps - 1
-                    print(f"\033[36mCorrecting Animation frame to: \033[0m{frame_idx}/{anim_args.max_frames}  ")
-                    previous_turbo_steps = turbo_steps
+        if previous_turbo_steps != turbo_steps:
+            frame_idx = frame_idx - previous_turbo_steps - (frame_idx%turbo_steps)
+            prev_frame, next_frame, prev_img, next_img = get_resume_vars_d(
+                folder=args.outdir,
+                timestring=root.timestring,
+                cadence=turbo_steps,
+                startframe=frame_idx
+            )
+            # set up turbo step vars
+            if turbo_steps > 1:
+                turbo_prev_image, turbo_prev_frame_idx = prev_img, prev_frame
+                turbo_next_image, turbo_next_frame_idx = next_img, next_frame
+            # advance start_frame to next frame
+            start_frame = next_frame + 1
+            frame_idx = start_frame
+            state.job_no = frame_idx + 1
 
-
-            elif previous_turbo_steps < turbo_steps:
-                previous_turbo_steps = previous_turbo_steps - turbo_steps
-                print("Higher cadence than before, so need to adjust with +"+str(-previous_turbo_steps)+" image number .png generation")
-                #frame_idx = frame_idx - previous_turbo_steps
-                print("Current frame_idx is:" + str(frame_idx))
-                print("....................................")
-                #if previous_turbo_steps <= 1: #usingDeforumation
-                #    frame_idx = frame_idx - turbo_steps
-            else:
-                previous_turbo_steps = 0 # cadence is not lower than before, so no fix needed, see (#Maybe nee2d to fix .png image)
-        else:
-            print("Cadence value read from Deforum:"+str(turbo_steps))
-            turbo_steps = int(anim_args.diffusion_cadence)
+        mediator_setValue("deforum_cadence", turbo_steps)
+        previous_turbo_steps = turbo_steps #usingDeforumation
+        #print("previous_turbo_steps:"+str(previous_turbo_steps))
 
 
         if turbo_steps > 1:
-            tween_frame_start_idx = max(start_frame, frame_idx - turbo_steps - previous_turbo_steps) #Maybe need to fix .png image #usingDeforumation
-            frame_idx = frame_idx - previous_turbo_steps #usingDeforumation
+            tween_frame_start_idx = max(start_frame, frame_idx - turbo_steps) #Maybe need to fix .png image #usingDeforumation
+            #frame_idx = frame_idx - previous_turbo_steps #usingDeforumation
             cadence_flow = None
-            print("start_frame:"+str(start_frame))
-            print("turbo_steps:"+str(turbo_steps))
-            print("frame_idx - turbo_steps:"+str(frame_idx - turbo_steps))
-            print("tween_frame_start_idx:"+str(tween_frame_start_idx))
-            print("frame_idx:"+str(frame_idx))
+            #print("start_frame:"+str(start_frame))
+            #print("turbo_steps:"+str(turbo_steps))
+            #print("frame_idx - turbo_steps:"+str(frame_idx - turbo_steps))
+            #print("tween_frame_start_idx:"+str(tween_frame_start_idx))
+            #print("frame_idx:"+str(frame_idx))
             if frame_idx < 0:
                 print("frame_idx pushed into negative, so adjusting frame_idx to 0.")
                 frame_idx = 0
-            if cadence_was_one: #usingDeforumation
+                tween_frame_start_idx = 0
+            #if cadence_was_one: #usingDeforumation
                 #tween_frame_start_idx = frame_idx
-                cadence_was_one = False
-                print("cadence_was_one was True but is now set to False.")
+            #    cadence_was_one = False
+            #    print("cadence_was_one was True but is now set to False.")
 
             if usingDeforumation:
                 should_use_optical_flow = int(mediator_getValue("should_use_optical_flow").strip().strip('\n'))
@@ -678,9 +732,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                         mediator_setValue("start_frame", tween_frame_idx)
                 if anim_args.save_depth_maps:
                     depth_model.save(os.path.join(args.outdir, f"{root.timestring}_depth_{tween_frame_idx:09}.png"), depth)
-        else:
-            print("cadence_was_one == True")
-            cadence_was_one = True
+        #else:
+        #    print("cadence_was_one == True")
+        #    cadence_was_one = True
+
         # get color match for video outside of prev_img conditional
         hybrid_available = anim_args.hybrid_composite != 'None' or anim_args.hybrid_motion in ['Optical Flow', 'Affine', 'Perspective']
         if anim_args.color_coherence == 'Video Input' and hybrid_available:
