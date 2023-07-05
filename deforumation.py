@@ -960,7 +960,7 @@ class Mywin(wx.Frame):
         self.zoom_zero_button.SetLabel("ZERO ZOOM")
 
         #STRENGTH SCHEDULE SLIDER
-        self.strength_schedule_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=65, minValue=1, maxValue=100, pos = (trbX-25, tbrY-50), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
+        self.strength_schedule_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=65, minValue=0, maxValue=100, pos = (trbX-25, tbrY-50), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.strength_schedule_slider.SetToolTip("Sets the Strength value. The scale shown is 100 times larger than the actual value (so when using strength==100 it's actually 1.0)")
         self.strength_schedule_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
         self.strength_schedule_slider.SetTickFreq(1)
@@ -1038,6 +1038,7 @@ class Mywin(wx.Frame):
         self.rotation_3d_x_left_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+80, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_x_left_button.SetToolTip("How many degrees it should continuously rotate left.")
         self.rotation_3d_x_left_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.rotation_3d_x_left_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.rotation_3d_x_left_button.SetLabel("LOOK_LEFT")
 
         #SET ROTATION VALUE X
@@ -1058,6 +1059,7 @@ class Mywin(wx.Frame):
         self.rotation_3d_y_up_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30+80, 55+tbrY-30), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_y_up_button.SetToolTip("How many degrees it should continuously rotate upwards.")
         self.rotation_3d_y_up_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.rotation_3d_y_up_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.rotation_3d_y_up_button.SetLabel("LOOK_UP")
 
         #ZERO ROTATE STEP INPUT BOX STRING
@@ -1087,6 +1089,7 @@ class Mywin(wx.Frame):
         self.rotation_3d_x_right_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+57+80, 55+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_x_right_button.SetToolTip("How many degrees it should continuously rotate right.")
         self.rotation_3d_x_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.rotation_3d_x_right_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.rotation_3d_x_right_button.SetLabel("LOOK_RIGHT")
 
         #LOOK DOWN BUTTTON
@@ -1094,6 +1097,7 @@ class Mywin(wx.Frame):
         self.rotation_3d_y_down_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(240+trbX+30+80, 55+tbrY+30), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_y_down_button.SetToolTip("How many degrees it should continuously rotate downwards.")
         self.rotation_3d_y_down_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.rotation_3d_y_down_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.rotation_3d_y_down_button.SetLabel("LOOK_DOWN")
 
         #SPIN BUTTTON
@@ -1101,6 +1105,7 @@ class Mywin(wx.Frame):
         self.rotation_3d_z_left_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(300+trbX+57+80, 50+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_z_left_button.SetToolTip("How many degrees it should continuously spin anti-clock-wise.")
         self.rotation_3d_z_left_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.rotation_3d_z_left_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.rotation_3d_z_left_button.SetLabel("ROTATE_LEFT")
 
         #ZERO ROTATE BUTTTON
@@ -1116,6 +1121,7 @@ class Mywin(wx.Frame):
         self.rotation_3d_z_right_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(380+trbX+57+80, 50+tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
         self.rotation_3d_z_right_button.SetToolTip("How many degrees it should continuously spin clock-wise.")
         self.rotation_3d_z_right_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.rotation_3d_z_right_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.rotation_3d_z_right_button.SetLabel("ROTATE_RIGHT")
 
         #SET ROTATION VALUE Z
@@ -2903,28 +2909,52 @@ class Mywin(wx.Frame):
             self.writeValue("seed", seedValue)
         elif btn == "LOOK_LEFT":
             if not armed_rotation:
-                Rotation_3D_Y = Rotation_3D_Y - float(self.rotate_step_input_box.GetValue())
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Rotation_3D_Y = 0
+                else:
+                    Rotation_3D_Y = Rotation_3D_Y - float(self.rotate_step_input_box.GetValue())
                 self.writeValue("rotation_y", Rotation_3D_Y)
             else:
-                Rotation_3D_Y_ARMED =  round(Rotation_3D_Y_ARMED - float(self.rotate_step_input_box.GetValue()),2)
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Rotation_3D_Y_ARMED = 0
+                else:
+                    Rotation_3D_Y_ARMED =  round(Rotation_3D_Y_ARMED - float(self.rotate_step_input_box.GetValue()),2)
         elif btn == "LOOK_RIGHT":
             if not armed_rotation:
-                Rotation_3D_Y = Rotation_3D_Y + float(self.rotate_step_input_box.GetValue())
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Rotation_3D_Y = 0
+                else:
+                    Rotation_3D_Y = Rotation_3D_Y + float(self.rotate_step_input_box.GetValue())
                 self.writeValue("rotation_y", Rotation_3D_Y)
             else:
-                Rotation_3D_Y_ARMED =  round(Rotation_3D_Y_ARMED + float(self.rotate_step_input_box.GetValue()),2)
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Rotation_3D_Y_ARMED = 0
+                else:
+                    Rotation_3D_Y_ARMED =  round(Rotation_3D_Y_ARMED + float(self.rotate_step_input_box.GetValue()),2)
         elif btn == "LOOK_UP":
             if not armed_rotation:
-                Rotation_3D_X = Rotation_3D_X + float(self.rotate_step_input_box.GetValue())
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Rotation_3D_X = 0
+                else:
+                    Rotation_3D_X = Rotation_3D_X + float(self.rotate_step_input_box.GetValue())
                 self.writeValue("rotation_x", Rotation_3D_X)
             else:
-                Rotation_3D_X_ARMED =  round(Rotation_3D_X_ARMED + float(self.rotate_step_input_box.GetValue()),2)
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Rotation_3D_X_ARMED = 0
+                else:
+                    Rotation_3D_X_ARMED =  round(Rotation_3D_X_ARMED + float(self.rotate_step_input_box.GetValue()),2)
         elif btn == "LOOK_DOWN":
             if not armed_rotation:
-                Rotation_3D_X = Rotation_3D_X - float(self.rotate_step_input_box.GetValue())
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Rotation_3D_X = 0
+                else:
+                    Rotation_3D_X = Rotation_3D_X - float(self.rotate_step_input_box.GetValue())
                 self.writeValue("rotation_x", Rotation_3D_X)
             else:
-                Rotation_3D_X_ARMED =  round(Rotation_3D_X_ARMED - float(self.rotate_step_input_box.GetValue()),2)
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Rotation_3D_X_ARMED = 0
+                else:
+                    Rotation_3D_X_ARMED =  round(Rotation_3D_X_ARMED - float(self.rotate_step_input_box.GetValue()),2)
         elif btn == "ZERO ROTATE":
             if not zero_rotate_active:
                 #Start a ZERO step thread.
@@ -2951,10 +2981,16 @@ class Mywin(wx.Frame):
                 zero_rotate_active = False
 
         elif btn == "ROTATE_LEFT":
-            Rotation_3D_Z = Rotation_3D_Z + float(self.tilt_step_input_box.GetValue())
+            if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                Rotation_3D_Z = 0
+            else:
+                Rotation_3D_Z = Rotation_3D_Z + float(self.tilt_step_input_box.GetValue())
             self.writeValue("rotation_z", Rotation_3D_Z)
         elif btn == "ROTATE_RIGHT":
-            Rotation_3D_Z = Rotation_3D_Z - float(self.tilt_step_input_box.GetValue())
+            if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                Rotation_3D_Z = 0
+            else:
+                Rotation_3D_Z = Rotation_3D_Z - float(self.tilt_step_input_box.GetValue())
             self.writeValue("rotation_z", Rotation_3D_Z)
         elif btn == "ZERO TILT":
             Rotation_3D_Z = 0
@@ -3709,7 +3745,7 @@ if __name__ == '__main__':
     print("@nhoj - for rectangular zoom")
     app = wx.App()
     if len(sys.argv) < 2:
-        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.4 using WebSockets)')
+        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.5 using WebSockets)')
     else:
-        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.4 using named pipes)')
+        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.5 using named pipes)')
     app.MainLoop()
