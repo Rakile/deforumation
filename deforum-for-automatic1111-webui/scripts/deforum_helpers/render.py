@@ -12,7 +12,8 @@ from .generate import generate, isJson
 from .noise import add_noise
 from .animation import anim_frame_warp
 from .animation_key_frames import DeformAnimKeys, LooperAnimKeys
-from .video_audio_utilities import get_frame_name, get_next_frame
+#from .video_audio_utilities import get_frame_name, get_next_frame
+from .video_audio_utilities import get_frame_name, get_next_frame, render_preview
 from .depth import DepthModel
 from .colors import maintain_colors
 from .parseq_adapter import ParseqAdapter
@@ -37,6 +38,7 @@ from .RAFT import RAFT
 #Deforumation_mediator imports/settings
 import pickle
 import json
+import types, copy
 from .deforum_mediator import mediator_getValue, mediator_setValue, mediator_set_anim_args
 #End settings
 
@@ -79,6 +81,7 @@ def get_resume_vars_d(folder, timestring, cadence,startframe=-1):
 
     print(f"\033[36mResuming:\033[0m Current frame count: {frame_count}")
 
+
     # get last frame from frame count corrected for any trailing cadence frames
     last_frame = frame_count - (frame_count % cadence)
 
@@ -87,12 +90,24 @@ def get_resume_vars_d(folder, timestring, cadence,startframe=-1):
 
     # calculate next actual frame
     next_frame = last_frame - 1
+
+    if prev_frame <= 0:
+        turbo_prev_image, turbo_prev_frame_idx = None, 0
+        turbo_next_image, turbo_next_frame_idx = None, 0
+        # initialize vars
+        color_match_sample = None
+        start_frame = 0
+        prev_frame = 0
+        next_frame = 0
+        prev_img = None
+        next_img = None
    
-    # get prev_img/next_img from prev/next frame index (files start at 0, so subtract 1 for index var)
-    path = os.path.join(folder, f"{timestring}_{prev_frame:09}.png")  
-    prev_img = cv2.imread(path)
-    path = os.path.join(folder, f"{timestring}_{next_frame:09}.png")  
-    next_img = cv2.imread(path)
+    else:
+        # get prev_img/next_img from prev/next frame index (files start at 0, so subtract 1 for index var)
+        path = os.path.join(folder, f"{timestring}_{prev_frame:09}.png")  
+        prev_img = cv2.imread(path)
+        path = os.path.join(folder, f"{timestring}_{next_frame:09}.png")  
+        next_img = cv2.imread(path)
 
     # report resume last/next in console
     print(f"\033[36mResuming:\033[0m Last frame: {prev_frame} - Next frame: {next_frame} ")
@@ -122,9 +137,11 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     if anim_args.animation_mode in ['2D', '3D']:
         # handle hybrid video generation
         if anim_args.hybrid_composite != 'None' or anim_args.hybrid_motion in ['Affine', 'Perspective', 'Optical Flow']:
+            print("Hybrid shit")
             args, anim_args, inputfiles = hybrid_generation(args, anim_args, root)
             # path required by hybrid functions, even if hybrid_comp_save_extra_frames is False
             hybrid_frame_path = os.path.join(args.outdir, 'hybridframes')
+            print("animation_mode")
         # initialize prev_flow
         if anim_args.hybrid_motion == 'Optical Flow':
             prev_flow = None
@@ -148,7 +165,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     #Deforumation has a chance to overwrite the keys values, if it is using parseq
     if usingDeforumation:
-        print("Made for Deforumation version: 0.5.4")
+        print("Made for Deforumation version: 0.6.0")
         print("------------------------------------")
         if int(mediator_getValue("use_parseq").strip().strip('\n')) == 1:
             #parseq_adapter.use_parseq = 1
@@ -165,20 +182,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             args.seed = int(mediator_getValue("seed").strip().strip('\n'))
             if args.seed == -1:
                 args.seed = random.randint(0, 2**32 - 1)
-            #keys = DeformAnimKeys(anim_args, args.seed)
-    #else:
-        # use parseq if manifest is provided
-        # use_parseq = parseq_args.parseq_manifest != None and parseq_args.parseq_manifest.strip()
-        # initialise Parseq adapter
-
-        # expand key frame strings to values
-        #keys = DeformAnimKeys(anim_args, args.seed) if not use_parseq else ParseqAnimKeys(parseq_args, anim_args, video_args)
-    #parseq_adapter = ParseqAdapter(parseq_args, args, anim_args, video_args, loop_args, controlnet_args)
-    parseq_adapter = ParseqAdapter(parseq_args, anim_args, video_args, controlnet_args)
+    parseq_adapter = ParseqAdapter(parseq_args, anim_args, video_args, controlnet_args, loop_args)
     keys = DeformAnimKeys(anim_args, args.seed) if not parseq_adapter.use_parseq else parseq_adapter.anim_keys
-    loopSchedulesAndData = LooperAnimKeys(loop_args, anim_args, args.seed)
-    #loopSchedulesAndData = LooperAnimKeys(loop_args, anim_args, args.seed) if not parseq_adapter.use_parseq else parseq_adapter.looper_keys
-    #loopSchedulesAndData = LooperAnimKeys(loop_args, anim_args, args.seed)
+    loopSchedulesAndData = LooperAnimKeys(loop_args, anim_args, args.seed) if not parseq_adapter.use_parseq else parseq_adapter.looper_keys
 
     # create output folder for the batch
     os.makedirs(args.outdir, exist_ok=True)
@@ -268,11 +274,46 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     if anim_args.resume_from_timestring:
         # determine last frame and frame to start on
         print("Resume From TimeString!")
-        prev_frame, next_frame, prev_img, next_img = get_resume_vars(
+        if int(mediator_getValue("should_use_deforumation_timestring").strip().strip('\n')) == 1:
+            #Deforum is forced to start from the frame specified by deforum
+            start_frame = int(mediator_getValue("start_frame").strip().strip('\n'))
+            ######>>>>>>
+            mediator_setValue("total_recall_relive", start_frame)
+            if int(mediator_getValue("should_use_deforumation_cadence").strip().strip('\n')) == 1:
+                turbo_steps = int(mediator_getValue("cadence").strip().strip('\n'))
+                print("Cadence value read from Deforumation:"+str(turbo_steps))
+            else:
+                print("Cadence value read from Deforum:"+str(turbo_steps))
+                turbo_steps = int(anim_args.diffusion_cadence)
+
+            prev_frame, next_frame, prev_img, next_img = get_resume_vars_d(
             folder=args.outdir,
-            timestring=anim_args.resume_timestring,
-            cadence=turbo_steps
-        )
+            timestring=root.timestring,
+            cadence=turbo_steps,
+            startframe=start_frame
+            )
+
+            # advance start_frame to next frame
+            if prev_img is not None:
+                start_frame = next_frame + 1
+            else:
+                root.init_sample = None
+                root.initial_info = None
+                root.first_frame = None
+
+            args.seed = int(mediator_getValue("seed").strip().strip('\n'))
+
+            state.job_count = anim_args.max_frames
+            #last_preview_frame = start_frame                
+            state.job = f"frame {start_frame + 1}/{anim_args.max_frames}"
+            state.job_no = start_frame + 1
+
+        else:        
+            prev_frame, next_frame, prev_img, next_img = get_resume_vars(
+                folder=args.outdir,
+                timestring=anim_args.resume_timestring,
+                cadence=turbo_steps
+            )
 
         # set up turbo step vars
         if turbo_steps > 1:
@@ -283,7 +324,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         start_frame = next_frame + 1
 
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to write the current resume frame properties?
-        mediator_setValue("should_resume", 0)
+        mediator_setValue("should_resume", 0)        
         print("DEFORUM, SETTING STARTFRAME:"+str(start_frame))
         mediator_setValue("start_frame", -1) #We set this in order to help third party know, that no image has been produced yet.
         print("DEFORUM, SETTING OUTDIR:"+args.outdir)
@@ -328,7 +369,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     # Video mask overrides the init image mask, also, won't be searching for init_mask if use_mask_video is set
     # Made to solve https://github.com/deforum-art/deforum-for-automatic1111-webui/issues/386
     if anim_args.use_mask_video:
-
         args.mask_file = get_mask_from_file(get_next_frame(args.outdir, anim_args.video_mask_path, frame_idx, True), args)
         root.noise_mask = get_mask_from_file(get_next_frame(args.outdir, anim_args.video_mask_path, frame_idx, True), args)
 
@@ -346,13 +386,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     # Webui
     state.job_count = anim_args.max_frames
+    last_preview_frame = 0
 
     while frame_idx < anim_args.max_frames:
-        # Webui
-        #if turbo_next_image == None:
-        #    print("Start of while loop, turbo_next_image == None")
-        #else:
-        #print("Start of while loop, turbo_next_image:"+str(turbo_next_image))
         state.job = f"frame {frame_idx + 1}/{anim_args.max_frames}"
         state.job_no = frame_idx + 1
 
@@ -375,15 +411,11 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
             if int(mediator_getValue("should_use_deforumation_cadence").strip().strip('\n')) == 1:
                 turbo_steps = int(mediator_getValue("cadence").strip().strip('\n'))
-            #if start_frame == 0:
-            #    start_frame = start_frame + turbo_steps
-            #print("\n** RESUMING FROM FRAME: " + str(start_frame)+" **")
             # resume animation (requires at least two frames - see function)
             # determine last frame and frame to start on
             # get last frame from frame count corrected for any trailing cadence frames
             should_use_deforumation_cadence_schedule = int(mediator_getValue("use_deforumation_cadence_scheduling").strip().strip('\n'))
             if using_vid_init:
-                print("We do use using_vid_init")
                 turbo_steps = 1
 
             elif should_use_deforumation_cadence_schedule and use_deforumation_cadence_scheduling == 0:
@@ -416,6 +448,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     mediator_setValue("should_resume", 0)
                 else:                    
                     frame_idx = frame_idx - previous_turbo_steps - (frame_idx%turbo_steps)
+
                 prev_frame, next_frame, prev_img, next_img = get_resume_vars_d(
                     folder=args.outdir,
                     timestring=root.timestring,
@@ -427,13 +460,26 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     turbo_prev_image, turbo_prev_frame_idx = prev_img, prev_frame
                     turbo_next_image, turbo_next_frame_idx = next_img, next_frame
                 # advance start_frame to next frame
-                start_frame = next_frame + 1
+                if prev_img is not None:
+                    start_frame = next_frame + 1
+                else:
+                    root.init_sample = None
+                    root.initial_info = None
+                    root.first_frame = None
+
                 frame_idx = start_frame
+
+                mediator_setValue("total_recall_relive", frame_idx)
+                args.seed = int(mediator_getValue("seed").strip().strip('\n'))
+
+                state.job_count = anim_args.max_frames
+                last_preview_frame = frame_idx                
+                state.job = f"frame {frame_idx + 1}/{anim_args.max_frames}"
                 state.job_no = frame_idx + 1
 
             mediator_setValue("deforum_cadence", turbo_steps)
             previous_turbo_steps = turbo_steps #usingDeforumation
-            print("previous_turbo_steps:"+str(previous_turbo_steps))
+            #print("previous_turbo_steps:"+str(previous_turbo_steps))
 
 
             #else:
@@ -444,9 +490,12 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         noise = keys.noise_schedule_series[frame_idx]
         if usingDeforumation: #Should we Connect to the Deforumation websocket server and get seed_changed == new seed?
             if int(mediator_getValue("seed_changed").strip().strip('\n')):
+                print("Seed has been changed!")
                 args.seed = int(mediator_getValue("seed").strip().strip('\n'))
+                mediator_setValue("seed_changed", 0)
                 if args.seed == -1:
                     args.seed = random.randint(0, 2**32 - 1)
+                print("To:"+str(args.seed))
         if usingDeforumation:
             if (int(mediator_getValue("should_use_deforumation_strength").strip().strip('\n')) == 1):
                 strength = float(mediator_getValue("strength").strip().strip('\n'))
@@ -545,7 +594,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         if usingDeforumation: #Should we Connect to the Deforumation websocket server to get CFG values?
             should_use_deforumation_cadence_schedule = int(mediator_getValue("use_deforumation_cadence_scheduling").strip().strip('\n'))
             if using_vid_init:
-                print("We do use using_vid_init")
                 turbo_steps = 1
 
             elif should_use_deforumation_cadence_schedule and use_deforumation_cadence_scheduling == 0:
@@ -577,14 +625,29 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 cadence=turbo_steps,
                 startframe=frame_idx
             )
+
             # set up turbo step vars
             if turbo_steps > 1:
                 turbo_prev_image, turbo_prev_frame_idx = prev_img, prev_frame
                 turbo_next_image, turbo_next_frame_idx = next_img, next_frame
             # advance start_frame to next frame
-            start_frame = next_frame + 1
+            if prev_img is not None:
+                start_frame = next_frame + 1
+            else:
+                root.init_sample = None
+                root.initial_info = None
+                root.first_frame = None
+
             frame_idx = start_frame
+
+            mediator_setValue("total_recall_relive", frame_idx)
+            args.seed = int(mediator_getValue("seed").strip().strip('\n'))
+
+            state.job_count = anim_args.max_frames
+            last_preview_frame = frame_idx                
+            state.job = f"frame {frame_idx + 1}/{anim_args.max_frames}"
             state.job_no = frame_idx + 1
+
 
         mediator_setValue("deforum_cadence", turbo_steps)
         previous_turbo_steps = turbo_steps #usingDeforumation
@@ -593,21 +656,11 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
         if turbo_steps > 1:
             tween_frame_start_idx = max(start_frame, frame_idx - turbo_steps) #Maybe need to fix .png image #usingDeforumation
-            #frame_idx = frame_idx - previous_turbo_steps #usingDeforumation
             cadence_flow = None
-            #print("start_frame:"+str(start_frame))
-            #print("turbo_steps:"+str(turbo_steps))
-            #print("frame_idx - turbo_steps:"+str(frame_idx - turbo_steps))
-            #print("tween_frame_start_idx:"+str(tween_frame_start_idx))
-            #print("frame_idx:"+str(frame_idx))
             if frame_idx < 0:
                 print("frame_idx pushed into negative, so adjusting frame_idx to 0.")
                 frame_idx = 0
                 tween_frame_start_idx = 0
-            #if cadence_was_one: #usingDeforumation
-                #tween_frame_start_idx = frame_idx
-            #    cadence_was_one = False
-            #    print("cadence_was_one was True but is now set to False.")
 
             if usingDeforumation:
                 should_use_optical_flow = int(mediator_getValue("should_use_optical_flow").strip().strip('\n'))
@@ -624,7 +677,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     print("Enabling optical flow")
 
             for tween_frame_idx in range(tween_frame_start_idx, frame_idx):
-                print("!Inside tween for loop!")
+                mediator_setValue("total_recall_relive", tween_frame_idx)
+                #print("!Inside tween for loop!")
                 # update progress during cadence
                 state.job = f"frame {tween_frame_idx + 1}/{anim_args.max_frames}"
                 state.job_no = tween_frame_idx + 1
@@ -649,7 +703,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 print(f"Creating in-between {'' if cadence_flow is None else anim_args.optical_flow_cadence + ' optical flow '}cadence frame: {tween_frame_idx}; tween:{tween:0.2f};")
 
                 if depth_model is not None:
-                    print("depth_model is not None")
                     assert (turbo_next_image is not None)
                     depth = depth_model.predict(turbo_next_image, anim_args.midas_weight, root.half_precision)
 
@@ -693,6 +746,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
                 # do optical flow cadence after animation warping
                 if cadence_flow is not None:
+                    print("Cadence flow exists")
                     cadence_flow = abs_flow_to_rel_flow(cadence_flow, args.W, args.H)
                     cadence_flow, _ = anim_frame_warp(cadence_flow, args, anim_args, keys, tween_frame_idx, depth_model, depth=depth, device=root.device, half_precision=root.half_precision)
                     cadence_flow_inc = rel_flow_to_abs_flow(cadence_flow, args.W, args.H) * tween
@@ -730,11 +784,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     shouldResume = int(mediator_getValue("should_resume").strip().strip('\n'))  #If the user pushed "Set current image" in Deforumation, we can't just overwrite the new start_frame  
                     if not shouldResume:
                         mediator_setValue("start_frame", tween_frame_idx)
+                    mediator_setValue("saved_frame_params", tween_frame_idx)                     
+
                 if anim_args.save_depth_maps:
                     depth_model.save(os.path.join(args.outdir, f"{root.timestring}_depth_{tween_frame_idx:09}.png"), depth)
-        #else:
-        #    print("cadence_was_one == True")
-        #    cadence_was_one = True
 
         # get color match for video outside of prev_img conditional
         hybrid_available = anim_args.hybrid_composite != 'None' or anim_args.hybrid_motion in ['Optical Flow', 'Affine', 'Perspective']
@@ -816,8 +869,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 noised_image = add_noise(contrast_image, noise, args.seed, anim_args.noise_type,
                                          (anim_args.perlin_w, anim_args.perlin_h, anim_args.perlin_octaves, anim_args.perlin_persistence),
                                          root.noise_mask, args.invert_mask)
-                mediator_setValue("deforum_perlin_octaves", anim_args.perlin_octaves)
-                mediator_setValue("deforum_perlin_persistence", anim_args.perlin_persistence)
+                #mediator_setValue("deforum_perlin_octaves", anim_args.perlin_octaves)
+                #mediator_setValue("deforum_perlin_persistence", anim_args.perlin_persistence)
 
 
             # use transformed previous frame as init for current
@@ -958,7 +1011,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
         # generation
         #image = generate(args, keys, anim_args, loop_args, controlnet_args, root, frame_idx, sampler_name=scheduled_sampler_name)
+        
         image = generate(args, keys, anim_args, loop_args, controlnet_args, root, parseq_adapter, frame_idx, sampler_name=scheduled_sampler_name)
+        #mediator_setValue("saved_frame_params", frame_idx)
         if image is None:
             break
 
@@ -1004,6 +1059,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 shouldResume = int(mediator_getValue("should_resume").strip().strip('\n'))  #If the user pushed "Set current image" in Deforumation, we can't just overwrite the new start_frame  
                 if not shouldResume:
                     mediator_setValue("start_frame", frame_idx)
+                mediator_setValue("saved_frame_params", frame_idx)
 
             if anim_args.save_depth_maps:
                 if cmd_opts.lowvram or cmd_opts.medvram:
@@ -1021,9 +1077,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             frame_idx += 1
 
         state.current_image = image
-
+        if not int(mediator_getValue("seed_changed").strip().strip('\n')):
+            mediator_setValue("seed", args.seed)
         args.seed = next_seed(args, root)
-
+        last_preview_frame = render_preview(args, anim_args, video_args, root, frame_idx, last_preview_frame)
     if predict_depths and not keep_in_vram:
         depth_model.delete_model()  # handles adabins too
 
