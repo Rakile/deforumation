@@ -841,6 +841,10 @@ async def main_websocket(websocket):
                         print("writing should_resume:" + str(should_resume))
                 else:
                     await websocket.send(str(should_resume))
+            elif str(parameter) == "upload_recall_file":
+                if shouldWrite:
+                    parameter_container.clear()
+                    parameter_container = pickle.loads(value)
             elif str(parameter) == "start_frame":
                 if shouldWrite:
                     start_frame = int(value)
@@ -1081,6 +1085,7 @@ def main_named_pipe(pipeName):
     global rotation_y_under_recall
     global rotation_z_under_recall
     global should_use_deforumation_timestring
+    global parameter_container
     print("pipe server:" + str(pipeName))
     count = 0
     pipe = win32pipe.CreateNamedPipe('\\\\.\\pipe\\' + str(pipeName), win32pipe.PIPE_ACCESS_DUPLEX,
@@ -1584,6 +1589,11 @@ def main_named_pipe(pipeName):
                             else:
                                 bytesToSend = pickle.dumps(0x0)
                         win32file.WriteFile(pipe, bytesToSend)
+                elif str(parameter) == "upload_recall_file":
+                    if shouldWrite:
+                        parameter_container.clear()
+                        parameter_container = pickle.loads(value)
+
                 elif str(parameter) == "start_frame":
                     if shouldWrite:
                         start_frame = int(value)
