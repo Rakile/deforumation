@@ -72,12 +72,6 @@ for i in range(5):
     cn_lowt.append(0)
     cn_hight.append(255)
 
-# cn_weight = 1.00
-# cn_stepstart = 0.0
-# cn_stepend = 1.0
-# cn_lowt = 0
-# cn_hight = 255
-
 parseq_keys = 0
 use_parseq = 0
 parseq_manifest = ""
@@ -96,6 +90,228 @@ deforum_perlin_persistence = 0.5
 use_deforumation_cadence_scheduling = 0
 
 deforumation_cadence_scheduling_manifest = "0:(3)"
+
+parameter_container = {}
+
+should_use_total_recall = 0
+total_recall_from = 0
+total_recall_to = 0
+should_use_deforumation_timestring = 0
+
+#Touched params (for total recall)
+Prompt_Positive_touched = 0
+
+#Under recall values (live values from deforumation)
+translation_x_under_recall = 0
+translation_y_under_recall = 0
+translation_z_under_recall = 0
+rotation_x_under_recall = 0
+rotation_y_under_recall = 0
+rotation_z_under_recall = 0
+
+
+def RecallValues(frame):
+    global serverShutDown
+    global Prompt_Positive
+    global Prompt_Negative
+    global rotation_x
+    global rotation_y
+    global rotation_z
+    global translation_x
+    global translation_y
+    global translation_z
+    global deforum_translation_x
+    global deforum_translation_y
+    global deforum_translation_z
+    global fov
+    global cfg_scale
+    global strength_value
+    global steps
+    global should_resume
+    global start_frame
+    global frame_outdir
+    global resume_timestring
+    global shouldPause
+    global seed_value
+    global did_seed_change
+    global should_use_deforumation_strength
+    global should_use_deforumation_cfg
+    global cadence
+    global should_use_deforumation_prompt_scheduling
+    global cn_weight
+    global cn_stepstart
+    global cn_stepend
+    global cn_lowt
+    global cn_hight
+    global parseq_keys
+    global use_parseq
+    global parseq_manifest
+    global parseq_strength
+    global parseq_movements
+    global deforum_rotation_x
+    global deforum_rotation_y
+    global deforum_rotation_z
+    global deforum_fov
+    global deforum_strength
+    global deforum_cfg
+    global deforum_steps
+    global parseq_prompt
+    global noise_multiplier
+    global deforum_perlin_octaves
+    global deforum_perlin_persistence
+    global deforum_noise_multiplier
+    global perlin_octaves
+    global perlin_persistence
+    global deforum_cadence
+    global should_use_deforumation_cadence
+    global should_use_deforumation_noise
+    global should_use_deforumation_panning
+    global should_use_deforumation_zoomfov
+    global should_use_deforumation_rotation
+    global should_use_deforumation_tilt
+    global use_deforumation_cadence_scheduling
+    global deforumation_cadence_scheduling_manifest
+    global should_use_optical_flow
+    global cadence_flow_factor
+    global generation_flow_factor
+    global translation_x_under_recall
+    global translation_y_under_recall
+    global translation_z_under_recall
+    global rotation_x_under_recall
+    global rotation_y_under_recall
+    global rotation_z_under_recall
+
+    if not int(frame) in parameter_container:
+        print("No such frame to recall data from. Change your \"From\" and \"To\" values in Deforumation (The To value can not be greater than any existing recorded frames.")
+        return
+    # Run/Steps
+    steps = parameter_container[frame].steps
+    # Keyframes/Strength
+    strength_value = parameter_container[frame].strength_value
+    # Keyframes/CFG
+    cfg_scale = parameter_container[frame].cfg_scale
+    # Keyframes/3D/Motion
+
+    rotation_x = parameter_container[frame].rotation_x + rotation_x_under_recall
+    rotation_y = parameter_container[frame].rotation_y + rotation_y_under_recall
+    rotation_z = parameter_container[frame].rotation_z + rotation_z_under_recall
+    translation_x = parameter_container[frame].translation_x + translation_x_under_recall
+    translation_y = parameter_container[frame].translation_y + translation_y_under_recall
+    translation_z = parameter_container[frame].translation_z + translation_z_under_recall
+    if not Prompt_Positive_touched:
+        Prompt_Positive = parameter_container[frame].Prompt_Positive
+    Prompt_Negative = parameter_container[frame].Prompt_Negative
+    seed_value = parameter_container[frame].seed_value
+    # Keyframes/Field Of View/FOV schedule
+    fov = parameter_container[frame].fov
+    cadence = parameter_container[frame].cadence
+    cadence_flow_factor = parameter_container[frame].cadence_flow_factor
+    generation_flow_factor = parameter_container[frame].generation_flow_factor
+    for i in range(5):
+        cn_weight[i] = parameter_container[frame].cn_weight[i]
+        cn_stepstart[i] = parameter_container[frame].cn_stepstart[i]
+        cn_stepend[i] = parameter_container[frame].cn_stepend[i]
+        cn_lowt[i] = parameter_container[frame].cn_lowt[i]
+        cn_hight[i] = parameter_container[frame].cn_hight[i]
+    parseq_keys = parameter_container[frame].parseq_keys
+    use_parseq = parameter_container[frame].use_parseq
+    parseq_manifest = parameter_container[frame].parseq_manifest
+    parseq_strength = parameter_container[frame].parseq_strength
+    parseq_movements = parameter_container[frame].parseq_movements
+    parseq_prompt = parameter_container[frame].parseq_prompt
+    noise_multiplier = parameter_container[frame].noise_multiplier
+    perlin_octaves = parameter_container[frame].perlin_octaves
+    perlin_persistence = parameter_container[frame].perlin_persistence
+    #frame_outdir = parameter_container[frame].frame_outdir
+    #resume_timestring = parameter_container[frame].resume_timestring
+
+class ParameterContainer():
+    # Run/Steps
+    steps = 25
+    # Keyframes/Strength
+    strength_value = 0.65
+    # Keyframes/CFG
+    cfg_scale = 6
+    # Keyframes/3D/Motion
+    rotation_x = 0.0
+    rotation_y = 0.0
+    rotation_z = 0.0
+    translation_x = 0.0
+    translation_y = 0.0
+    translation_z = 0.0
+    Prompt_Positive = "EMPTY"
+    Prompt_Negative = "EMPTY"
+    frame_outdir = ""
+    resume_timestring = ""
+    seed_value = -1
+    did_seed_change = 0
+    # Keyframes/Field Of View/FOV schedule
+    fov = 70.0
+    cadence = 2
+    cadence_flow_factor = 1
+    generation_flow_factor = 1
+    cn_weight = []
+    cn_stepstart = []
+    cn_stepend = []
+    cn_lowt = []
+    cn_hight = []
+    for i in range(5):
+        cn_weight.append(1.0)
+        cn_stepstart.append(0.0)
+        cn_stepend.append(1.0)
+        cn_lowt.append(0)
+        cn_hight.append(255)
+
+    parseq_keys = 0
+    use_parseq = 0
+    parseq_manifest = ""
+    parseq_strength = 0
+    parseq_movements = 0
+    parseq_prompt = 0
+
+    noise_multiplier = 1.05
+    perlin_octaves = 4
+    perlin_persistence = 0.5
+
+    def SetValues(self):
+        # Run/Steps
+        self.steps = steps
+        # Keyframes/Strength
+        self.strength_value = strength_value
+        # Keyframes/CFG
+        self.cfg_scale = cfg_scale
+        # Keyframes/3D/Motion
+        self.rotation_x = rotation_x
+        self.rotation_y = rotation_y
+        self.rotation_z = rotation_z
+        self.translation_x = translation_x
+        self.translation_y = translation_y
+        self.translation_z = translation_z
+        self.Prompt_Positive = Prompt_Positive
+        self.Prompt_Negative = Prompt_Negative
+        self.seed_value = seed_value
+        # Keyframes/Field Of View/FOV schedule
+        self.fov = fov
+        self.cadence = cadence
+        self.cadence_flow_factor = cadence_flow_factor
+        self.generation_flow_factor = generation_flow_factor
+        for i in range(5):
+            self.cn_weight[i] = cn_weight[i]
+            self.cn_stepstart[i] = cn_stepstart[i]
+            self.cn_stepend[i] = cn_stepend[i]
+            self.cn_lowt[i] = cn_lowt[i]
+            self.cn_hight[i] = cn_hight[i]
+        self.parseq_keys = parseq_keys
+        self.use_parseq = use_parseq
+        self.parseq_manifest = parseq_manifest
+        self.parseq_strength = parseq_strength
+        self.parseq_movements = parseq_movements
+        self.parseq_prompt = parseq_prompt
+        self.noise_multiplier = noise_multiplier
+        self.perlin_octaves = perlin_octaves
+        self.perlin_persistence = perlin_persistence
+        #self.frame_outdir = frame_outdir
+        #self.resume_timestring = resume_timestring
 
 
 def find_str(s, char):
@@ -177,6 +393,13 @@ async def main_websocket(websocket):
     global should_use_optical_flow
     global cadence_flow_factor
     global generation_flow_factor
+    global should_use_total_recall
+    global total_recall_from
+    global total_recall_to
+    global should_use_deforumation_timestring
+    #touched parameters
+    global Prompt_Positive_touched
+    global parameter_container
 
     async for message in websocket:
         # print("Incomming message:"+str(message))
@@ -195,6 +418,46 @@ async def main_websocket(websocket):
                     if doVerbose:
                         print("is_paused_rendering:" + str(shouldPause))
                     await websocket.send(str(shouldPause))
+            elif str(parameter) == "total_recall_relive":
+                frame_idx = int(value)
+                if should_use_total_recall:
+                    if (frame_idx >= total_recall_from and frame_idx <= total_recall_to):
+                        #print("total_recall_relive (frame number):" + str(frame_idx))
+                        RecallValues(frame_idx)
+            elif str(parameter) == "should_erase_total_recall_memory":
+                if shouldWrite:
+                    parameter_container.clear()
+                    print("The total recall memory has been cleared.")
+            elif str(parameter) ==  "should_use_total_recall":
+                if shouldWrite:
+                    should_use_total_recall = int(value)
+                    if should_use_total_recall == 1:
+                        Prompt_Positive_touched = 0
+                else:
+                    if doVerbose:
+                        print("should_use_total_recall:" + str(should_use_total_recall))
+                    await websocket.send(str.encode(str(should_use_total_recall)))
+            elif str(parameter) == "total_recall_from":
+                if shouldWrite:
+                    total_recall_from = int(value)
+                else:
+                    if doVerbose:
+                        print("total_recall_from:" + str(total_recall_from))
+                await websocket.send(str.encode(str(total_recall_from)))
+            elif str(parameter) == "total_recall_to":
+                if shouldWrite:
+                    total_recall_to = int(value)
+                else:
+                    if doVerbose:
+                        print("total_recall_to:" + str(total_recall_to))
+                    await websocket.send(str.encode(str(total_recall_to)))
+            elif str(parameter) == "should_use_deforumation_timestring":
+                if shouldWrite:
+                    should_use_deforumation_timestring = int(value)
+                else:
+                    if doVerbose:
+                        print("should_use_deforumation_timestring:" + str(should_use_deforumation_timestring))
+                    await websocket.send(str.encode(str(should_use_deforumation_timestring)))
             elif str(parameter) == "should_use_deforumation_prompt_scheduling":
                 if shouldWrite:
                     should_use_deforumation_prompt_scheduling = value
@@ -232,11 +495,17 @@ async def main_websocket(websocket):
                     if doVerbose:
                         print("sending prompt:" + str(Prompt_Negative))
                     await websocket.send(str(Prompt_Negative))
+            elif str(parameter) == "prompts_touched":
+                #if should_use_total_recall == 1:
+                #    Prompt_Positive_touched = 1
+                #    print("Changing prompt for ever for total recall")
+                empty = 0
             # Translation Params
             ###########################################################################
             elif str(parameter) == "translation_x":
                 if shouldWrite:
                     translation_x = float(value)
+                    translation_x_under_recall = float(value)
                 else:
                     if doVerbose:
                         print("sending translation_x:" + str(translation_x))
@@ -244,6 +513,7 @@ async def main_websocket(websocket):
             elif str(parameter) == "translation_y":
                 if shouldWrite:
                     translation_y = float(value)
+                    translation_y_under_recall = float(value)
                 else:
                     if doVerbose:
                         print("sending translation_y:" + str(translation_y))
@@ -433,14 +703,14 @@ async def main_websocket(websocket):
             elif str(parameter) == "seed":
                 if shouldWrite:
                     seed_value = int(value)
-                    did_seed_change = 1
                 else:
                     if doVerbose:
                         print("sending SEED:" + str(seed_value))
-                    did_seed_change = 0
                     await websocket.send(str(seed_value))
             elif str(parameter) == "seed_changed":
-                if not shouldWrite:  # don't support write (it's not nessecary)
+                if shouldWrite:
+                    did_seed_change = int(value)
+                else:  # don't support write (it's not nessecary)
                     await websocket.send(str(did_seed_change))
             # Perlin persistence Param
             ###########################################################################
@@ -578,6 +848,32 @@ async def main_websocket(websocket):
                     if doVerbose2:
                         print("sending start frame:" + str(start_frame))
                     await websocket.send(str(start_frame))
+            elif str(parameter) == "saved_frame_params":
+                if shouldWrite:
+                    if not should_use_total_recall:
+                        if not int(value) in parameter_container:
+                            parameter_container[int(value)] = ParameterContainer()
+                        parameter_container[int(value)].SetValues()
+                    elif (int(value) < total_recall_from) or (int(value) > total_recall_to):
+                        if not int(value) in parameter_container:
+                            parameter_container[int(value)] = ParameterContainer()
+                        parameter_container[int(value)].SetValues()
+                else:
+                    if doVerbose2:
+                        print("sending parameter_container")
+                    if int(value) == -1:
+                        bytesToSend = pickle.dumps(parameter_container)
+                    else:
+                        if int(value) in parameter_container:
+                            if Prompt_Positive_touched:
+                                copyof_parameter_container = parameter_container.copy()
+                                copyof_parameter_container[int(value)].Prompt_Positive = Prompt_Positive
+                                bytesToSend = pickle.dumps(copyof_parameter_container[int(value)])
+                            else:
+                                bytesToSend = pickle.dumps(parameter_container[int(value)])
+                        else:
+                            bytesToSend = pickle.dumps(0x0)
+                    await websocket.send(bytesToSend)
             elif str(parameter) == "frame_outdir":
                 if shouldWrite:
                     frame_outdir = str(value)
@@ -774,7 +1070,17 @@ def main_named_pipe(pipeName):
     global should_use_optical_flow
     global cadence_flow_factor
     global generation_flow_factor
-
+    global should_use_total_recall
+    global total_recall_from
+    global total_recall_to
+    global Prompt_Positive_touched
+    global translation_x_under_recall
+    global translation_y_under_recall
+    global translation_z_under_recall
+    global rotation_x_under_recall
+    global rotation_y_under_recall
+    global rotation_z_under_recall
+    global should_use_deforumation_timestring
     print("pipe server:" + str(pipeName))
     count = 0
     pipe = win32pipe.CreateNamedPipe('\\\\.\\pipe\\' + str(pipeName), win32pipe.PIPE_ACCESS_DUPLEX,
@@ -808,6 +1114,49 @@ def main_named_pipe(pipeName):
                         if doVerbose:
                             print("is_paused_rendering:" + str(shouldPause))
                         win32file.WriteFile(pipe, str.encode(str(shouldPause)))
+                elif str(parameter) == "total_recall_relive":
+                    frame_idx = int(value)
+                    if should_use_total_recall:
+                        # if (frame_idx >= total_recall_from) and (frame_idx <= total_recall_to):
+                        if (frame_idx >= total_recall_from and frame_idx <= total_recall_to):
+                            #print("total_recall_relive (frame number):" + str(frame_idx))
+                            RecallValues(frame_idx)
+                elif str(parameter) == "should_erase_total_recall_memory":
+                    if shouldWrite:
+                        parameter_container.clear()
+                        print("The total recall memory has been cleared.")
+                elif str(parameter) == "should_use_deforumation_timestring":
+                    if shouldWrite:
+                        should_use_deforumation_timestring = int(value)
+                    else:
+                        if doVerbose:
+                            print("should_use_deforumation_timestring:" + str(should_use_deforumation_timestring))
+                        win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_timestring)))
+                elif str(parameter) == "should_use_total_recall":
+                    if shouldWrite:
+                        should_use_total_recall = int(value)
+                        Prompt_Positive_touched = 0
+                        #if should_use_total_recall == 1:
+                        #    translation_x = 0
+                        #    translation_y = 0
+                    else:
+                        if doVerbose:
+                            print("should_use_total_recall:" + str(should_use_total_recall))
+                        win32file.WriteFile(pipe, str.encode(str(should_use_total_recall)))
+                elif str(parameter) == "total_recall_from":
+                    if shouldWrite:
+                        total_recall_from = int(value)
+                    else:
+                        if doVerbose:
+                            print("total_recall_from:" + str(total_recall_from))
+                        win32file.WriteFile(pipe, str.encode(str(total_recall_from)))
+                elif str(parameter) == "total_recall_to":
+                    if shouldWrite:
+                        total_recall_to = int(value)
+                    else:
+                        if doVerbose:
+                            print("total_recall_to:" + str(total_recall_to))
+                        win32file.WriteFile(pipe, str.encode(str(total_recall_to)))
                 elif str(parameter) == "should_use_deforumation_prompt_scheduling":
                     if shouldWrite:
                         should_use_deforumation_prompt_scheduling = value
@@ -836,7 +1185,7 @@ def main_named_pipe(pipeName):
                         Prompt_Positive = value
                     else:
                         if doVerbose:
-                            print("negative_prompt:" + str(Prompt_Positive))
+                            print("positive_prompt:" + str(Prompt_Positive))
                         win32file.WriteFile(pipe, str.encode(str(Prompt_Positive)))
                 elif str(parameter) == "negative_prompt":
                     if shouldWrite:
@@ -845,25 +1194,42 @@ def main_named_pipe(pipeName):
                         if doVerbose:
                             print("sending prompt:" + str(Prompt_Negative))
                         win32file.WriteFile(pipe, str.encode(str(Prompt_Negative)))
+                elif str(parameter) == "prompts_touched":
+                    #if should_use_total_recall == 1:
+                    #    Prompt_Positive_touched = 1
+                    #    print("Changing prompt for ever for total recall")
+                    empty = 0
                 # Translation Params
                 ###########################################################################
                 elif str(parameter) == "translation_x":
                     if shouldWrite:
-                        translation_x = float(value)
+                        if not should_use_total_recall:
+                            translation_x = float(value)
+                        else:
+                            translation_x_under_recall = float(value)
+
                     else:
                         if doVerbose:
                             print("sending translation_x:" + str(translation_x))
                         win32file.WriteFile(pipe, str.encode(str(translation_x)))
+
                 elif str(parameter) == "translation_y":
                     if shouldWrite:
-                        translation_y = float(value)
+                        if not should_use_total_recall:
+                            translation_y = float(value)
+                        else:
+                            translation_y_under_recall = float(value)
                     else:
                         if doVerbose:
                             print("sending translation_y:" + str(translation_y))
                         win32file.WriteFile(pipe, str.encode(str(translation_y)))
+
                 elif str(parameter) == "translation_z":
                     if shouldWrite:
-                        translation_z = float(value)
+                        if not should_use_total_recall:
+                            translation_z = float(value)
+                        else:
+                            translation_z_under_recall = float(value)
                     else:
                         if doVerbose:
                             print("sending translation_z:" + str(translation_z))
@@ -916,7 +1282,10 @@ def main_named_pipe(pipeName):
                 ###########################################################################
                 elif str(parameter) == "rotation_x":
                     if shouldWrite:
-                        rotation_x = float(value)
+                        if not should_use_total_recall:
+                            rotation_x = float(value)
+                        else:
+                            rotation_x_under_recall = float(value)
                         # print("writing rotation_x:" + str(rotation_x))
                         # time.sleep(20)
                     else:
@@ -925,7 +1294,10 @@ def main_named_pipe(pipeName):
                         win32file.WriteFile(pipe, str.encode(str(rotation_x)))
                 elif str(parameter) == "rotation_y":
                     if shouldWrite:
-                        rotation_y = float(value)
+                        if not should_use_total_recall:
+                            rotation_y = float(value)
+                        else:
+                            rotation_y_under_recall = float(value)
                     else:
                         if doVerbose:
                             print("sending rotation_y:" + str(rotation_y))
@@ -1046,15 +1418,16 @@ def main_named_pipe(pipeName):
                 elif str(parameter) == "seed":
                     if shouldWrite:
                         seed_value = int(value)
-                        did_seed_change = 1
                     else:
                         if doVerbose:
                             print("sending SEED:" + str(seed_value))
-                        did_seed_change = 0
                         win32file.WriteFile(pipe, str.encode(str(seed_value)))
                 elif str(parameter) == "seed_changed":
-                    if not shouldWrite:  # don't support write (it's not nessecary)
+                    if shouldWrite:
+                        did_seed_change = int(value)
+                    else:
                         win32file.WriteFile(pipe, str.encode(str(did_seed_change)))
+
                 # Perlin persistence Param
                 ###########################################################################
                 elif str(parameter) == "perlin_persistence":
@@ -1184,6 +1557,33 @@ def main_named_pipe(pipeName):
                             print("writing should_resume:" + str(should_resume))
                     else:
                         win32file.WriteFile(pipe, str.encode(str(should_resume)))
+                elif str(parameter) == "saved_frame_params":
+                    if shouldWrite:
+                        if not should_use_total_recall:
+                            if not int(value) in parameter_container:
+                                parameter_container[int(value)] = ParameterContainer()
+                            parameter_container[int(value)].SetValues()
+                        elif (int(value) < total_recall_from) or (int(value) > total_recall_to):
+                            if not int(value) in parameter_container:
+                                parameter_container[int(value)] = ParameterContainer()
+                            parameter_container[int(value)].SetValues()
+                    else:
+                        if doVerbose2:
+                            print("sending parameter_container")
+                        if int(value) == -1:
+                            bytesToSend = pickle.dumps(parameter_container)
+                        else:
+                            if int(value) in parameter_container:
+                                if Prompt_Positive_touched:
+                                    print("Prompt has been touched, so using current Deforumation prompt!")
+                                    copyof_parameter_container = parameter_container.copy()
+                                    copyof_parameter_container[int(value)].Prompt_Positive = Prompt_Positive
+                                    bytesToSend = pickle.dumps(copyof_parameter_container[int(value)])
+                                else:
+                                    bytesToSend = pickle.dumps(parameter_container[int(value)])
+                            else:
+                                bytesToSend = pickle.dumps(0x0)
+                        win32file.WriteFile(pipe, bytesToSend)
                 elif str(parameter) == "start_frame":
                     if shouldWrite:
                         start_frame = int(value)
@@ -1359,10 +1759,10 @@ async def main_websockets():
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Starting Mediator with WebSocket communication, version 0.5.4")
+        print("Starting Mediator with WebSocket communication, version 0.6.0")
         shouldUseNamedPipes = False
     else:
-        print("Starting Mediator with Named Pipes communication, version 0.5.4")
+        print("Starting Mediator with Named Pipes communication, version 0.6.0")
         shouldUseNamedPipes = True
 
     try:
