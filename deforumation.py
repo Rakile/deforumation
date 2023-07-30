@@ -3490,9 +3490,10 @@ class Mywin(wx.Frame):
             current_render_frame = str(current_render_frame).zfill(9)
             imagePath = outdir + "/" + resume_timestring + "_" + current_render_frame + ".png"
             maxBackTrack = 100
+            tmp_current_render_frame =  current_render_frame
             #print(str("Trying to load:"+imagePath))
             while not os.path.isfile(imagePath):
-                if (current_render_frame == 0):
+                if (int(current_render_frame) == 0):
                     break
                 current_render_frame = int(current_render_frame) - 1
                 imagePath = get_current_image_path_f(current_render_frame) #outdir + "/" + resume_timestring + "_" + current_render_frame + ".png" #imagePath = get_current_image_path()
@@ -3531,7 +3532,8 @@ class Mywin(wx.Frame):
                     if is_paused_rendering:
                         self.framer.DrawImage()
             elif should_use_total_recall or should_use_total_recall_in_deforumation:
-                self.frame_step_input_box.SetValue(str(int(current_render_frame)))
+                current_render_frame = tmp_current_render_frame
+                self.frame_step_input_box.SetValue(str(int(tmp_current_render_frame)))
 
         elif btn == "Set current image":
             current_frame = self.frame_step_input_box.GetValue()
