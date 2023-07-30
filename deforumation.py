@@ -127,6 +127,8 @@ parameter_container = {}
 should_use_total_recall = 0
 should_use_total_recall_in_deforumation = 0
 should_use_deforumation_timestring = 0
+number_of_recalled_frames = 0
+
 async def sendAsync_special(value):
     if shouldUseNamedPipes:
         bufSize = 64 * 1024
@@ -953,6 +955,10 @@ class Mywin(wx.Frame):
         self.upload_recorded_data = wx.Button(self.panel, label="Load Recall Data", pos=(int(screenWidth / 2) + 140, 250))
         self.upload_recorded_data.SetToolTip("Upload your recorded data.")
         self.upload_recorded_data.Bind(wx.EVT_BUTTON, self.OnClicked)
+
+        #TOTAL CURRENT RECALL FRAMES
+        self.total_current_recall_frames_text = wx.StaticText(self.panel, label="Number of recall points: 0", pos=(int(screenWidth / 2) + 180, 223))
+
 
         #####################################################
 
@@ -2887,6 +2893,7 @@ class Mywin(wx.Frame):
         global should_use_total_recall
         global should_use_total_recall_in_deforumation
         global should_use_deforumation_timestring
+        global number_of_recalled_frames
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
@@ -3742,7 +3749,7 @@ class Mywin(wx.Frame):
             self.writeValue("should_erase_total_recall_memory", 1)
 
         elif btn == "Load Recall Data":
-            dlg = wx.FileDialog(None, "Save XYZ file", wildcard="XYZ files (*.obj)|*.obj", style=wx.FD_OPEN)
+            dlg = wx.FileDialog(None, "Load Recall file", wildcard="Recal files (*.obj)|*.obj", style=wx.FD_OPEN)
             #dlg = wx.DirDialog (None, "Choose Recall File", "",wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
             if dlg.ShowModal() == wx.ID_OK:
                 fileObjectPath = dlg.GetPath()
@@ -3753,7 +3760,8 @@ class Mywin(wx.Frame):
                 fp.close()
                 bytesToSend = pickle.dumps(parameter_container)
                 self.writeValue("upload_recall_file", bytesToSend)
-
+                number_of_recalled_frames = int(self.readValue("get_number_of_recalled_frames"))
+                self.total_current_recall_frames_text.SetLabel("Number of recall points: " + str(number_of_recalled_frames))
 
         elif btn == "Save Recall Data":
             parameter_container = pickle.loads(readValue_special("saved_frame_params", -1))
@@ -3762,13 +3770,18 @@ class Mywin(wx.Frame):
 
             dlg = wx.DirDialog (None, "Choose input directory", "",wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
             if dlg.ShowModal() == wx.ID_OK:
-                save_path_human_readable = dlg.GetPath()+'/'+str(readValue("resume_timestring"))+"_total_recall_data.txt"
-                save_path_object = dlg.GetPath() + '/' + str(readValue("resume_timestring")) + "_total_recall_data.obj"
+                resume_timestring = str(readValue("resume_timestring"))
+                if resume_timestring == "":
+                    print("No timestring found, will use 00000000000000")
+                    resume_timestring = "00000000000000"
+                save_path_human_readable = dlg.GetPath()+'/'+resume_timestring+"_total_recall_data.txt"
+                save_path_object = dlg.GetPath() + '/' + resume_timestring + "_total_recall_data.obj"
 
                 with open(save_path_human_readable, 'w') as fp:
                     for n in parameter_container:
                         numMembers = len(inspect.getmembers(parameter_container[n]))
                         indexI = 0
+                        fp.write("('Frame_Number', '"+str(n)+"')")
                         for i in inspect.getmembers(parameter_container[n]):
                             # to remove private and protected
                             # functions
@@ -3968,6 +3981,8 @@ class Mywin(wx.Frame):
             deforum_noise_multiplier = readValue("deforum_noise_multiplier")
             deforum_Perlin_Octave_Value = readValue("deforum_perlin_octaves")
             deforum_Perlin_Persistence_Value = readValue("deforum_perlin_persistence")
+            number_of_recalled_frames = int(self.readValue("get_number_of_recalled_frames"))
+            self.total_current_recall_frames_text.SetLabel("Number of recall points: " + str(number_of_recalled_frames))
             if should_use_total_recall_in_deforumation:
                 current_frame_live = int(readValue("start_frame"))
                 if int(current_frame_live) != -1:
