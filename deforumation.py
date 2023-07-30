@@ -1,3 +1,5 @@
+import inspect
+
 import wx
 import wx.media
 import asyncio
@@ -21,6 +23,7 @@ import subprocess
 
 #import subprocess
 cadenceArray = {}
+totalRecallFilePath = "./totalrecall.txt"
 deforumationSettingsPath="./deforumation_settings.txt"
 deforumationSettingsPath_Keys = "./deforum_settings_keys.txt"
 deforumationPromptsPath ="./prompts/"
@@ -941,6 +944,15 @@ class Mywin(wx.Frame):
         self.should_erase_total_recall_memory.SetToolTip("This will erase all the data that total recall has collected in this session.")
         self.should_erase_total_recall_memory.Bind(wx.EVT_BUTTON, self.OnClicked)
 
+        #DOWNLOAD RECORDED DATA
+        self.download_recorded_data = wx.Button(self.panel, label="Save Recall Data", pos=(int(screenWidth / 2) + 20, 250))
+        self.download_recorded_data.SetToolTip("Download your recorded data.")
+        self.download_recorded_data.Bind(wx.EVT_BUTTON, self.OnClicked)
+
+        #UPLOAD RECORDED DATA
+        self.upload_recorded_data = wx.Button(self.panel, label="Load Recall Data", pos=(int(screenWidth / 2) + 140, 250))
+        self.upload_recorded_data.SetToolTip("Upload your recorded data.")
+        self.upload_recorded_data.Bind(wx.EVT_BUTTON, self.OnClicked)
 
         #####################################################
 
@@ -1712,7 +1724,7 @@ class Mywin(wx.Frame):
         #self.parseq_strength_button.SetPosition((trbX-45, tbrY-46))
         #self.parseq_movements_button.SetPosition((trbX+280, tbrY+100))
         self.step_schedule_Text.SetPosition((trbX - 25, tbrY - 70))
-        self.should_use_deforumation_strength_checkbox.SetPosition((trbX + 160, tbrY - 66))
+        self.should_use_deforumation_strength_checkbox.SetPosition((trbX+60, tbrY-66))
         self.should_use_deforumation_cfg_checkbox.SetPosition((trbX+460, tbrY-66))
         self.should_use_deforumation_cadence_checkbox.SetPosition((trbX+780, tbrY))
         self.should_use_deforumation_noise_checkbox.SetPosition((trbX+720, tbrY+74))
@@ -3518,6 +3530,9 @@ class Mywin(wx.Frame):
                 if self.framer != None:
                     if is_paused_rendering:
                         self.framer.DrawImage()
+            elif should_use_total_recall or should_use_total_recall_in_deforumation:
+                self.frame_step_input_box.SetValue(str(int(current_render_frame)))
+
         elif btn == "Set current image":
             current_frame = self.frame_step_input_box.GetValue()
             current_render_frame = int(current_frame)
@@ -3724,6 +3739,62 @@ class Mywin(wx.Frame):
         elif btn == "Erase total recall memory":
             self.writeValue("should_erase_total_recall_memory", 1)
 
+        elif btn == "Load Recall Data":
+            dlg = wx.FileDialog(None, "Save XYZ file", wildcard="XYZ files (*.obj)|*.obj", style=wx.FD_OPEN)
+            #dlg = wx.DirDialog (None, "Choose Recall File", "",wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+            if dlg.ShowModal() == wx.ID_OK:
+                fileObjectPath = dlg.GetPath()
+                self.writeValue("should_use_deforumation_timestring", 1)
+
+                with open(fileObjectPath, 'rb') as fp:
+                    parameter_container = pickle.load(fp)
+                fp.close()
+                bytesToSend = pickle.dumps(parameter_container)
+                self.writeValue("upload_recall_file", bytesToSend)
+
+
+        elif btn == "Save Recall Data":
+            parameter_container = pickle.loads(readValue_special("saved_frame_params", -1))
+            #deforumFile = open(totalRecallFilePath, 'w')
+            #anObject = []{}
+
+            dlg = wx.DirDialog (None, "Choose input directory", "",wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+            if dlg.ShowModal() == wx.ID_OK:
+                save_path_human_readable = dlg.GetPath()+'/'+str(readValue("resume_timestring"))+"_total_recall_data.txt"
+                save_path_object = dlg.GetPath() + '/' + str(readValue("resume_timestring")) + "_total_recall_data.obj"
+
+                with open(save_path_human_readable, 'w') as fp:
+                    for n in parameter_container:
+                        numMembers = len(inspect.getmembers(parameter_container[n]))
+                        indexI = 0
+                        for i in inspect.getmembers(parameter_container[n]):
+                            # to remove private and protected
+                            # functions
+                            indexI += 1
+                            if not i[0].startswith('_'):
+                                # To remove other methods that
+                                # doesnot start with a underscore
+                                if not inspect.ismethod(i[1]):
+                                    fp.write(str(i))
+                                if indexI != numMembers:
+                                    fp.write(',')
+                        fp.write('\n')
+                fp.close()
+
+                with open(save_path_object, 'wb') as fp:
+                    pickle.dump(parameter_container, fp)
+                fp.close()
+
+
+            #members2 = list(vars(parameter_container[0]).keys())
+            #members = [attr for attr in dir(parameter_container[0]) if not callable(getattr(parameter_container[0], attr)) and not attr.startswith("__")]
+            #print(members)
+            #for n in parameter_container[0].steps():
+            #    print(str(n))
+                #pickle.dump(parameter_container, fp)
+            #    json.dump(str(parameter_container[0]),fp)
+            #deforumFile.write(json.dumps(parameter_container))
+            #deforumFile.close()
         elif btn == "LIVE RENDER":
             current_frame = str(self.readValue("start_frame"))
             #print("should_render_live: "+str(should_render_live))
