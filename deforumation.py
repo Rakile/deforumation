@@ -1,4 +1,5 @@
 import wx
+import wx.media
 import asyncio
 import websockets
 import os
@@ -16,6 +17,7 @@ import collections
 import pyeaze
 import win32pipe, win32file, pywintypes
 import sys
+import subprocess
 
 #import subprocess
 cadenceArray = {}
@@ -118,16 +120,57 @@ cadence_flow_factor = 1
 generation_flow_factor = 1
 #Bezier curve stuff
 bezierArray = []
-async def sendAsync(value):
+parameter_container = {}
+should_use_total_recall = 0
+should_use_total_recall_in_deforumation = 0
+should_use_deforumation_timestring = 0
+async def sendAsync_special(value):
     if shouldUseNamedPipes:
+        bufSize = 64 * 1024
         handle = win32file.CreateFile('\\\\.\\pipe\\Deforumation', win32file.GENERIC_READ | win32file.GENERIC_WRITE, 0, None,
                                       win32file.OPEN_EXISTING, 0, None)
         res = win32pipe.SetNamedPipeHandleState(handle, win32pipe.PIPE_READMODE_MESSAGE, None, None)
         bytesToSend = pickle.dumps(value)
         win32file.WriteFile(handle, bytesToSend)
-        message = win32file.ReadFile(handle, 64 * 1024)
+        result, data = win32file.ReadFile(handle, bufSize)
+        message = data
+        while len(data) == bufSize:
+            print("More data has to be read (special pipe async):"+ str(len(data)))
+            result, data = win32file.ReadFile(handle, bufSize)
+            message += data
         win32file.CloseHandle(handle)
-        return message[1].decode()
+        return message
+    else:
+        async with websockets.connect("ws://localhost:8765") as websocket:
+            # await websocket.send(pickle.dumps(value))
+            try:
+                await asyncio.wait_for(websocket.send(pickle.dumps(value)), timeout=10.0)
+                message = await asyncio.wait_for(websocket.recv(), timeout=10.0)
+            except TimeoutError:
+                print('timeout!')
+            if message == None:
+                message = "-NO CONNECTION-"
+            # asyncio.ensure_future(message=websocket.recv())
+            # print(str(message))
+            return message
+
+async def sendAsync(value):
+    if shouldUseNamedPipes:
+        bufSize = 64 * 1024
+        handle = win32file.CreateFile('\\\\.\\pipe\\Deforumation', win32file.GENERIC_READ | win32file.GENERIC_WRITE, 0, None,
+                                      win32file.OPEN_EXISTING, 0, None)
+        res = win32pipe.SetNamedPipeHandleState(handle, win32pipe.PIPE_READMODE_MESSAGE, None, None)
+        bytesToSend = pickle.dumps(value)
+        win32file.WriteFile(handle, bytesToSend)
+        result, data = win32file.ReadFile(handle, bufSize)
+        message = data
+        while len(data) == bufSize:
+            print("More data has to be read (normal pipe async):"+ str(len(data)))
+            result, data = win32file.ReadFile(handle, bufSize)
+            message += data
+
+        win32file.CloseHandle(handle)
+        return message.decode()
     else:
         async with websockets.connect("ws://localhost:8765") as websocket:
             # await websocket.send(pickle.dumps(value))
@@ -157,6 +200,12 @@ def get_current_image_path():
     imagePath = outdir + "/" + resume_timestring + "_" + str(current_frame).zfill(9) + ".png"
     return imagePath
 
+def create_ffmpeg_image_string():
+    outdir = str(readValue("frame_outdir")).replace('\\', '/').replace('\n', '')
+    resume_timestring = str(readValue("resume_timestring"))
+    imagePath = outdir + "/" + resume_timestring + "_%09d.png"
+    return imagePath
+
 def get_current_image_path_paused():
     outdir = str(readValue("frame_outdir")).replace('\\', '/').replace('\n', '')
     resume_timestring = str(readValue("resume_timestring"))
@@ -180,6 +229,25 @@ def writeValue(param, value):
             #print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)")
             time.sleep(0.05)
 
+
+def readValue_special(param, value = -1):
+    checkerrorConnecting = True
+    while checkerrorConnecting:
+        try:
+            return_value = asyncio.run(sendAsync_special([0, param, value]))
+            if return_value != None:
+            #    if str(return_value) == "-NO CONNECTION-":
+            #        print("Mediator.py is running? Were getting a time out, when trying to read a value. Waiting 5 seconds before trying to connect again.")
+            #        time.sleep(5)
+            #        continue
+                return return_value
+        except Exception as e:
+            #print("Exception number:" + str(e.args[0]))
+            if e.args[0] != 231 and e.args[0] !=2:
+                print("Deforumation Mediator ErrorX:" + str(e))
+            #print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)")
+            time.sleep(0.05)
+
 def readValue(param):
     checkerrorConnecting = True
     while checkerrorConnecting:
@@ -192,7 +260,9 @@ def readValue(param):
             #        continue
                 return return_value
         except Exception as e:
-            #print("Deforumation Mediator Error:" + str(e))
+            #print("Exception number:" + str(e.args[0]))
+            if e.args[0] != 231 and e.args[0] !=2:
+                print("Deforumation Mediator Error2:" + str(e))
             #print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)")
             time.sleep(0.05)
 
@@ -549,11 +619,13 @@ class render_window(wx.Frame):
         #print("CLOSING, framer.bitmap is:"+ str(self.bitmap))
 
 
+
 class Mywin(wx.Frame):
     def __init__(self, parent, title):
         #global pmob
         #global pstb
         global ppb
+        global parameter_container
         super(Mywin, self).__init__(parent, title=title, size=(screenWidth, screenHeight))
         self.panel = wx.Panel(self)
         self.panel.SetBackgroundColour(wx.Colour(100, 100, 100))
@@ -587,6 +659,7 @@ class Mywin(wx.Frame):
         sizer5 = wx.BoxSizer(wx.HORIZONTAL)
         sizer6 = wx.BoxSizer(wx.HORIZONTAL)
         sizer7 = wx.BoxSizer(wx.VERTICAL)
+        sizer8 = wx.BoxSizer(wx.VERTICAL)
         self.positivePromtText = wx.StaticText(self.panel, label="Positive prompt:", size=(200, 25))
         font = self.positivePromtText.GetFont()
         font.PointSize += 5
@@ -606,9 +679,10 @@ class Mywin(wx.Frame):
         sizer.Add(sizer2, 0, wx.ALL, 0)
 
 
-        self.positive_prompt_input_ctrl = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(-1,100))
+        self.positive_prompt_input_ctrl = wx.TextCtrl(self.panel, id=9999, style=wx.TE_MULTILINE, size=(int(screenWidth/2),100))
         self.positive_prompt_input_ctrl.SetToolTip("This is the main positive prompt window. When \"Save Prompts\" is pushed, this prompt will belong to the current image frame.")
-        sizer.Add(self.positive_prompt_input_ctrl, 0, wx.ALL | wx.EXPAND, 0)
+        sizer.Add(self.positive_prompt_input_ctrl, 0, wx.ALL , 0)
+        #self.positive_prompt_input_ctrl.Bind(wx.EVT_KILL_FOCUS, self.OnFocus)
         self.positive_prompt_input_ctrl.Bind(wx.EVT_KEY_UP, self.OnKeyEvent)
 
         self.positive_prompt_input_ctrl_2_prio = wx.TextCtrl(self.panel, size=(20,20))
@@ -622,10 +696,11 @@ class Mywin(wx.Frame):
         sizer3.Add(self.positive_prompt_input_ctrl_hide_box_2, 0, wx.ALL, 0)
         sizer.Add(sizer3, 0, wx.ALL, 0)
 
-        self.positive_prompt_input_ctrl_2 = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(-1,50))
+        self.positive_prompt_input_ctrl_2 = wx.TextCtrl(self.panel, id=9999, style=wx.TE_MULTILINE, size=(int(screenWidth/2),50))
         self.positive_prompt_input_ctrl_2.SetToolTip("This is a secondary positive prompt window. When \"Save Prompts\" is pushed, it will be part of the combined positive prompts. It doesn't belong to a certain frame.")
-        sizer.Add(self.positive_prompt_input_ctrl_2, 0, wx.ALL | wx.EXPAND, 0)
+        sizer.Add(self.positive_prompt_input_ctrl_2, 0, wx.ALL, 0)
         self.positive_prompt_input_ctrl_2.Bind(wx.EVT_KEY_UP, self.OnKeyEvent)
+        #self.positive_prompt_input_ctrl_2.Bind(wx.EVT_KILL_FOCUS, self.OnFocus)
 
         self.positive_prompt_input_ctrl_3_prio = wx.TextCtrl(self.panel, size=(20,20))
         sizer4.Add(self.positive_prompt_input_ctrl_3_prio, 0, wx.ALL, 0)
@@ -639,10 +714,11 @@ class Mywin(wx.Frame):
         sizer.Add(sizer4, 0, wx.ALL, 0)
 
 
-        self.positive_prompt_input_ctrl_3 = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(-1,50))
+        self.positive_prompt_input_ctrl_3 = wx.TextCtrl(self.panel, id=9999, style=wx.TE_MULTILINE, size=(int(screenWidth/2),50))
         self.positive_prompt_input_ctrl_3.SetToolTip("This is a secondary positive prompt window. When \"Save Prompts\" is pushed, it will be part of the combined positive prompts. It doesn't belong to a certain frame.")
-        sizer.Add(self.positive_prompt_input_ctrl_3, 0, wx.ALL | wx.EXPAND, 0)
+        sizer.Add(self.positive_prompt_input_ctrl_3, 0, wx.ALL, 0)
         self.positive_prompt_input_ctrl_3.Bind(wx.EVT_KEY_UP, self.OnKeyEvent)
+        #self.positive_prompt_input_ctrl_3.Bind(wx.EVT_KILL_FOCUS, self.OnFocus)
 
         self.positive_prompt_input_ctrl_4_prio = wx.TextCtrl(self.panel, size=(20,20))
         sizer5.Add(self.positive_prompt_input_ctrl_4_prio, 0, wx.ALL, 0)
@@ -655,10 +731,11 @@ class Mywin(wx.Frame):
         sizer5.Add(self.positive_prompt_input_ctrl_hide_box_4, 0, wx.ALL, 0)
         sizer.Add(sizer5, 0, wx.ALL, 0)
 
-        self.positive_prompt_input_ctrl_4 = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE, size=(-1,50))
+        self.positive_prompt_input_ctrl_4 = wx.TextCtrl(self.panel, id=9999, style=wx.TE_MULTILINE, size=(int(screenWidth/2),50))
         self.positive_prompt_input_ctrl_4.SetToolTip("This is a secondary positive prompt window. When \"Save Prompts\" is pushed, it will be part of the combined positive prompts. It doesn't belong to a certain frame.")
-        sizer.Add(self.positive_prompt_input_ctrl_4, 0, wx.ALL | wx.EXPAND, 0)
+        sizer.Add(self.positive_prompt_input_ctrl_4, 0, wx.ALL, 0)
         self.positive_prompt_input_ctrl_4.Bind(wx.EVT_KEY_UP, self.OnKeyEvent)
+        #self.positive_prompt_input_ctrl_4.Bind(wx.EVT_KILL_FOCUS, self.OnFocus)
 
         #Should use Deforum prompt scheduling?
         #self.shouldUseDeforumPromptScheduling_text = wx.StaticText(self.panel, label="Use Deforumation prompt scheduling...", pos=(trbX+580, 10))
@@ -685,10 +762,11 @@ class Mywin(wx.Frame):
         sizer.Add(sizer6, 0, wx.ALL, 0)
 
 
-        self.negative_prompt_input_ctrl = wx.TextCtrl(self.panel,style=wx.TE_MULTILINE, size=(-1,100))
+        self.negative_prompt_input_ctrl = wx.TextCtrl(self.panel, id=9999, style=wx.TE_MULTILINE, size=(int(screenWidth/2),100))
         self.negative_prompt_input_ctrl.SetToolTip("This is the negative prompt window. When \"Save Prompts\" is pushed, this prompt will belong to the current image frame.")
-        sizer.Add(self.negative_prompt_input_ctrl, 0, wx.ALL | wx.EXPAND, 0)
+        sizer.Add(self.negative_prompt_input_ctrl, 0, wx.ALL, 0)
         self.negative_prompt_input_ctrl.Bind(wx.EVT_KEY_UP, self.OnKeyEvent)
+        #self.negative_prompt_input_ctrl.Bind(wx.EVT_KILL_FOCUS, self.OnFocus)
 
         #if os.path.isfile(deforumationSettingsPath):
         #    self.negative_prompt_input_ctrl.SetValue(promptfileRead.readline())
@@ -775,6 +853,28 @@ class Mywin(wx.Frame):
         self.bitmap.Bind(wx.EVT_MOTION, self.on_mouse_motion)
         self.bitmap.Bind(wx.EVT_PAINT, self.on_paint)
 
+        #####################################################
+        self.audioSettingsField = wx.StaticBox(self.panel, id=wx.ID_ANY, label='Audio Playback Settings', size=(400, 90), pos=(int(screenWidth / 2) + 14, 38))  # orient=wx.HORIZONTAL)
+        #FFMPEG PATH
+        self.ffmpeg_path_input_box = wx.TextCtrl(self.panel, size=(200,20), pos=(int(screenWidth/2)+20, 60))
+        self.ffmpeg_path_input_box.SetToolTip("Select path to ffmpeg. If you have ffmpeg as part of the environment, no path needs to be set.")
+        self.ffmpeg_path_input_box.SetHint("<Path to ffmpeg executable>")
+        #AUDIO PATH
+        #self.audio_path_input_box = wx.TextCtrl(self.panel, size=(180,20), pos=(int(screenWidth/2)+20, 61))
+        #self.audio_path_input_box.SetToolTip("Path to audio file.")
+        #self.audio_path_input_box.SetHint("<Path to audio file>")
+        #AUDIO PATH 2
+        self.audio_path2_input_box =wx.FilePickerCtrl(self.panel, size=(280,50), pos=(int(screenWidth/2)+20, 76), message="Select audio file")
+        self.audio_path2_input_box.SetPath("<Path to audio file>")
+        self.audio_path2_input_box.SetToolTip("Select an audio file that will be used when Replaying.")
+        #COMBOBOX FOR CHOOSING A Backend for media playing
+        backends = ['wxAMMediaBackend', 'wxMCIMediaBackend', 'wxQTMediaBackend', 'wxGStreamerMediaBackend', 'wxRealPlayerMediaBackend', 'wxWMP10MediaBackend']
+        self.backend_chooser_choice = wx.Choice(self.panel, id=wx.ID_ANY,  pos=(int(screenWidth/2)+224, 59),size=(180,40), choices=backends, style=0, name="backends")
+        self.backend_chooser_choice.SetToolTip("wxQTMediaBackend is for MAC\nwxGStreamerMediaBackend is for UNIX\nwxWMP10MediaBackend is for Windows")
+        #self.backend_chooser_choice.Bind(wx.EVT_CHOICE, self.OnComponentChoice)
+        self.backend_chooser_choice.SetSelection(5)
+
+
         #REPLAY BUTTON
         self.replay_input_box_text = wx.StaticText(self.panel, label="Replay", pos=(trbX+990, tbrY-130))
         self.replay_from_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX+1030, tbrY-131))
@@ -787,20 +887,62 @@ class Mywin(wx.Frame):
         bmp = wx.Bitmap("./images/play.bmp", wx.BITMAP_TYPE_BMP)
         bmp = scale_bitmap(bmp, 18, 18)
         self.replay_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX + 1145, tbrY -135), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
-        self.replay_button.SetToolTip("This will replay the range given in the input boxes to the left. The replay will take place in the Live Render window.")
+        self.replay_button.SetToolTip("This will replay the range given in the input boxes to the left. Left-clicking this button will replay the range in the Live Render window. Right-clicking this button will use ffmpeg and any audio file to replay the choosen range.")
         self.replay_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.replay_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.replay_button.SetLabel("REPLAY")
 
         #REPLAY FPS BOX
         self.fps_input_box_text = wx.StaticText(self.panel, label="fps", pos=(trbX+1180, tbrY-130))
         self.replay_fps_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX+1200, tbrY-131))
-        self.replay_fps_input_box.SetToolTip("When doing a replay, this is the fps that should be used to replay the images. How ever, because the replay is done through converting .PNG files to bitmaps (takes a long time), the speed will not be accurate.")
+        self.replay_fps_input_box.SetToolTip("When doing a replay, this is the fps that should be used to replay the images. It is mostly used when right-clicking the replay button (using ffmpeg to render a video file).")
         self.replay_fps_input_box.SetValue("30")
 
         #FIX ASPECT RATIO
         self.fix_aspect_ratio_liverender_button = wx.Button(self.panel, label="Fix Aspect Ratio", pos=(trbX+1244, tbrY-132))
         self.fix_aspect_ratio_liverender_button.SetToolTip("This will adjust the Live Render Windows aspect ratio (using width as the leading value).")
         self.fix_aspect_ratio_liverender_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        #####################################################
+
+
+        #####################################################
+        self.audioSettingsField = wx.StaticBox(self.panel, id=wx.ID_ANY, label='Total Recall', size=(400, 140), pos=(int(screenWidth / 2) + 14, 140))  # orient=wx.HORIZONTAL)
+
+        #SHOULD USE TOTAL RECALL
+        self.should_use_total_recall_checkbox = wx.CheckBox(self.panel, label="Use total recall...", pos=(int(screenWidth / 2) + 20, 160))
+        self.should_use_total_recall_checkbox.SetToolTip("When activated, total recall is used on the chosen range.")
+        self.should_use_total_recall_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
+        #TOTAL RECALL FROM INPUT BOX
+        self.total_recall_from_input_box_text = wx.StaticText(self.panel, label="From:", pos=(int(screenWidth / 2) + 140, 160))
+        self.total_recall_from_input_box = wx.TextCtrl(self.panel, id=1240, size=(40,20), pos=(int(screenWidth / 2) + 180, 159))
+        self.total_recall_from_input_box.SetToolTip("Total recall from this frame.")
+        self.total_recall_from_input_box.SetValue("0")
+        self.total_recall_from_input_box.Bind(wx.EVT_KILL_FOCUS, self.OnFocus)
+
+        #TOTAL RECALL TO INPUT BOX
+        self.total_recall_to_input_box_text = wx.StaticText(self.panel, label="To:", pos=(int(screenWidth / 2) + 240, 160))
+        self.total_recall_to_input_box = wx.TextCtrl(self.panel, id=1239, size=(40,20), pos=(int(screenWidth / 2) + 260, 159))
+        self.total_recall_to_input_box.SetToolTip("Total recall to this frame.")
+        self.total_recall_to_input_box.SetValue("0")
+        self.total_recall_to_input_box.Bind(wx.EVT_KILL_FOCUS, self.OnFocus)
+        #SHOULD USE TOTAL RECALL
+        self.should_use_total_recall_in_deforumation_checkbox = wx.CheckBox(self.panel, label="View original values in Deforumation", pos=(int(screenWidth / 2) + 20, 180))
+        self.should_use_total_recall_in_deforumation_checkbox.SetToolTip("When activated, original values used, will be shown in Deforumation.")
+        self.should_use_total_recall_in_deforumation_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
+        #SHOULD FORCE DEFORUM To USE DEFORUMATION'S START FRAME ON RESUME FROM TIMESTRING
+        self.should_use_deforumation_start_string_checkbox = wx.CheckBox(self.panel, label="Use Deforumation timestamp when resuming", pos=(int(screenWidth / 2) + 20, 200))
+        self.should_use_deforumation_start_string_checkbox.SetToolTip("When activated, and you have choosen to \"Resume from timestring\" in Deforum, Deforum is forced to start at the frame chosen by you through \"Set current image\".")
+        self.should_use_deforumation_start_string_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
+        #ERASE TOTAL RECALL MEMORY
+        self.should_erase_total_recall_memory = wx.Button(self.panel, label="Erase total recall memory", pos=(int(screenWidth / 2) + 20, 220))
+        self.should_erase_total_recall_memory.SetToolTip("This will erase all the data that total recall has collected in this session.")
+        self.should_erase_total_recall_memory.Bind(wx.EVT_BUTTON, self.OnClicked)
+
+
+        #####################################################
 
         #SAVE PROMPTS BUTTON
         self.update_prompts = wx.Button(self.panel, label="SAVE PROMPTS")
@@ -1020,6 +1162,7 @@ class Mywin(wx.Frame):
         self.seed_input_box = wx.TextCtrl(self.panel, 3, size=(300,20), style = wx.TE_PROCESS_ENTER, pos=(trbX+340, tbrY-50-60))
         self.seed_input_box.SetToolTip("Tells Deforum what the seed should be (-1 == random). The method used (iter, fixed, etc), is decided by Deforum's Seed behaviour option.")
         self.seed_input_box.SetLabel("-1")
+        self.seed_input_box.Bind(wx.EVT_KILL_FOCUS, self.OnFocus, id=3)
         self.seed_input_box.Bind(wx.EVT_TEXT_ENTER, self.OnClicked, id=3)
 
 
@@ -1762,6 +1905,114 @@ class Mywin(wx.Frame):
             self.zoom_slider.GetEventHandler().ProcessEvent(evt)
 
 
+
+    def setValuesFromSavedFrame(self, frameNumber):
+        global Translation_X
+        global Translation_Y
+        global Translation_Z
+        global Rotation_3D_X
+        global Rotation_3D_Y
+        global Rotation_3D_Z
+        global Strength_Scheduler
+        global CFG_Scale
+        global FOV_Scale
+        global is_fov_locked
+        global is_reverse_fov_locked
+        global STEP_Schedule
+        global Cadence_Schedule
+        global noise_multiplier
+        global Perlin_Octave_Value
+        global Perlin_Persistence_Value
+        global is_paused_rendering
+        global should_use_deforumation_strength
+        global pan_left_key,pan_right_key,pan_up_key,pan_down_key,zoom_up_key,zoom_down_key
+        global CN_Weight
+        global CN_StepStart
+        global CN_StepEnd
+        global CN_LowT
+        global CN_HighT
+        global should_use_deforumation_prompt_scheduling
+        global should_use_deforumation_cfg
+        global should_use_deforumation_cadence
+        global should_use_deforumation_noise
+        global should_use_deforumation_panning
+        global should_use_deforumation_zoomfov
+        global should_use_deforumation_rotation
+        global should_use_deforumation_tilt
+        global pan_step_input_box_value
+        global rotate_step_input_box_value
+        global tilt_step_input_box_value
+        global zero_pan_step_input_box_value
+        global zero_rotate_step_input_box_value
+        global zero_zoom_step_input_box_value
+        global shouldUseDeforumPromptScheduling
+        global should_use_optical_flow
+        global cadence_flow_factor
+        global generation_flow_factor
+
+        parameter_container = pickle.loads(readValue_special("saved_frame_params", frameNumber))
+        if parameter_container != 0x0:
+            if parameter_container and parameter_container != None:
+                self.positive_prompt_input_ctrl.SetValue(parameter_container.Prompt_Positive)
+                self.positive_prompt_input_ctrl_2.SetValue("")
+                self.positive_prompt_input_ctrl_3.SetValue("")
+                self.positive_prompt_input_ctrl_4.SetValue("")
+                self.negative_prompt_input_ctrl.SetValue(parameter_container.Prompt_Negative)
+                Strength_Scheduler = float(parameter_container.strength_value)
+                self.strength_schedule_slider.SetValue(int(Strength_Scheduler*100))
+                CFG_Scale = float(parameter_container.cfg_scale)
+                self.cfg_schedule_slider.SetValue(int(CFG_Scale))
+                STEP_Schedule = int(parameter_container.steps)
+                self.sample_schedule_slider.SetValue(STEP_Schedule)
+                FOV_Scale = float(parameter_container.fov)
+                self.fov_slider.SetValue(int(FOV_Scale))
+                Translation_X = float(parameter_container.translation_x)
+                self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+                Translation_Y = float(parameter_container.translation_y)
+                self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+                Translation_Z = float(parameter_container.translation_z)
+                self.zoom_slider.SetValue(int(Translation_Z)*100)
+                self.zoom_value_text.SetLabel('%.2f' % (Translation_Z))
+                Rotation_3D_X = float(parameter_container.rotation_x)
+                Rotation_3D_Y = float(parameter_container.rotation_y)
+                Rotation_3D_Z = float(parameter_container.rotation_z)
+                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
+                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
+                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
+
+                Cadence_Schedule = int(parameter_container.cadence)
+                self.cadence_slider.SetValue(Cadence_Schedule)
+                ###CN
+                for cnIndex in range(5):
+                    CN_Weight[cnIndex] = float(parameter_container.cn_weight[cnIndex])
+                    self.control_net_weight_slider[cnIndex].SetValue(int(CN_Weight[cnIndex]*100))
+                    CN_StepStart[cnIndex] = float(parameter_container.cn_stepstart[cnIndex])
+                    self.control_net_stepstart_slider[cnIndex].SetValue(int(CN_StepStart[cnIndex]*100))
+                    CN_StepEnd[cnIndex] = float(parameter_container.cn_stepend[cnIndex])
+                    self.control_net_stepend_slider[cnIndex].SetValue(int(CN_StepEnd[cnIndex]*100))
+                    CN_LowT[cnIndex] = int(parameter_container.cn_lowt[cnIndex])
+                    self.control_net_lowt_slider[cnIndex].SetValue(CN_LowT[cnIndex])
+                    CN_HighT[cnIndex] = int(parameter_container.cn_hight[cnIndex])
+                    self.control_net_hight_slider[cnIndex].SetValue(CN_HighT[cnIndex])
+                ##CN END
+                noise_multiplier = float(parameter_container.noise_multiplier)
+                self.noise_slider.SetValue(int(float(noise_multiplier)*100))
+                Perlin_Octave_Value = int(parameter_container.perlin_octaves)
+                self.perlin_octave_slider.SetValue(int(Perlin_Octave_Value))
+                Perlin_Persistence_Value = float(parameter_container.perlin_persistence)
+                self.perlin_persistence_slider.SetValue(int(float(Perlin_Persistence_Value)*100))
+
+                #self.opticalflow_checkbox
+                cadence_flow_factor = int(parameter_container.cadence_flow_factor)
+                generation_flow_factor = int(parameter_container.generation_flow_factor)
+                self.cadence_flow_factor_box.SetValue(str(cadence_flow_factor))
+                self.generation_flow_factor_box.SetValue(str(generation_flow_factor))
+
+                #seed
+                seedValue = int(parameter_container.seed_value)
+                self.seed_input_box.SetValue(str(seedValue))
+        else:
+            print("Frame " + str(frameNumber)+ " has no stored recall values.")
     def loadAllValues(self):
         global Translation_X
         global Translation_Y
@@ -1836,11 +2087,21 @@ class Mywin(wx.Frame):
                     self.pause_rendering.SetLabel("PUSH TO RESUME RENDERING")
                 else:
                     self.pause_rendering.SetLabel("PUSH TO PAUSE RENDERING")
-                self.positive_prompt_input_ctrl.SetValue(deforumFile.readline())
-                self.positive_prompt_input_ctrl_2.SetValue(deforumFile.readline())
-                self.positive_prompt_input_ctrl_3.SetValue(deforumFile.readline())
-                self.positive_prompt_input_ctrl_4.SetValue(deforumFile.readline())
-                self.negative_prompt_input_ctrl.SetValue(deforumFile.readline())
+                aLine = deforumFile.readline()
+                aLine = aLine[:len(aLine)-1].replace('`^','\n')
+                self.positive_prompt_input_ctrl.SetValue(aLine)
+                aLine = deforumFile.readline()
+                aLine = aLine[:len(aLine)-1].replace('`^','\n')
+                self.positive_prompt_input_ctrl_2.SetValue(aLine)
+                aLine = deforumFile.readline()
+                aLine = aLine[:len(aLine)-1].replace('`^','\n')
+                self.positive_prompt_input_ctrl_3.SetValue(aLine)
+                aLine = deforumFile.readline()
+                aLine = aLine[:len(aLine)-1].replace('`^','\n')
+                self.positive_prompt_input_ctrl_4.SetValue(aLine)
+                aLine = deforumFile.readline()
+                aLine = aLine[:len(aLine)-1].replace('`^','\n')
+                self.negative_prompt_input_ctrl.SetValue(aLine)
                 Strength_Scheduler = float(deforumFile.readline().strip().strip('\n'))
                 self.strength_schedule_slider.SetValue(int(Strength_Scheduler*100))
                 CFG_Scale = float(deforumFile.readline().strip().strip('\n'))
@@ -1941,6 +2202,11 @@ class Mywin(wx.Frame):
                 self.cadence_flow_factor_box.SetValue(str(cadence_flow_factor))
                 self.generation_flow_factor_box.SetValue(str(generation_flow_factor))
 
+                self.ffmpeg_path_input_box.SetValue(deforumFile.readline().strip().strip('\n'))
+                #self.audio_path_input_box.SetValue(deforumFile.readline().strip().strip('\n'))
+                self.audio_path2_input_box.SetPath(deforumFile.readline().strip().strip('\n'))
+                self.backend_chooser_choice.SetSelection(int(deforumFile.readline().strip('\n')))
+
 
             except Exception as e:
                 print(e)
@@ -1951,10 +2217,18 @@ class Mywin(wx.Frame):
                 int(self.positive_prompt_input_ctrl_3_prio.GetValue()): self.positive_prompt_input_ctrl_3.GetValue(),
                 int(self.positive_prompt_input_ctrl_4_prio.GetValue()): self.positive_prompt_input_ctrl_4.GetValue()}
             sortedDict = sorted(positive_prio.items())
-            totalPossitivePromptString = sortedDict[0][1] + "," + sortedDict[1][1] + "," + sortedDict[2][1] + "," + \
-                                         sortedDict[3][1]
-            self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n")
-            self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '') + "\n")
+            #totalPossitivePromptString = sortedDict[0][1] + "," + sortedDict[1][1] + "," + sortedDict[2][1] + "," + \
+            #                             sortedDict[3][1]
+            totalPossitivePromptString = sortedDict[0][1]
+            if sortedDict[1][1] !="":
+                totalPossitivePromptString += "," + sortedDict[1][1]
+            if sortedDict[2][1] !="":
+                totalPossitivePromptString += "," + sortedDict[2][1]
+            if sortedDict[3][1] !="":
+                totalPossitivePromptString += "," + sortedDict[3][1]
+
+            self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', ' ') + "\n")
+            self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', ' ') + "\n")
             #self.writeValue("positive_prompt", self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
             #self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
             self.writeValue("strength", Strength_Scheduler)
@@ -2006,11 +2280,11 @@ class Mywin(wx.Frame):
                 #print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)...writing:"+str(param))
                 time.sleep(0.05)
 
-    def readValue(self, param):
+    def readValue(self, param, value = 0):
         checkerrorConnecting = True
         while checkerrorConnecting:
             try:
-                return_value = asyncio.run(sendAsync([0, param, 0]))
+                return_value = asyncio.run(sendAsync([0, param, value]))
                 #print("All good reading:" + str(param))
                 return return_value
             except Exception as e:
@@ -2035,15 +2309,9 @@ class Mywin(wx.Frame):
             self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
             self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
             if should_use_deforumation_prompt_scheduling:
-                #bmp = wx.Bitmap("./images/parseq_on.bmp", wx.BITMAP_TYPE_BMP)
-                #bmp = scale_bitmap(bmp, 15, 15)
-                #self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
                 self.shouldUseDeforumPromptScheduling_Checkbox.SetValue(1)
                 self.writeValue("should_use_deforumation_prompt_scheduling", 1)
             else:
-                #bmp = wx.Bitmap("./images/parseq_off.bmp", wx.BITMAP_TYPE_BMP)
-                #bmp = scale_bitmap(bmp, 15, 15)
-                #self.parseq_prompt_button.SetBitmap(wx.Bitmap(bmp))
                 self.shouldUseDeforumPromptScheduling_Checkbox.SetValue(0)
                 self.writeValue("should_use_deforumation_prompt_scheduling", 0)
             self.should_use_deforumation_strength_checkbox.SetValue(int(should_use_deforumation_strength))
@@ -2090,18 +2358,26 @@ class Mywin(wx.Frame):
                     int(self.positive_prompt_input_ctrl_3_prio.GetValue()): self.positive_prompt_input_ctrl_3.GetValue(),
                     int(self.positive_prompt_input_ctrl_4_prio.GetValue()): self.positive_prompt_input_ctrl_4.GetValue()}
                 sortedDict = sorted(positive_prio.items())
-                totalPossitivePromptString = sortedDict[0][1] + "," + sortedDict[1][1] + "," + sortedDict[2][1] + "," + sortedDict[3][1]
+                #totalPossitivePromptString = sortedDict[0][1] + "," + sortedDict[1][1] + "," + sortedDict[2][1] + "," + sortedDict[3][1]
+                totalPossitivePromptString = sortedDict[0][1]
+                if sortedDict[1][1] != "":
+                    totalPossitivePromptString += "," + sortedDict[1][1]
+                if sortedDict[2][1] != "":
+                    totalPossitivePromptString += "," + sortedDict[2][1]
+                if sortedDict[3][1] != "":
+                    totalPossitivePromptString += "," + sortedDict[3][1]
+
                 self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n")
                 self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
         except Exception as e:
             print(e)
         deforumFile = open(deforumationSettingsPath, 'w')
         deforumFile.write(str(int(is_paused_rendering))+"\n")
-        deforumFile.write(self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
-        deforumFile.write(self.positive_prompt_input_ctrl_2.GetValue().strip().replace('\n', '')+"\n")
-        deforumFile.write(self.positive_prompt_input_ctrl_3.GetValue().strip().replace('\n', '')+"\n")
-        deforumFile.write(self.positive_prompt_input_ctrl_4.GetValue().strip().replace('\n', '')+"\n")
-        deforumFile.write(self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
+        deforumFile.write(self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '`^')+"\n")
+        deforumFile.write(self.positive_prompt_input_ctrl_2.GetValue().strip().replace('\n', '`^')+"\n")
+        deforumFile.write(self.positive_prompt_input_ctrl_3.GetValue().strip().replace('\n', '`^')+"\n")
+        deforumFile.write(self.positive_prompt_input_ctrl_4.GetValue().strip().replace('\n', '`^')+"\n")
+        deforumFile.write(self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '`^')+"\n")
         deforumFile.write(str('%.2f' % Strength_Scheduler)+"\n")
         deforumFile.write(str('%.2f' % CFG_Scale)+"\n")
         deforumFile.write(str(STEP_Schedule)+"\n")
@@ -2141,7 +2417,12 @@ class Mywin(wx.Frame):
 
         deforumFile.write(str(should_use_optical_flow)+"\n")
         deforumFile.write(str(cadence_flow_factor)+"\n")
-        deforumFile.write(str(generation_flow_factor))
+        deforumFile.write(str(generation_flow_factor)+"\n")
+
+        deforumFile.write(str(self.ffmpeg_path_input_box.GetValue())+"\n")
+        deforumFile.write(str(self.audio_path2_input_box.GetPath())+"\n")
+        deforumFile.write(str(self.backend_chooser_choice.GetSelection()))
+
 
         deforumFile.close()
 
@@ -2186,7 +2467,10 @@ class Mywin(wx.Frame):
             promptFile = open(deforumationPromptsPath + resume_timestring + "_" + promptType + ".txt", 'r')
             old_lines = promptFile.readlines()
             promptFile.close()
-            promptToShow =  self.positive_prompt_input_ctrl.GetValue()
+            if promptType == "P":
+                promptToShow =  self.positive_prompt_input_ctrl.GetValue()
+            else:
+                promptToShow = self.negative_prompt_input_ctrl.GetValue()
             for index in range(0, len(old_lines), 2):
                 param = old_lines[index].strip('\n').replace(" ", "").split(',')
                 frame_index = param[0]
@@ -2197,9 +2481,9 @@ class Mywin(wx.Frame):
                     break
             if showType == 0:
                 if promptType == "P":
-                    self.positive_prompt_input_ctrl.SetValue(str(promptToShow))
+                    self.positive_prompt_input_ctrl.SetValue(str(promptToShow).replace('`^','\n'))
                 else:
-                    self.negative_prompt_input_ctrl.SetValue(str(promptToShow))
+                    self.negative_prompt_input_ctrl.SetValue(str(promptToShow).replace('`^','\n'))
             elif showType == 1:
                 if promptType == "P":
                     # Arrange the possitive prompts according to priority (now for some lazy programing):
@@ -2209,10 +2493,17 @@ class Mywin(wx.Frame):
                         int(self.positive_prompt_input_ctrl_3_prio.GetValue()): self.positive_prompt_input_ctrl_3.GetValue(),
                         int(self.positive_prompt_input_ctrl_4_prio.GetValue()): self.positive_prompt_input_ctrl_4.GetValue()}
                     sortedDict = sorted(positive_prio.items())
-                    totalPossitivePromptString = sortedDict[0][1] + "," + sortedDict[1][1] + "," + sortedDict[2][1] + "," + sortedDict[3][1]
-                    self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n")
+                    #totalPossitivePromptString = sortedDict[0][1] + "," + sortedDict[1][1] + "," + sortedDict[2][1] + "," + sortedDict[3][1]
+                    totalPossitivePromptString = sortedDict[0][1]
+                    if sortedDict[1][1] != "":
+                        totalPossitivePromptString += "," + sortedDict[1][1]
+                    if sortedDict[2][1] != "":
+                        totalPossitivePromptString += "," + sortedDict[2][1]
+                    if sortedDict[3][1] != "":
+                        totalPossitivePromptString += "," + sortedDict[3][1]
+                    self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', ' ') + "\n")
                 else:
-                    self.writeValue("negative_prompt", promptToShow.strip().replace('\n', '')+"\n")
+                    self.writeValue("negative_prompt", promptToShow.strip().replace('\n', ' ')+"\n")
 
 
     def saveCurrentPrompt(self, promptType):
@@ -2237,7 +2528,10 @@ class Mywin(wx.Frame):
             new_lines = [None] * 2
             didWriteNewPrompt = False
             copy_of_current = current_frame = str(self.readValue("start_frame"))
-            print("Writing prompt at frame:" + str(copy_of_current))
+            if promptType == "P":
+                print("Writing positive prompt at frame:" + str(copy_of_current))
+            else:
+                print("Writing negative prompt at frame:" + str(copy_of_current))
             for index in range(0, len(old_lines), 2):
                 if not didWriteNewPrompt:
                     param = old_lines[index].strip('\n').replace(" ", "").split(',')
@@ -2246,26 +2540,26 @@ class Mywin(wx.Frame):
                     if int(copy_of_current) == int(frame_index):
                         new_lines[0] = frame_index + "," + type
                         if promptType == "P":
-                            new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                            new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '`^')
                             if new_lines[1] == "":
                                 new_lines[1] = " "
                         else:
-                            new_lines[1] = self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                            new_lines[1] = self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '`^')
                             if new_lines[1] == "":
                                 new_lines[1] = " "
                         promptFile.write(str(new_lines[0]) + "\n")
                         promptFile.write(str(new_lines[1]))
-                        if index+2 != len(old_lines):
-                            promptFile.write("\n")
+                        #if index+2 != len(old_lines):
+                        #    promptFile.write("\n")
                         didWriteNewPrompt = True
                     elif int(copy_of_current) < int(frame_index):
                         new_lines[0] = str(copy_of_current) + "," + type
                         if promptType == "P":
-                            new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                            new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '`^')
                             if new_lines[1] == "":
                                 new_lines[1] = " "
                         else:
-                            new_lines[1] = self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                            new_lines[1] = self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '`^')
                             if new_lines[1] == "":
                                 new_lines[1] = " "
                         promptFile.write(str(new_lines[0]) + "\n")
@@ -2278,17 +2572,17 @@ class Mywin(wx.Frame):
                         promptFile.write(old_lines[index])
                         promptFile.write(old_lines[index + 1])
 
-                else:
-                    promptFile.write(old_lines[index])
-                    promptFile.write(old_lines[index + 1])
+                #else:
+                #    promptFile.write(old_lines[index])
+                #    promptFile.write(old_lines[index + 1])
             if not didWriteNewPrompt:
                 new_lines[0] = str(copy_of_current) + "," + promptType
                 if promptType == "P":
-                    new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                    new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '`^')
                     if new_lines[1] == "":
                         new_lines[1] = " "
                 else:
-                    new_lines[1] = self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')
+                    new_lines[1] = self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '`^')
                     if new_lines[1] == "":
                         new_lines[1] = " "
                 if fileAlreadyExists:
@@ -2495,13 +2789,23 @@ class Mywin(wx.Frame):
         print("Ending stepper thread")
 
     def OnFocus(self, event):
-        #if event.GetId() == 1233:
-        print("Entered Input box!")
-        self.cadence_schedule_Checkbox.SetValue(False)
-        self.writeValue("use_deforumation_cadence_scheduling", 0)
-        #self.cadence_schedule_Checkbox.SetCursor(0)
+        if event.GetId() == 1233:
+            self.cadence_schedule_Checkbox.SetValue(False)
+            self.writeValue("use_deforumation_cadence_scheduling", 0)
+            #self.cadence_schedule_Checkbox.SetCursor(0)
+        if event.GetId() == 1239 or event.GetId() == 1240:
+            self.writeValue("total_recall_from", int(self.total_recall_from_input_box.GetValue()))
+            self.writeValue("total_recall_to", int(self.total_recall_to_input_box.GetValue()))
+        if event.GetId() == 3:
+            seedValue = int(self.seed_input_box.GetValue())
+            self.writeValue("seed", seedValue)
+            self.writeValue("seed_changed", 1)
+        if event.GetId() == 9999:
+            newevent = wx.PyCommandEvent(wx.EVT_BUTTON.typeId)
+            newevent.SetEventObject(self.update_prompts)
+            newevent.SetId(self.update_prompts.GetId())
+            self.update_prompts.GetEventHandler().ProcessEvent(newevent)
         event.Skip()
-
 
     def OnClicked(self, event):
         global Translation_X
@@ -2568,7 +2872,9 @@ class Mywin(wx.Frame):
         global should_use_optical_flow
         global cadence_flow_factor
         global generation_flow_factor
-
+        global should_use_total_recall
+        global should_use_total_recall_in_deforumation
+        global should_use_deforumation_timestring
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
@@ -2752,45 +3058,63 @@ class Mywin(wx.Frame):
             #Arrange the possitive prompts according to priority (now for some lazy programing):
             positive_prio = {int(self.positive_prompt_input_ctrl_prio.GetValue()):self.positive_prompt_input_ctrl.GetValue(), int(self.positive_prompt_input_ctrl_2_prio.GetValue()):self.positive_prompt_input_ctrl_2.GetValue(), int(self.positive_prompt_input_ctrl_3_prio.GetValue()):self.positive_prompt_input_ctrl_3.GetValue(), int(self.positive_prompt_input_ctrl_4_prio.GetValue()):self.positive_prompt_input_ctrl_4.GetValue()}
             sortedDict = sorted(positive_prio.items())
-            totalPossitivePromptString = sortedDict[0][1]+","+sortedDict[1][1]+","+sortedDict[2][1]+","+sortedDict[3][1]
+            #totalPossitivePromptString = sortedDict[0][1]+","+sortedDict[1][1]+","+sortedDict[2][1]+","+sortedDict[3][1]
+            totalPossitivePromptString = sortedDict[0][1]
+            if sortedDict[1][1] !="":
+                totalPossitivePromptString += "," + sortedDict[1][1]
+            if sortedDict[2][1] !="":
+                totalPossitivePromptString += "," + sortedDict[2][1]
+            if sortedDict[3][1] !="":
+                totalPossitivePromptString += "," + sortedDict[3][1]
+
             self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n")
             self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '') + "\n")
+            self.writeValue("prompts_touched", 1)
+
         elif btn == "PAN_LEFT":
-            if not armed_pan:
+            if not armed_pan and not should_use_total_recall:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Translation_X = 0
                 else:
                     Translation_X = Translation_X - float(self.pan_step_input_box.GetValue())
                 self.writeValue("translation_x", Translation_X)
-            else:
+            elif armed_pan:
                 Translation_X_ARMED =  round(Translation_X_ARMED - float(self.pan_step_input_box.GetValue()),2)
+                if should_use_total_recall:
+                    self.writeValue("translation_x", Translation_X_ARMED)
         elif btn == "PAN_RIGHT":
-            if not armed_pan:
+            if not armed_pan and not should_use_total_recall:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Translation_X = 0
                 else:
                     Translation_X = Translation_X + float(self.pan_step_input_box.GetValue())
                 self.writeValue("translation_x", Translation_X)
-            else:
+            elif armed_pan:
                 Translation_X_ARMED = round(Translation_X_ARMED + float(self.pan_step_input_box.GetValue()),2)
+                if should_use_total_recall:
+                    self.writeValue("translation_x", Translation_X_ARMED)
         elif btn == "PAN_UP":
-            if not armed_pan:
+            if not armed_pan and not should_use_total_recall:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Translation_Y = 0
                 else:
                     Translation_Y = Translation_Y + float(self.pan_step_input_box.GetValue())
                 self.writeValue("translation_y", Translation_Y)
-            else:
+            elif armed_pan:
                 Translation_Y_ARMED =  round(Translation_Y_ARMED + float(self.pan_step_input_box.GetValue()),2)
+                if should_use_total_recall:
+                    self.writeValue("translation_y", Translation_Y_ARMED)
         elif btn == "PAN_DOWN":
-            if not armed_pan:
+            if not armed_pan and not should_use_total_recall:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Translation_Y = 0
                 else:
                     Translation_Y = Translation_Y - float(self.pan_step_input_box.GetValue())
                 self.writeValue("translation_y", Translation_Y)
-            else:
+            elif armed_pan:
                 Translation_Y_ARMED =  round(Translation_Y_ARMED - float(self.pan_step_input_box.GetValue()),2)
+                if should_use_total_recall:
+                    self.writeValue("translation_y", Translation_Y_ARMED)
         elif btn == "ZERO PAN":
             if not zero_pan_active:
                 #Start a ZERO step thread.
@@ -2819,7 +3143,7 @@ class Mywin(wx.Frame):
         elif btn == "ZOOM":
             currentEventTypeID = event.GetEventType()
 
-            if not armed_zoom:
+            if not armed_zoom and not should_use_total_recall:
                 if self.eventDict[currentEventTypeID] == "EVT_RIGHT_UP":
                     self.zoom_slider.SetValue(0)
                     self.zoom_value_text.SetLabel("0.00")
@@ -2845,7 +3169,7 @@ class Mywin(wx.Frame):
                             FOV_Scale = 70 + (Translation_Z * 5)
                         self.fov_slider.SetValue(int(FOV_Scale))
                         self.writeValue("fov", FOV_Scale)
-            else:
+            elif armed_zoom:
                 if self.eventDict[currentEventTypeID] == "EVT_RIGHT_UP":
                     self.zoom_slider.SetValue(0)
                     self.zoom_value_text.SetLabel("0.00")
@@ -2856,6 +3180,8 @@ class Mywin(wx.Frame):
                         else:
                             FOV_Scale = 70 + (Translation_Z_ARMED * 5)
                         self.fov_slider.SetValue(int(FOV_Scale))
+                    if should_use_total_recall:
+                        self.writeValue("translation_z", 0)
                 else:
                     Translation_Z_ARMED = self.zoom_slider.GetValue() / 100
                     self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z_ARMED)))
@@ -2866,7 +3192,8 @@ class Mywin(wx.Frame):
                         else:
                             FOV_Scale = 70 + (Translation_Z_ARMED * 5)
                         self.fov_slider.SetValue(int(FOV_Scale))
-
+                    if should_use_total_recall:
+                        self.writeValue("translation_z", Translation_Z_ARMED)
         elif event.GetId() == 1241:
             cadence_flow_factor = int(self.cadence_flow_factor_box.GetValue())
             self.writeValue("cadence_flow_factor", cadence_flow_factor)
@@ -2905,56 +3232,65 @@ class Mywin(wx.Frame):
             self.writeValue("strength", Strength_Scheduler)
         elif event.GetId() == 3: #Seed Input Box
             seedValue = int(self.seed_input_box.GetValue())
-            print("SeedValue:"+str(seedValue))
             self.writeValue("seed", seedValue)
+            self.writeValue("seed_changed", 1)
         elif btn == "LOOK_LEFT":
-            if not armed_rotation:
+            if not armed_rotation and not should_use_total_recall:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_Y = 0
                 else:
                     Rotation_3D_Y = Rotation_3D_Y - float(self.rotate_step_input_box.GetValue())
                 self.writeValue("rotation_y", Rotation_3D_Y)
-            else:
+            elif armed_rotation:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_Y_ARMED = 0
                 else:
                     Rotation_3D_Y_ARMED =  round(Rotation_3D_Y_ARMED - float(self.rotate_step_input_box.GetValue()),2)
+                if should_use_total_recall:
+                    self.writeValue("rotation_y", Rotation_3D_Y_ARMED)
+
         elif btn == "LOOK_RIGHT":
-            if not armed_rotation:
+            if not armed_rotation and not should_use_total_recall:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_Y = 0
                 else:
                     Rotation_3D_Y = Rotation_3D_Y + float(self.rotate_step_input_box.GetValue())
                 self.writeValue("rotation_y", Rotation_3D_Y)
-            else:
+            elif armed_rotation:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_Y_ARMED = 0
                 else:
                     Rotation_3D_Y_ARMED =  round(Rotation_3D_Y_ARMED + float(self.rotate_step_input_box.GetValue()),2)
+                if should_use_total_recall:
+                    self.writeValue("rotation_y", Rotation_3D_Y_ARMED)
         elif btn == "LOOK_UP":
-            if not armed_rotation:
+            if not armed_rotation and not should_use_total_recall:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_X = 0
                 else:
                     Rotation_3D_X = Rotation_3D_X + float(self.rotate_step_input_box.GetValue())
                 self.writeValue("rotation_x", Rotation_3D_X)
-            else:
+            elif armed_rotation:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_X_ARMED = 0
                 else:
                     Rotation_3D_X_ARMED =  round(Rotation_3D_X_ARMED + float(self.rotate_step_input_box.GetValue()),2)
+                if should_use_total_recall:
+                    self.writeValue("rotation_x", Rotation_3D_X_ARMED)
         elif btn == "LOOK_DOWN":
-            if not armed_rotation:
+            if not armed_rotation and not should_use_total_recall:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_X = 0
                 else:
                     Rotation_3D_X = Rotation_3D_X - float(self.rotate_step_input_box.GetValue())
                 self.writeValue("rotation_x", Rotation_3D_X)
-            else:
+            elif armed_rotation:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_X_ARMED = 0
                 else:
                     Rotation_3D_X_ARMED =  round(Rotation_3D_X_ARMED - float(self.rotate_step_input_box.GetValue()),2)
+                if should_use_total_recall:
+                    self.writeValue("rotation_x", Rotation_3D_X_ARMED)
         elif btn == "ZERO ROTATE":
             if not zero_rotate_active:
                 #Start a ZERO step thread.
@@ -3134,8 +3470,11 @@ class Mywin(wx.Frame):
                     current_render_frame = str(int(current_render_frame) + 1)
             elif event.GetId() == 2:
                 current_render_frame = self.frame_step_input_box.GetValue()
-            self.loadCurrentPrompt("P", current_render_frame, 0)
-            self.loadCurrentPrompt("N", current_render_frame, 0)
+            if should_use_total_recall and (int(current_render_frame) >= int(self.total_recall_from_input_box.GetValue())) and (int(current_render_frame) <= int(self.total_recall_to_input_box.GetValue())):
+                self.setValuesFromSavedFrame(int(current_render_frame))
+            else:
+                self.loadCurrentPrompt("P", current_render_frame, 0)
+                self.loadCurrentPrompt("N", current_render_frame, 0)
             current_render_frame = str(current_render_frame).zfill(9)
             imagePath = outdir + "/" + resume_timestring + "_" + current_render_frame + ".png"
             maxBackTrack = 100
@@ -3156,6 +3495,9 @@ class Mywin(wx.Frame):
                 self.img = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
                 imgWidth = self.img.GetWidth()
                 imgHeight = self.img.GetHeight()
+                imageRatio = imgWidth/imgHeight
+                imgHeight = 600
+                imgWidth = int(imageRatio*imgHeight)
                 self.img = self.img.Scale(int(imgWidth / 2), int(imgHeight / 2), wx.IMAGE_QUALITY_HIGH)
                 #bitmap = wx.StaticBitmap(self, wx.ID_ANY, self.img, pos=(trbX + 650, tbrY - 120))
                 bitmap = wx.Bitmap(self.img)
@@ -3176,7 +3518,6 @@ class Mywin(wx.Frame):
                 if self.framer != None:
                     if is_paused_rendering:
                         self.framer.DrawImage()
-
         elif btn == "Set current image":
             current_frame = self.frame_step_input_box.GetValue()
             current_render_frame = int(current_frame)
@@ -3257,26 +3598,41 @@ class Mywin(wx.Frame):
                 replayTo = int(self.replay_to_input_box.GetValue())
                 replayFPS = int(self.replay_fps_input_box.GetValue())
                 if (replayFrom >= 0) and (replayFrom < replayTo):
-                    should_render_live = True
-                    self.live_render_checkbox.SetValue(1)
                     imagePath = get_current_image_path_f(replayFrom)
-                    if os.path.isfile(imagePath):
-                        current_frame = str(replayFrom)
-                        current_frame = current_frame.zfill(9)
-                        self.img_render = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
-                        imgWidth = self.img_render.GetWidth()
-                        imgHeight = self.img_render.GetHeight()
-                        if self.framer == None:
-                            self.framer = render_window(self, 'Render Image')
-                            self.framer.Show()
-                            self.framer.SetSize(imgWidth + 18, imgHeight + 40)
-                            self.framer.bitmap = wx.StaticBitmap(self.framer, -1, self.img_render)
-                            self.framer.Refresh()
-                            current_render_frame = int(current_frame)
-                    isReplaying = 1
-                    bmp = wx.Bitmap("./images/stop.bmp", wx.BITMAP_TYPE_BMP)
-                    bmp = scale_bitmap(bmp, 18, 18)
-                    self.replay_button.SetBitmap(bmp)
+
+                    if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                        ffmpeg_image_path = create_ffmpeg_image_string()
+                        ffmpegPath = self.ffmpeg_path_input_box.GetValue()
+                        if ffmpegPath == "":
+                            ffmpegPath = "ffmpeg"
+                        self.kalle = threading.Thread(target=ffmpeg_stitch_video, args=(self, ffmpegPath, replayFPS, "out.mp4",replayFrom, replayTo - replayFrom, ffmpeg_image_path, self.audio_path2_input_box.GetPath()))
+                        self.kalle.daemon = False
+                        self.kalle.start()
+
+                        #ffmpeg_stitch_video("ffmpeg", replayFPS, "out.mp4",
+                        #                    replayFrom, replayTo - replayFrom,
+                        #                    ffmpeg_image_path,
+                        #                    audio_path='H:\\Deforumation_Competition\\snapshot2.wav')
+                    else:
+                        should_render_live = True
+                        self.live_render_checkbox.SetValue(1)
+                        if os.path.isfile(imagePath):
+                            current_frame = str(replayFrom)
+                            current_frame = current_frame.zfill(9)
+                            self.img_render = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
+                            imgWidth = self.img_render.GetWidth()
+                            imgHeight = self.img_render.GetHeight()
+                            if self.framer == None:
+                                self.framer = render_window(self, 'Render Image')
+                                self.framer.Show()
+                                self.framer.SetSize(imgWidth + 18, imgHeight + 40)
+                                self.framer.bitmap = wx.StaticBitmap(self.framer, -1, self.img_render)
+                                self.framer.Refresh()
+                                current_render_frame = int(current_frame)
+                        isReplaying = 1
+                        bmp = wx.Bitmap("./images/stop.bmp", wx.BITMAP_TYPE_BMP)
+                        bmp = scale_bitmap(bmp, 18, 18)
+                        self.replay_button.SetBitmap(bmp)
             else:
                 isReplaying = 0
                 bmp = wx.Bitmap("./images/play.bmp", wx.BITMAP_TYPE_BMP)
@@ -3309,6 +3665,41 @@ class Mywin(wx.Frame):
                         self.framer.panel.resize(framer_Width, framer_Height)
                         self.framer.Layout()
                         self.framer.panel.Refresh()
+        elif btn == "Use total recall...":
+            if should_use_total_recall == 0:
+                should_use_total_recall = 1
+                self.writeValue("should_use_total_recall", 1)
+                self.writeValue("total_recall_from", int(self.total_recall_from_input_box.GetValue()))
+                self.writeValue("total_recall_to", int(self.total_recall_to_input_box.GetValue()))
+                self.writeValue("translation_x", 0)
+                self.writeValue("translation_y", 0)
+                self.writeValue("translation_z", 0)
+                self.writeValue("rotation_x", 0)
+                self.writeValue("rotation_y", 0)
+                self.writeValue("rotation_z", 0)
+                Translation_X_ARMED = 0
+                Translation_Y_ARMED = 0
+                Translation_Z_ARMED = 0
+                Rotation_3D_X_ARMED = 0
+                Rotation_3D_Y_ARMED = 0
+                Rotation_3D_Z_ARMED = 0
+                Rotation_3D_X = 0
+                Rotation_3D_Y = 0
+                Rotation_3D_Z = 0
+                Translation_X = 0
+                Translation_Y = 0
+                Translation_Z = 0
+                #Translation_X = 0
+                #self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+                #Translation_Y = 0
+                #self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+            else:
+                self.writeValue("should_use_total_recall", 0)
+                should_use_total_recall = 0
+                self.writeValue("prompts_touched", 0)
+                self.loadCurrentPrompt("P", current_render_frame, 0)
+                self.loadCurrentPrompt("N", current_render_frame, 0)
+
         elif btn == "Optical flow on/off":
             if should_use_optical_flow == 0:
                 should_use_optical_flow = 1
@@ -3316,6 +3707,23 @@ class Mywin(wx.Frame):
             else:
                 self.writeValue("should_use_optical_flow", 0)
                 should_use_optical_flow = 0
+        elif btn == "View original values in Deforumation":
+            if should_use_total_recall_in_deforumation == 0:
+                should_use_total_recall_in_deforumation = 1
+            else:
+                should_use_total_recall_in_deforumation = 0
+                self.loadCurrentPrompt("P", current_render_frame, 0)
+                self.loadCurrentPrompt("N", current_render_frame, 0)
+        elif btn == "Use Deforumation timestamp when resuming":
+            if should_use_deforumation_timestring == 0:
+                should_use_deforumation_timestring = 1
+                self.writeValue("should_use_deforumation_timestring", 1)
+            else:
+                should_use_deforumation_timestring = 0
+                self.writeValue("should_use_deforumation_timestring", 0)
+        elif btn == "Erase total recall memory":
+            self.writeValue("should_erase_total_recall_memory", 1)
+
         elif btn == "LIVE RENDER":
             current_frame = str(self.readValue("start_frame"))
             #print("should_render_live: "+str(should_render_live))
@@ -3428,33 +3836,50 @@ class Mywin(wx.Frame):
             else:
                 showLiveValues = False
 
-        if not showLiveValues:
-            if armed_pan:
-                self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
-                self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
-            else:
+        if should_use_total_recall_in_deforumation:
+            if current_render_frame != -1:
+                self.setValuesFromSavedFrame(int(current_render_frame))
+        if should_use_total_recall and (int(current_render_frame) >= int(self.total_recall_from_input_box.GetValue())) and (int(current_render_frame) <= int(self.total_recall_to_input_box.GetValue())):
+            if current_render_frame != -1:
+                self.setValuesFromSavedFrame(int(current_render_frame))
+
+        #else:
+        #    self.loadCurrentPrompt("P", current_render_frame, 0)
+        #    self.loadCurrentPrompt("N", current_render_frame, 0)
+
+        if armed_pan:
+            self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
+            self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
+        else:
+            if not showLiveValues:
                 self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
                 self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
-            if armed_rotation:
-                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
-                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' %Rotation_3D_X_ARMED))
-            else:
+        if armed_rotation:
+            self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
+            self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' %Rotation_3D_X_ARMED))
+        else:
+            if not showLiveValues:
                 self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
                 self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' %Rotation_3D_X))
-
-            if armed_zoom:
-                self.zoom_value_text.SetLabel(str('%.2f' %Translation_Z_ARMED))
-                self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
-            else:
+        if armed_zoom:
+            self.zoom_value_text.SetLabel(str('%.2f' %Translation_Z_ARMED))
+            self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
+        else:
+            if not showLiveValues:
                 self.zoom_value_text.SetLabel(str('%.2f' %Translation_Z))
                 self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
                 #self.fov_slider.SetValue(int(FOV_Scale))
 
+        if not showLiveValues:
             self.rotation_Z_Value_Text.SetLabel(str('%.2f' %Rotation_3D_Z))
 
         self.writeAllValues()
+    def StartMediaPlayback(self, mediaPath, backendType):
+        Frame = MediaPanel(mediaPath, backendType)
+        Frame.Show()
 
     def LiveValues(self):
+        recalledFrame = -1
         while showLiveValues:
             deforum_translation_x = readValue("deforum_translation_x")
             deforum_translation_y = readValue("deforum_translation_y")
@@ -3470,6 +3895,28 @@ class Mywin(wx.Frame):
             deforum_noise_multiplier = readValue("deforum_noise_multiplier")
             deforum_Perlin_Octave_Value = readValue("deforum_perlin_octaves")
             deforum_Perlin_Persistence_Value = readValue("deforum_perlin_persistence")
+            if should_use_total_recall_in_deforumation:
+                current_frame_live = int(readValue("start_frame"))
+                if int(current_frame_live) != -1:
+                    if recalledFrame != current_frame_live:
+                        wx.CallAfter(self.setValuesFromSavedFrame, current_frame_live)
+                        recalledFrame = current_frame_live
+
+                # Bottom Info Text
+                self.deforum_strength_value_info_text.SetLabel("Strength:" + str('%.2f' % float(deforum_strength)))
+                self.deforum_steps_value_info_text.SetLabel("Steps:" + str(deforum_steps))
+                self.deforum_cfg_value_info_text.SetLabel("CFG:" + str(deforum_cfg))
+                self.deforum_cadence_value_info_text.SetLabel("Cadence:" + str(deforum_cadence))
+                self.deforum_trx_value_info_text.SetLabel("Tr X:" + str('%.2f' % float(deforum_translation_x)))
+                self.deforum_try_value_info_text.SetLabel("Tr Y:" + str('%.2f' % float(deforum_translation_y)))
+                self.deforum_trz_value_info_text.SetLabel("Tr Z:" + str('%.2f' % float(deforum_translation_z)))
+                self.deforum_rox_value_info_text.SetLabel("Ro X:" + str('%.2f' % float(deforum_rotation_x)))
+                self.deforum_roy_value_info_text.SetLabel("Ro Y:" + str('%.2f' % float(deforum_rotation_y)))
+                self.deforum_roz_value_info_text.SetLabel("Ro Z:" + str('%.2f' % float(deforum_rotation_z)))
+
+                time.sleep(0.25)
+                continue
+
             if should_use_deforumation_panning:
                 if armed_pan:
                     self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
@@ -3481,7 +3928,7 @@ class Mywin(wx.Frame):
                 self.pan_X_Value_Text.SetLabel(str('%.2f' % float(deforum_translation_x)))
                 self.pan_Y_Value_Text.SetLabel(str('%.2f' % float(deforum_translation_y)))
 
-            if should_use_deforumation_zoomfov:
+            if should_use_deforumation_zoomfov :
                 if armed_zoom:
                     self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
                     self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z_ARMED)))
@@ -3523,7 +3970,7 @@ class Mywin(wx.Frame):
 
 
 
-            if should_use_deforumation_strength:
+            if should_use_deforumation_strength :
                 self.strength_schedule_slider.SetValue(int(float(Strength_Scheduler) * 100))
             else:
                 self.strength_schedule_slider.SetValue(int(float(deforum_strength)*100))
@@ -3631,9 +4078,10 @@ class Mywin(wx.Frame):
     def on_mouse_left_down(self, event):
         self.bitmap.SetToolTip("")
         self.start_pos = event.GetPosition()
+        print("Nerknapp")
 
     def on_mouse_motion(self, event):
-        if event.Dragging() and event.LeftIsDown():
+        if event.Dragging() and event.LeftIsDown() and self.start_pos:
             self.current_pos = event.GetPosition()
             self.rectangle = self.calculate_rectangle()
             self.Refresh()  # Redraw the bitmap with the rectangle
@@ -3657,7 +4105,8 @@ class Mywin(wx.Frame):
             image_size = self.bitmap.GetSize()
             rectangle_width = self.rectangle.GetSize()[0]
             rectangle_height = self.rectangle.GetSize()[1]
-
+            if rectangle_width == 0 or rectangle_height == 0:
+                return
             #Below, is OLD zoom_factor
             #zoom_factor = min(image_size[0] / rectangle_width, image_size[1] / rectangle_height)*3
             #Here is the new calculated zoom_factor
@@ -3733,7 +4182,158 @@ class Mywin(wx.Frame):
         dc.SetBrush(wx.TRANSPARENT_BRUSH)
         dc.DrawRectangle(self.rectangle)
 
+class MediaPanel(wx.Frame):
+    def __init__(self, videoPath, BACKEND):
+        wx.Frame.__init__(self,None,size=(100, 100))
+        self.testMedia = wx.media.MediaCtrl(self, style=wx.SIMPLE_BORDER, szBackend=BACKEND)
+        self.media = videoPath
+        self.testMedia.Bind(wx.media.EVT_MEDIA_LOADED, self.play)
+        self.testMedia.Bind(wx.media.EVT_MEDIA_FINISHED, self.quit)
+        if self.testMedia.Load(self.media):
+            pass
+        else:
+            print("Media not found")
+            self.quit(None)
+
+    def play(self, event):
+        mediaSize = self.testMedia.GetBestSize()
+        self.SetSize(mediaSize)
+        self.testMedia.Play()
+
+    def quit(self, event):
+        self.Destroy()
+
+
+def ffmpeg_stitch_video(self, ffmpeg_location=None, fps=None, outmp4_path=None, stitch_from_frame=0, stitch_to_frame=None, imgs_path=None, audio_path=None):
+    crf = 20
+    #start_time = time.time()
+    print(f"Got a request to stitch frames to video using FFmpeg.\nFrames:\n{imgs_path}\nTo Video:\n{outmp4_path}")
+    msg_to_print = f"Stitching *video*..."
+    print("Stitching *video*...")
+    if stitch_to_frame == -1:
+        stitch_to_frame = 999999999
+    if os.path.isfile(outmp4_path):
+        print("removing temp video")
+        os.remove(outmp4_path)
+    try:
+        cmd = [
+            ffmpeg_location,
+            '-start_number', str(stitch_from_frame),
+            #'-framerate', str(float(fps)),
+            #'-thread_queue_size 4096',
+            '-r', str(float(fps)),
+            '-i', imgs_path,
+            '-frames:v', str(stitch_to_frame),
+            '-pix_fmt', 'yuv420p',
+            '-crf', str(crf),
+            '-pattern_type', 'sequence'
+        ]
+        cmd.append(outmp4_path)
+        # ffmpeg -y -r 30 -start_number 0 -i H:\stable-diffusion-webui\outputs/img2img-images\Deforum_20230705125910\20230705125910_%09d.png -frames:v 800 -c:v libx264 -vf fps=25 -pix_fmt yuv420p -crf 17 -preset veryslow -pattern_type sequence -vcodec png E:\Tools\Python_Scripts\deforum_remote\out.mp4
+        # ffmpeg -y -start_number 0 -framerate 25 -r 25 -i H:\stable-diffusion-webui\outputs/img2img-images\Deforum_20230705125910\20230705125910_%09d.png -frames:v 200 -pix_fmt yuv420p -profile:v high -level:v 4.1 -crf:v 20 -movflags +faststart E:\Tools\Python_Scripts\deforum_remote\out.mp4
+        # ffmpeg -y -i E:\Tools\Python_Scripts\deforum_remote\out.mp4 -ss 40 -i H:\Deforumation_Competition\snapshot2.wav -map 0:v -map 1:a -c:v copy -shortest E:\Tools\Python_Scripts\deforum_remote\out2.mp4
+
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        #subprocess.run(cmd)
+        stdout, stderr = process.communicate()
+    except FileNotFoundError:
+        print("\r" + " " * len(msg_to_print), end="", flush=True)
+        print(f"\r{msg_to_print}", flush=True)
+        raise FileNotFoundError(
+            "FFmpeg not found. Please make sure you have a working ffmpeg path under 'ffmpeg_location' parameter.")
+    except Exception as e:
+        print("\r" + " " * len(msg_to_print), end="", flush=True)
+        print(f"\r{msg_to_print}", flush=True)
+        raise Exception(f'Error stitching frames to video. Actual runtime error:{e}')
+    print("Done Stitching *video*...")
+
+    if os.path.isfile(outmp4_path+'.temp.mp4'):
+        os.remove(outmp4_path+'.temp.mp4')
+    if audio_path != 'None':
+        audioDelay = float(stitch_from_frame/25)
+        try:
+            cmd = [
+                ffmpeg_location,
+                '-i',
+                outmp4_path,
+                '-ss', str(audioDelay),
+                '-i',
+                audio_path,
+                '-map', '0:v',
+                '-map', '1:a',
+                '-c:v', 'copy',
+                '-shortest',
+                outmp4_path+'.temp.mp4'
+            ]
+            print("Stitching *audio*...")
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+            stdout, stderr = process.communicate()
+            #subprocess.run(cmd)
+            print("Done stitching *audio*...")
+            if process.returncode != 0:
+                raise RuntimeError(stderr)
+            os.replace(outmp4_path+'.temp.mp4', outmp4_path)
+        except Exception as e:
+            add_soundtrack_status = f"\rError adding audio to video: {e}"
+            add_soundtrack_success = False
+    wx.CallAfter(self.StartMediaPlayback, outmp4_path, self.backend_chooser_choice.GetString(self.backend_chooser_choice.GetSelection()))
+    #self.StartMediaPlayback(outmp4_path, self.backend_chooser_choice.GetString(self.backend_chooser_choice.GetSelection()))
+    #Frame = MediaPanel("E:\\Tools\\Python_Scripts\\deforum_remote\\out.mp4", "wxWMP10MediaBackend")
+    #Frame.Show()
+    #Frame = MediaPanel("E:\\Tools\\Python_Scripts\\deforum_remote\\out.mp4", self.backend_chooser_choice.GetString(self.backend_chooser_choice.GetSelection()))
+    #Frame.Show()
+
+class ParameterContainer():
+    # Run/Steps
+    steps = 25
+    # Keyframes/Strength
+    strength_value = 0.65
+    # Keyframes/CFG
+    cfg_scale = 6
+    # Keyframes/3D/Motion
+    rotation_x = 0.0
+    rotation_y = 0.0
+    rotation_z = 0.0
+    translation_x = 0.0
+    translation_y = 0.0
+    translation_z = 0.0
+    Prompt_Positive = "EMPTY"
+    Prompt_Negative = "EMPTY"
+    frame_outdir = ""
+    resume_timestring = ""
+    seed_value = -1
+    did_seed_change = 0
+    # Keyframes/Field Of View/FOV schedule
+    fov = 70.0
+    cadence = 2
+    should_use_optical_flow = 1
+    cadence_flow_factor = 1
+    generation_flow_factor = 1
+    cn_weight = []
+    cn_stepstart = []
+    cn_stepend = []
+    cn_lowt = []
+    cn_hight = []
+    for i in range(5):
+        cn_weight.append(1.0)
+        cn_stepstart.append(0.0)
+        cn_stepend.append(1.0)
+        cn_lowt.append(0)
+        cn_hight.append(255)
+
+    parseq_keys = 0
+    use_parseq = 0
+    parseq_manifest = ""
+    parseq_strength = 0
+    parseq_movements = 0
+    parseq_prompt = 0
+
+    noise_multiplier = 1.05
+    perlin_octaves = 4
+    perlin_persistence = 0.5
+
 if __name__ == '__main__':
+
     if len(sys.argv) < 2:
         print("Starting Deforumation with WebSocket communication")
         shouldUseNamedPipes = False
@@ -3744,8 +4344,11 @@ if __name__ == '__main__':
     print("Special thank you to our contributers:")
     print("@nhoj - for rectangular zoom")
     app = wx.App()
+    #Frame = MediaPanel("E:\\Tools\\Python_Scripts\\deforum_remote\\out.mp4", "wxWMP10MediaBackend")
+    #Frame.Show()
+
     if len(sys.argv) < 2:
-        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.5 using WebSockets)')
+        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.0 using WebSockets)')
     else:
-        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.5.5 using named pipes)')
+        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.0 using named pipes)')
     app.MainLoop()
