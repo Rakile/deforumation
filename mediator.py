@@ -109,6 +109,7 @@ rotation_x_under_recall = 0
 rotation_y_under_recall = 0
 rotation_z_under_recall = 0
 
+number_of_recalled_frames = 0
 
 def RecallValues(frame):
     global serverShutDown
@@ -400,7 +401,7 @@ async def main_websocket(websocket):
     #touched parameters
     global Prompt_Positive_touched
     global parameter_container
-
+    global number_of_recalled_frames
     async for message in websocket:
         # print("Incomming message:"+str(message))
         arr = pickle.loads(message)
@@ -427,6 +428,7 @@ async def main_websocket(websocket):
             elif str(parameter) == "should_erase_total_recall_memory":
                 if shouldWrite:
                     parameter_container.clear()
+                    number_of_recalled_frames = 0
                     print("The total recall memory has been cleared.")
             elif str(parameter) ==  "should_use_total_recall":
                 if shouldWrite:
@@ -845,6 +847,7 @@ async def main_websocket(websocket):
                 if shouldWrite:
                     parameter_container.clear()
                     parameter_container = pickle.loads(value)
+                    number_of_recalled_frames = len(parameter_container)
             elif str(parameter) == "start_frame":
                 if shouldWrite:
                     start_frame = int(value)
@@ -852,6 +855,10 @@ async def main_websocket(websocket):
                     if doVerbose2:
                         print("sending start frame:" + str(start_frame))
                     await websocket.send(str(start_frame))
+
+            elif str(parameter) == "get_number_of_recalled_frames":
+                await websocket.send(str(number_of_recalled_frames))
+
             elif str(parameter) == "saved_frame_params":
                 if shouldWrite:
                     if not should_use_total_recall:
@@ -862,6 +869,7 @@ async def main_websocket(websocket):
                         if not int(value) in parameter_container:
                             parameter_container[int(value)] = ParameterContainer()
                         parameter_container[int(value)].SetValues()
+                        number_of_recalled_frames = len(parameter_container)
                 else:
                     if doVerbose2:
                         print("sending parameter_container")
@@ -1086,6 +1094,7 @@ def main_named_pipe(pipeName):
     global rotation_z_under_recall
     global should_use_deforumation_timestring
     global parameter_container
+    global number_of_recalled_frames
     print("pipe server:" + str(pipeName))
     count = 0
     pipe = win32pipe.CreateNamedPipe('\\\\.\\pipe\\' + str(pipeName), win32pipe.PIPE_ACCESS_DUPLEX,
@@ -1129,6 +1138,7 @@ def main_named_pipe(pipeName):
                 elif str(parameter) == "should_erase_total_recall_memory":
                     if shouldWrite:
                         parameter_container.clear()
+                        number_of_recalled_frames = 0
                         print("The total recall memory has been cleared.")
                 elif str(parameter) == "should_use_deforumation_timestring":
                     if shouldWrite:
@@ -1562,6 +1572,10 @@ def main_named_pipe(pipeName):
                             print("writing should_resume:" + str(should_resume))
                     else:
                         win32file.WriteFile(pipe, str.encode(str(should_resume)))
+
+                elif str(parameter) == "get_number_of_recalled_frames":
+                    win32file.WriteFile(pipe, str.encode(str(number_of_recalled_frames)))
+
                 elif str(parameter) == "saved_frame_params":
                     if shouldWrite:
                         if not should_use_total_recall:
@@ -1589,10 +1603,12 @@ def main_named_pipe(pipeName):
                             else:
                                 bytesToSend = pickle.dumps(0x0)
                         win32file.WriteFile(pipe, bytesToSend)
+                    number_of_recalled_frames = len(parameter_container)
                 elif str(parameter) == "upload_recall_file":
                     if shouldWrite:
                         parameter_container.clear()
                         parameter_container = pickle.loads(value)
+                        number_of_recalled_frames = len(parameter_container)
 
                 elif str(parameter) == "start_frame":
                     if shouldWrite:
