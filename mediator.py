@@ -111,6 +111,8 @@ rotation_z_under_recall = 0
 
 number_of_recalled_frames = 0
 
+should_allow_total_recall_prompt_changing = 0
+
 def RecallValues(frame):
     global serverShutDown
     global Prompt_Positive
@@ -199,9 +201,10 @@ def RecallValues(frame):
     translation_x = parameter_container[frame].translation_x + translation_x_under_recall
     translation_y = parameter_container[frame].translation_y + translation_y_under_recall
     translation_z = parameter_container[frame].translation_z + translation_z_under_recall
-    if not Prompt_Positive_touched:
+    if should_allow_total_recall_prompt_changing ==0:
         Prompt_Positive = parameter_container[frame].Prompt_Positive
-    Prompt_Negative = parameter_container[frame].Prompt_Negative
+    if should_allow_total_recall_prompt_changing == 0:
+        Prompt_Negative = parameter_container[frame].Prompt_Negative
     seed_value = parameter_container[frame].seed_value
     # Keyframes/Field Of View/FOV schedule
     fov = parameter_container[frame].fov
@@ -402,6 +405,7 @@ async def main_websocket(websocket):
     global Prompt_Positive_touched
     global parameter_container
     global number_of_recalled_frames
+    global should_allow_total_recall_prompt_changing
     async for message in websocket:
         # print("Incomming message:"+str(message))
         arr = pickle.loads(message)
@@ -460,6 +464,17 @@ async def main_websocket(websocket):
                     if doVerbose:
                         print("should_use_deforumation_timestring:" + str(should_use_deforumation_timestring))
                     await websocket.send(str.encode(str(should_use_deforumation_timestring)))
+            elif str(parameter) == "should_allow_total_recall_prompt_changing":
+                if shouldWrite:
+                    should_allow_total_recall_prompt_changing = int(value)
+                    if should_allow_total_recall_prompt_changing:
+                        print("Manual Prompt has been Allowed!")
+                    else:
+                        print("Manual Prompt has been Dis-Allowed!")
+                else:
+                    if doVerbose:
+                        print("should_allow_total_recall_prompt_changing:" + str(should_allow_total_recall_prompt_changing))
+                    await websocket.send(str.encode(str(should_allow_total_recall_prompt_changing)))
             elif str(parameter) == "should_use_deforumation_prompt_scheduling":
                 if shouldWrite:
                     should_use_deforumation_prompt_scheduling = value
@@ -488,14 +503,14 @@ async def main_websocket(websocket):
                     Prompt_Positive = value
                 else:
                     if doVerbose:
-                        print("negative_prompt:" + str(Prompt_Positive))
+                        print("positive_prompt:" + str(Prompt_Positive))
                     await websocket.send(str(Prompt_Positive))
             elif str(parameter) == "negative_prompt":
                 if shouldWrite:
                     Prompt_Negative = value
                 else:
                     if doVerbose:
-                        print("sending prompt:" + str(Prompt_Negative))
+                        print("negative_prompt:" + str(Prompt_Negative))
                     await websocket.send(str(Prompt_Negative))
             elif str(parameter) == "prompts_touched":
                 #if should_use_total_recall == 1:
@@ -877,7 +892,7 @@ async def main_websocket(websocket):
                         bytesToSend = pickle.dumps(parameter_container)
                     else:
                         if int(value) in parameter_container:
-                            if Prompt_Positive_touched:
+                            if should_allow_total_recall_prompt_changing:
                                 copyof_parameter_container = parameter_container.copy()
                                 copyof_parameter_container[int(value)].Prompt_Positive = Prompt_Positive
                                 bytesToSend = pickle.dumps(copyof_parameter_container[int(value)])
@@ -1093,6 +1108,7 @@ def main_named_pipe(pipeName):
     global rotation_y_under_recall
     global rotation_z_under_recall
     global should_use_deforumation_timestring
+    global should_allow_total_recall_prompt_changing
     global parameter_container
     global number_of_recalled_frames
     print("pipe server:" + str(pipeName))
@@ -1147,6 +1163,17 @@ def main_named_pipe(pipeName):
                         if doVerbose:
                             print("should_use_deforumation_timestring:" + str(should_use_deforumation_timestring))
                         win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_timestring)))
+                elif str(parameter) == "should_allow_total_recall_prompt_changing":
+                    if shouldWrite:
+                        should_allow_total_recall_prompt_changing = int(value)
+                        if should_allow_total_recall_prompt_changing:
+                            print("Manual Prompt has been Allowed!")
+                        else:
+                            print("Manual Prompt has been Dis-Allowed!")
+                    else:
+                        if doVerbose:
+                            print("should_allow_total_recall_prompt_changing:" + str(should_allow_total_recall_prompt_changing))
+                        win32file.WriteFile(pipe, str.encode(str(should_allow_total_recall_prompt_changing)))
                 elif str(parameter) == "should_use_total_recall":
                     if shouldWrite:
                         should_use_total_recall = int(value)
@@ -1207,7 +1234,7 @@ def main_named_pipe(pipeName):
                         Prompt_Negative = value
                     else:
                         if doVerbose:
-                            print("sending prompt:" + str(Prompt_Negative))
+                            print("negative_prompt:" + str(Prompt_Negative))
                         win32file.WriteFile(pipe, str.encode(str(Prompt_Negative)))
                 elif str(parameter) == "prompts_touched":
                     #if should_use_total_recall == 1:
@@ -1593,8 +1620,7 @@ def main_named_pipe(pipeName):
                             bytesToSend = pickle.dumps(parameter_container)
                         else:
                             if int(value) in parameter_container:
-                                if Prompt_Positive_touched:
-                                    print("Prompt has been touched, so using current Deforumation prompt!")
+                                if should_allow_total_recall_prompt_changing:
                                     copyof_parameter_container = parameter_container.copy()
                                     copyof_parameter_container[int(value)].Prompt_Positive = Prompt_Positive
                                     bytesToSend = pickle.dumps(copyof_parameter_container[int(value)])
