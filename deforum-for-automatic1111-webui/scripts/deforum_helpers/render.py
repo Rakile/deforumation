@@ -183,7 +183,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             if int(mediator_getValue("should_use_deforumation_timestring").strip().strip('\n')) == 1:
                 #Deforum is forced to start from the frame specified by deforum
                 frame_idx = int(mediator_getValue("start_frame").strip().strip('\n'))
-            mediator_setValue("total_recall_relive", frame_idx)
+                mediator_setValue("total_recall_relive", frame_idx)
             args.seed = int(mediator_getValue("seed").strip().strip('\n'))
             if args.seed == -1:
                 args.seed = random.randint(0, 2**32 - 1)
