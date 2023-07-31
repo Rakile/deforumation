@@ -128,6 +128,7 @@ should_use_total_recall = 0
 should_use_total_recall_in_deforumation = 0
 should_use_deforumation_timestring = 0
 number_of_recalled_frames = 0
+should_allow_total_recall_prompt_changing = 0
 
 async def sendAsync_special(value):
     if shouldUseNamedPipes:
@@ -935,6 +936,11 @@ class Mywin(wx.Frame):
         self.should_use_total_recall_in_deforumation_checkbox = wx.CheckBox(self.panel, label="View original values in Deforumation", pos=(int(screenWidth / 2) + 20, 180))
         self.should_use_total_recall_in_deforumation_checkbox.SetToolTip("When activated, original values used, will be shown in Deforumation.")
         self.should_use_total_recall_in_deforumation_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
+        #BYPASS PROMPTS
+        self.should_allow_total_recall_prompt_changing_checkbox = wx.CheckBox(self.panel, label="Allow changing prompts", pos=(int(screenWidth / 2) + 260, 180))
+        self.should_allow_total_recall_prompt_changing_checkbox.SetToolTip("When activated, total recall will allow manual prompt changing.")
+        self.should_allow_total_recall_prompt_changing_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
         #SHOULD FORCE DEFORUM To USE DEFORUMATION'S START FRAME ON RESUME FROM TIMESTRING
         self.should_use_deforumation_start_string_checkbox = wx.CheckBox(self.panel, label="Use Deforumation timestamp when resuming", pos=(int(screenWidth / 2) + 20, 200))
@@ -2894,6 +2900,7 @@ class Mywin(wx.Frame):
         global should_use_total_recall_in_deforumation
         global should_use_deforumation_timestring
         global number_of_recalled_frames
+        global should_allow_total_recall_prompt_changing
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
@@ -3738,6 +3745,13 @@ class Mywin(wx.Frame):
                 should_use_total_recall_in_deforumation = 0
                 self.loadCurrentPrompt("P", current_render_frame, 0)
                 self.loadCurrentPrompt("N", current_render_frame, 0)
+        elif btn == "Allow changing prompts":
+            if should_allow_total_recall_prompt_changing == 0:
+                should_allow_total_recall_prompt_changing = 1
+                self.writeValue("should_allow_total_recall_prompt_changing", 1)
+            else:
+                should_allow_total_recall_prompt_changing = 0
+                self.writeValue("should_allow_total_recall_prompt_changing", 0)
         elif btn == "Use Deforumation timestamp when resuming":
             if should_use_deforumation_timestring == 0:
                 should_use_deforumation_timestring = 1
