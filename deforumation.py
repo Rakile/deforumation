@@ -743,8 +743,12 @@ class Mywin(wx.Frame):
         self.positive_prompt_input_ctrl_4.Bind(wx.EVT_KEY_UP, self.OnKeyEvent)
         #self.positive_prompt_input_ctrl_4.Bind(wx.EVT_KILL_FOCUS, self.OnFocus)
 
+        #ERASE TOTAL RECALL MEMORY
+        self.turn_off_tooltip_button = wx.Button(self.panel, label="Turn off tooltips", pos=(int(screenWidth / 2) + 140, 10), size=(100,16))
+        self.turn_off_tooltip_button.SetToolTip("This will turn off tooltip of all components.")
+        self.turn_off_tooltip_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+
         #Should use Deforum prompt scheduling?
-        #self.shouldUseDeforumPromptScheduling_text = wx.StaticText(self.panel, label="Use Deforumation prompt scheduling...", pos=(trbX+580, 10))
         self.shouldUseDeforumPromptScheduling_Checkbox = wx.CheckBox(self.panel, label="Use Deforumation prompt scheduling", pos=(trbX+600, 10))
         self.shouldUseDeforumPromptScheduling_Checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
         #Stay On Top
@@ -1559,6 +1563,9 @@ class Mywin(wx.Frame):
         self.Layout()
         self.Bind(wx.EVT_SIZING, self.OnResize)
         self.panel.Bind(wx.EVT_LEFT_DOWN, self.PanelClicked)
+
+
+
 
     def OnKeyEvent(self, e):
         keycode = e.GetKeyCode()
@@ -3465,6 +3472,8 @@ class Mywin(wx.Frame):
             self.writeValue("cn_hight"+str(current_active_cn_index), CN_HighT[current_active_cn_index-1])
         #########END OF CN STUFF#############################
         elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2 or btn == "REWIND_CLOSEST" or btn == "FORWARD_CLOSEST":
+            number_of_recalled_frames = int(self.readValue("get_number_of_recalled_frames"))
+            self.total_current_recall_frames_text.SetLabel("Number of recall points: " + str(number_of_recalled_frames))
             current_frame = str(self.readValue("start_frame"))
             #print("Got current start frame:" + current_frame)
             current_render_frame = int(current_frame)
@@ -3564,6 +3573,9 @@ class Mywin(wx.Frame):
                     break
             #print("Suggest you use cadence:"+str(proposedCadence))
             self.cadence_suggestion.SetLabel("(hist cad: " + str(proposedCadence) + ")")
+            number_of_recalled_frames = int(self.readValue("get_number_of_recalled_frames"))
+            self.total_current_recall_frames_text.SetLabel("Number of recall points: " + str(number_of_recalled_frames))
+
         elif btn == "USE DEFORUMATION STRENGTH":
             if should_use_deforumation_strength == 0:
                 self.writeValue("should_use_deforumation_strength", 1)
@@ -3761,7 +3773,8 @@ class Mywin(wx.Frame):
                 self.writeValue("should_use_deforumation_timestring", 0)
         elif btn == "Erase total recall memory":
             self.writeValue("should_erase_total_recall_memory", 1)
-
+            number_of_recalled_frames = int(self.readValue("get_number_of_recalled_frames"))
+            self.total_current_recall_frames_text.SetLabel("Number of recall points: " + str(number_of_recalled_frames))
         elif btn == "Load Recall Data":
             dlg = wx.FileDialog(None, "Load Recall file", wildcard="Recal files (*.obj)|*.obj", style=wx.FD_OPEN)
             #dlg = wx.DirDialog (None, "Choose Recall File", "",wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
@@ -3935,6 +3948,17 @@ class Mywin(wx.Frame):
                 self.live_values_thread.start()
             else:
                 showLiveValues = False
+        elif btn == "Turn off tooltips":
+            children = self.panel.GetChildren()
+            for child in children:
+                if hasattr(child, 'ToolTip'):
+                    property = getattr(child, 'ToolTip')
+                    if property != None:
+                        property.Tip=""
+                    else:
+                        if hasattr(child, 'TextCtrl'):
+                            property = getattr(child, 'TextCtrl')
+                            property.Tip = ""
 
         if should_use_total_recall_in_deforumation:
             if current_render_frame != -1:
@@ -3973,6 +3997,7 @@ class Mywin(wx.Frame):
         if not showLiveValues:
             self.rotation_Z_Value_Text.SetLabel(str('%.2f' %Rotation_3D_Z))
 
+        #obj.SetToolTip(obj_tooltip)
         self.writeAllValues()
     def StartMediaPlayback(self, mediaPath, backendType):
         Frame = MediaPanel(mediaPath, backendType)
@@ -4446,11 +4471,9 @@ if __name__ == '__main__':
     print("Special thank you to our contributers:")
     print("@nhoj - for rectangular zoom")
     app = wx.App()
-    #Frame = MediaPanel("E:\\Tools\\Python_Scripts\\deforum_remote\\out.mp4", "wxWMP10MediaBackend")
-    #Frame.Show()
 
     if len(sys.argv) < 2:
-        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.0 using WebSockets)')
+        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.1 using WebSockets)')
     else:
-        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.0 using named pipes)')
+        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.1 using named pipes)')
     app.MainLoop()
