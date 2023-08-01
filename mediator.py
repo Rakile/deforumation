@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import time
 import websockets
 import pickle
@@ -185,7 +186,7 @@ def RecallValues(frame):
     global rotation_z_under_recall
 
     if not int(frame) in parameter_container:
-        print("No such frame to recall data from. Change your \"From\" and \"To\" values in Deforumation (The To value can not be greater than any existing recorded frames.")
+        print("Mediator has no data for frame (" + str(frame) + ")" +" to send!")
         return
     # Run/Steps
     steps = parameter_container[frame].steps
@@ -893,7 +894,7 @@ async def main_websocket(websocket):
                     else:
                         if int(value) in parameter_container:
                             if should_allow_total_recall_prompt_changing:
-                                copyof_parameter_container = parameter_container.copy()
+                                copyof_parameter_container = copy.deepcopy(parameter_container)
                                 copyof_parameter_container[int(value)].Prompt_Positive = Prompt_Positive
                                 bytesToSend = pickle.dumps(copyof_parameter_container[int(value)])
                             else:
@@ -1113,6 +1114,7 @@ def main_named_pipe(pipeName):
     global number_of_recalled_frames
     print("pipe server:" + str(pipeName))
     count = 0
+    bufSize = 64 * 1024
     pipe = win32pipe.CreateNamedPipe('\\\\.\\pipe\\' + str(pipeName), win32pipe.PIPE_ACCESS_DUPLEX,
                                      win32pipe.PIPE_TYPE_MESSAGE | win32pipe.PIPE_READMODE_MESSAGE | win32pipe.PIPE_WAIT,
                                      1, 65536, 65536, 0, None)
@@ -1128,8 +1130,14 @@ def main_named_pipe(pipeName):
                 print(f"SetNamedPipeHandleState return code: {message}")
                 continue
             else:
-                message = win32file.ReadFile(pipe, 64 * 1024)
-                arr = pickle.loads(message[1])
+                result, data = win32file.ReadFile(pipe, bufSize)
+                message = data
+                while len(data) == bufSize:
+                    print("More data has to be read (special pipe async):" + str(len(data)))
+                    result, data = win32file.ReadFile(pipe, bufSize)
+                    message += data
+
+                arr = pickle.loads(message)
             if len(arr) == 3:
                 shouldWrite = arr[0]
                 parameter = arr[1]
@@ -1621,7 +1629,7 @@ def main_named_pipe(pipeName):
                         else:
                             if int(value) in parameter_container:
                                 if should_allow_total_recall_prompt_changing:
-                                    copyof_parameter_container = parameter_container.copy()
+                                    copyof_parameter_container = copy.deepcopy(parameter_container)
                                     copyof_parameter_container[int(value)].Prompt_Positive = Prompt_Positive
                                     bytesToSend = pickle.dumps(copyof_parameter_container[int(value)])
                                 else:
@@ -1811,10 +1819,10 @@ async def main_websockets():
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Starting Mediator with WebSocket communication, version 0.6.0")
+        print("Starting Mediator with WebSocket communication, version 0.6.1")
         shouldUseNamedPipes = False
     else:
-        print("Starting Mediator with Named Pipes communication, version 0.6.0")
+        print("Starting Mediator with Named Pipes communication, version 0.6.1")
         shouldUseNamedPipes = True
 
     try:
