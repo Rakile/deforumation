@@ -166,7 +166,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     #Deforumation has a chance to overwrite the keys values, if it is using parseq
     if usingDeforumation:
-        print("Made for Deforumation version: 0.6.0")
+        print("Made for Deforumation version: 0.6.1")
         print("------------------------------------")
         if int(mediator_getValue("use_parseq").strip().strip('\n')) == 1:
             #parseq_adapter.use_parseq = 1
@@ -291,7 +291,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 print("Cadence value read from Deforum:"+str(turbo_steps))
                 turbo_steps = int(anim_args.diffusion_cadence)
             
-            frame_idx = frame_idx - (frame_idx%turbo_steps)
+            #frame_idx = frame_idx - (frame_idx%turbo_steps)
 
             prev_frame, next_frame, prev_img, next_img = get_resume_vars_d(
                 folder=args.outdir,
@@ -308,7 +308,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 root.init_sample = None
                 root.initial_info = None
                 root.first_frame = None
-            #start_frame = 0
+                start_frame = 0
+                frame_idx = 0
 
             mediator_setValue("total_recall_relive", frame_idx)
             args.seed = int(mediator_getValue("seed").strip().strip('\n'))
@@ -407,6 +408,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 time.sleep(0.5)
             if ispaused:
                 print("** RESUMING **")
+                start_frame = int(mediator_getValue("start_frame").strip().strip('\n'))
+                if int(mediator_getValue("should_use_total_recall").strip().strip('\n')):
+                    mediator_setValue("total_recall_relive", start_frame)
 
 
             if int(mediator_getValue("should_use_deforumation_cadence").strip().strip('\n')) == 1:
@@ -440,39 +444,62 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
             shouldResume = int(mediator_getValue("should_resume").strip().strip('\n'))  #should_resume should be set when third party chooses another frame (rewinding forward, etc), it doesn't need to happen in paused mode       
             if (previous_turbo_steps != turbo_steps) or (shouldResume == 1):
+                #print("frame_idx is:"+str(frame_idx))
+                #print("previous_turbo_steps is:"+str(previous_turbo_steps))
+                #print("turbo_steps is:"+str(turbo_steps))
+                #print("That would oldly have taken us to:"+str(frame_idx - previous_turbo_steps - (frame_idx%turbo_steps)))
+                #print("But staying on:"+str(frame_idx))
+
                 if shouldResume == 1: #If shouldResume == 1, then third party has choosen to jump to a non continues frame
-                    start_frame = int(mediator_getValue("start_frame").strip().strip('\n'))
-                    if start_frame < frame_idx:
-                        frame_idx = start_frame - (start_frame%turbo_steps)
-                    color_match_sample = None
+                    #print("Gott the start_frame:"+str(start_frame))
+                    #print("Was at frame:"+str(frame_idx))
                     mediator_setValue("should_resume", 0)
-                else:                    
-                    frame_idx = frame_idx - previous_turbo_steps - (frame_idx%turbo_steps)
 
-                prev_frame, next_frame, prev_img, next_img = get_resume_vars_d(
-                    folder=args.outdir,
-                    timestring=root.timestring,
-                    cadence=turbo_steps,
-                    startframe=frame_idx
-                )
-                # set up turbo step vars
-                if turbo_steps > 1:
-                    turbo_prev_image, turbo_prev_frame_idx = prev_img, prev_frame
-                    turbo_next_image, turbo_next_frame_idx = next_img, next_frame
-                # advance start_frame to next frame
-                if prev_img is None:
-                    root.init_sample = None
-                    root.initial_info = None
-                    root.first_frame = None
-                start_frame = 0
+                start_frame = int(mediator_getValue("start_frame").strip().strip('\n'))
 
-                mediator_setValue("total_recall_relive", frame_idx)
-                args.seed = int(mediator_getValue("seed").strip().strip('\n'))
+                if frame_idx != start_frame or previous_turbo_steps != turbo_steps:
+                    frame_idx = start_frame  #- (start_frame%turbo_steps)
+                    previous_turbo_steps = turbo_steps
 
-                state.job_count = anim_args.max_frames
-                last_preview_frame = frame_idx                
-                state.job = f"frame {frame_idx + 1}/{anim_args.max_frames}"
-                state.job_no = frame_idx + 1
+                    #if (previous_turbo_steps != turbo_steps)
+                    #    frame_idx = turbo_next_frame_idx - previous_turbo_steps + turbo_steps
+
+                    #frame_idx = frame_idx - previous_turbo_steps #Undo the last render         
+                    #frame_idx = frame_idx - previous_turbo_steps - (frame_idx%turbo_steps)
+                    #frame_idx = frame_idx - (frame_idx%turbo_steps)
+                    #print("frame_idx is:"+str(frame_idx))
+                    #print("previous_turbo_steps is:"+str(previous_turbo_steps))
+                    #print("turbo_steps is:"+str(turbo_steps))
+                    #print("That would oldly have taken us to:"+str(frame_idx - previous_turbo_steps - (frame_idx%turbo_steps)))
+                    #frame_idx = turbo_next_frame_idx - previous_turbo_steps + turbo_steps
+                    #print("But staying on:"+str(frame_idx))
+
+
+                    prev_frame, next_frame, prev_img, next_img = get_resume_vars_d(
+                        folder=args.outdir,
+                        timestring=root.timestring,
+                        cadence=turbo_steps,
+                        startframe=frame_idx
+                    )
+                    # set up turbo step vars
+                    if turbo_steps > 1:
+                        turbo_prev_image, turbo_prev_frame_idx = prev_img, prev_frame
+                        turbo_next_image, turbo_next_frame_idx = next_img, next_frame
+                    # advance start_frame to next frame
+                    if prev_img is None:
+                        root.init_sample = None
+                        root.initial_info = None
+                        root.first_frame = None
+                        start_frame = 0
+                        frame_idx = 0
+
+                    mediator_setValue("total_recall_relive", frame_idx)
+                    args.seed = int(mediator_getValue("seed").strip().strip('\n'))
+
+                    state.job_count = anim_args.max_frames
+                    last_preview_frame = frame_idx                
+                    state.job = f"frame {frame_idx + 1}/{anim_args.max_frames}"
+                    state.job_no = frame_idx + 1
 
             mediator_setValue("deforum_cadence", turbo_steps)
             previous_turbo_steps = turbo_steps #usingDeforumation
@@ -619,7 +646,12 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
 
             if previous_turbo_steps != turbo_steps:
-                frame_idx = frame_idx - previous_turbo_steps - (frame_idx%turbo_steps)
+                #print("frame_idX is:"+str(frame_idx))
+                #print("previous_turbo_steps is:"+str(previous_turbo_steps))
+                #print("turbo_steps is:"+str(turbo_steps))
+                #print("That would oldly have taken us to:"+str(frame_idx - previous_turbo_steps - (frame_idx%turbo_steps)))
+                frame_idx = turbo_next_frame_idx - previous_turbo_steps + turbo_steps
+                #print("But staying on:"+str(frame_idx))
 
                 prev_frame, next_frame, prev_img, next_img = get_resume_vars_d(
                     folder=args.outdir,
@@ -646,6 +678,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 last_preview_frame = frame_idx                
                 state.job = f"frame {frame_idx + 1}/{anim_args.max_frames}"
                 state.job_no = frame_idx + 1
+            #else:
+            #    print("****************** Warning: You are using total recall, and therefore no forced Rewind to match Cadence will be done! ******************")
+            #    print("previous_turbo_steps was:"+str(previous_turbo_steps))
+            #    print("and now turbo_steps:"+str(turbo_steps))
 
 
             mediator_setValue("deforum_cadence", turbo_steps)
