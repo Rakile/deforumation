@@ -11,13 +11,13 @@ from PIL import Image, ImageOps
 from .generate import generate, isJson
 from .noise import add_noise
 from .animation import anim_frame_warp
-from .animation_key_frames import DeformAnimKeys, LooperAnimKeys
+from .animation_key_frames import DeformAnimKeys, LooperAnimKeys, ControlNetKeys
 #from .video_audio_utilities import get_frame_name, get_next_frame
 from .video_audio_utilities import get_frame_name, get_next_frame, render_preview
 from .depth import DepthModel
 from .colors import maintain_colors
 from .parseq_adapter import ParseqAdapter
-
+from modules.processing import StableDiffusionProcessingImg2Img
 from .seed import next_seed
 from .image_sharpening import unsharp_mask
 from .load_images import get_mask, load_img, load_image, get_mask_from_file
@@ -122,6 +122,7 @@ def get_resume_vars_d(folder, timestring, cadence,startframe=-1):
 
 
 def render_animation(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, root):
+    cnu = {}
     global deforumation_cadence_scheduling_manifest
     #Deforumation_initialization
     usingDeforumation = True
@@ -159,6 +160,20 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     # handle controlnet video input frames generation
     if is_controlnet_enabled(controlnet_args):
         unpack_controlnet_vids(args, anim_args, controlnet_args)
+    if usingDeforumation:
+        CnSchKeys = ControlNetKeys(anim_args, controlnet_args)
+        for cnIndex in range(5): #Save in order to be able to restore later (Deforumation might destroy them)
+            keys = [
+                "enabled", "module", "model", "weight", "resize_mode", "control_mode", "low_vram", "pixel_perfect",
+                "processor_res", "threshold_a", "threshold_b", "guidance_start", "guidance_end"
+            ]
+            currCnIndex = cnIndex+1
+            cnu[f'cn_{currCnIndex}_weight'] = getattr(controlnet_args, f'cn_{currCnIndex}_weight')
+            cnu[f'cn_{currCnIndex}_guidance_start'] = getattr(controlnet_args, f'cn_{currCnIndex}_guidance_start')
+            cnu[f'cn_{currCnIndex}_guidance_end'] = getattr(controlnet_args, f'cn_{currCnIndex}_guidance_end')
+            cnu[f'cn_{currCnIndex}_threshold_a'] = getattr(controlnet_args, f'cn_{currCnIndex}_threshold_a')
+            cnu[f'cn_{currCnIndex}_threshold_b'] = getattr(controlnet_args, f'cn_{currCnIndex}_threshold_b')
+
 
     #Let the deforum mediator get the anim_args and the args values
     if usingDeforumation:
@@ -166,7 +181,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     #Deforumation has a chance to overwrite the keys values, if it is using parseq
     if usingDeforumation:
-        print("Made for Deforumation version: 0.6.1")
+        print("Made for Deforumation version: 0.6.2")
         print("------------------------------------")
         if int(mediator_getValue("use_parseq").strip().strip('\n')) == 1:
             #parseq_adapter.use_parseq = 1
@@ -310,7 +325,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 root.first_frame = None
                 start_frame = 0
                 frame_idx = 0
-
+                print("Trying to close StableDiffusionProcessingImg2Img")
+                p = StableDiffusionProcessingImg2Img(sd_model=sd_model,outpath_samples = opts.outdir_samples or opts.outdir_img2img_samples, )
+                p.close()
             mediator_setValue("total_recall_relive", frame_idx)
             args.seed = int(mediator_getValue("seed").strip().strip('\n'))
             state.job_count = anim_args.max_frames
@@ -441,6 +458,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             else:
                 print("Cadence value read from Deforum:"+str(turbo_steps))
                 turbo_steps = int(anim_args.diffusion_cadence)
+                mediator_setValue("deforum_cadence", turbo_steps)
+                mediator_setValue("cadence", turbo_steps)
 
             shouldResume = int(mediator_getValue("should_resume").strip().strip('\n'))  #should_resume should be set when third party chooses another frame (rewinding forward, etc), it doesn't need to happen in paused mode       
             if (previous_turbo_steps != turbo_steps) or (shouldResume == 1):
@@ -492,6 +511,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                         root.first_frame = None
                         start_frame = 0
                         frame_idx = 0
+                        print("Trying to close StableDiffusionProcessingImg2Img")
+                        p = StableDiffusionProcessingImg2Img(sd_model=sd_model,outpath_samples = opts.outdir_samples or opts.outdir_img2img_samples, )
+                        p.close()
 
                     mediator_setValue("total_recall_relive", frame_idx)
                     args.seed = int(mediator_getValue("seed").strip().strip('\n'))
@@ -531,6 +553,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             else:
                 strength = keys.strength_schedule_series[frame_idx]    
                 mediator_setValue("deforum_strength", strength)
+                mediator_setValue("strength", strength)
         else:
             strength = keys.strength_schedule_series[frame_idx]
         if usingDeforumation:
@@ -540,6 +563,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             else:
                 scale = keys.cfg_scale_schedule_series[frame_idx]
                 mediator_setValue("deforum_cfg", scale)
+                mediator_setValue("cfg", scale)
         else: #if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             scale = keys.cfg_scale_schedule_series[frame_idx]
 
@@ -573,6 +597,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         else: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             if anim_args.enable_steps_scheduling and keys.steps_schedule_series[frame_idx] is not None:
                 args.steps = int(keys.steps_schedule_series[frame_idx])
+                mediator_setValue("deforum_steps", args.steps)      
+                mediator_setValue("steps", args.steps)      
         if anim_args.enable_sampler_scheduling and keys.sampler_schedule_series[frame_idx] is not None:
             scheduled_sampler_name = keys.sampler_schedule_series[frame_idx].casefold()
         if anim_args.enable_clipskip_scheduling and keys.clipskip_schedule_series[frame_idx] is not None:
@@ -586,6 +612,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 if anim_args.enable_noise_multiplier_scheduling and keys.noise_multiplier_schedule_series[frame_idx] is not None:
                     scheduled_noise_multiplier = float(keys.noise_multiplier_schedule_series[frame_idx])
                     mediator_setValue("deforum_noise_multiplier", scheduled_noise_multiplier)
+                    mediator_setValue("noise_multiplier", scheduled_noise_multiplier)
         elif anim_args.enable_noise_multiplier_scheduling and keys.noise_multiplier_schedule_series[frame_idx] is not None:
                 scheduled_noise_multiplier = float(keys.noise_multiplier_schedule_series[frame_idx])
 
@@ -643,6 +670,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             else:
                 #print("Cadence value read from Deforum:"+str(turbo_steps))
                 turbo_steps = int(anim_args.diffusion_cadence)
+                mediator_setValue("deforum_cadence", turbo_steps)
+                mediator_setValue("cadence", turbo_steps)
 
 
             if previous_turbo_steps != turbo_steps:
@@ -712,7 +741,33 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     print("Enabling optical flow")
 
             for tween_frame_idx in range(tween_frame_start_idx, frame_idx):
-                mediator_setValue("total_recall_relive", tween_frame_idx)
+                #If controlnet is being used, get the values from Deforumation
+                if usingDeforumation:
+                    mediator_setValue("total_recall_relive", tween_frame_idx)
+                    if is_controlnet_enabled(controlnet_args):
+                        for cnIndex in range(5):
+                            currCnIndex = cnIndex+1
+                            cn_udca = int(mediator_getValue("cn_udca"+str(cnIndex+1)).strip().strip('\n'))
+                            if cn_udca == 1:
+                                #print("ControlNet " + str(currCnIndex) + "should use Deforumation values.")
+                                getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[tween_frame_idx] = float(mediator_getValue("cn_weight"+str(cnIndex+1)))
+                                getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_start_schedule_series")[tween_frame_idx] = float(mediator_getValue("cn_stepstart"+str(cnIndex+1)))
+                                getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_end_schedule_series")[tween_frame_idx] = float(mediator_getValue("cn_stepend"+str(cnIndex+1)))
+                                setattr(controlnet_args, f'cn_{currCnIndex}_threshold_a', float(mediator_getValue("cn_lowt"+str(cnIndex+1))))
+                                setattr(controlnet_args, f'cn_{currCnIndex}_threshold_b', float(mediator_getValue("cn_hight"+str(cnIndex+1))))
+                                #print("Current cn_weight is:" + str(getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[tween_frame_idx]))
+                            #else:
+                                #print("ControlNet " + str(currCnIndex) + " should use Deforum values.")
+                                #print("Current cn_weight is:" + str(getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[tween_frame_idx]))
+                        #Update all ControlNet values
+                        for cnIndex in range(5):
+                            currCnIndex = cnIndex+1
+                            mediator_setValue("cn_weight"+str(cnIndex+1), getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[tween_frame_idx])
+                            mediator_setValue("cn_stepstart"+str(cnIndex+1),getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_start_schedule_series")[tween_frame_idx])
+                            mediator_setValue("cn_stepend"+str(cnIndex+1), getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_end_schedule_series")[tween_frame_idx])
+                            mediator_setValue("cn_lowt"+str(cnIndex+1), getattr(controlnet_args, f"cn_{currCnIndex}_threshold_a"))
+                            mediator_setValue("cn_hight"+str(cnIndex+1), getattr(controlnet_args, f"cn_{currCnIndex}_threshold_b"))
+
                 #print("!Inside tween for loop!")
                 # update progress during cadence
                 state.job = f"frame {tween_frame_idx + 1}/{anim_args.max_frames}"
@@ -899,12 +954,12 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                                              root.noise_mask, args.invert_mask)
                     mediator_setValue("deforum_perlin_octaves", anim_args.perlin_octaves)
                     mediator_setValue("deforum_perlin_persistence", anim_args.perlin_persistence)
+                    mediator_setValue("perlin_octaves", anim_args.perlin_octaves)
+                    mediator_setValue("perlin_persistence", anim_args.perlin_persistence)
             else:
                 noised_image = add_noise(contrast_image, noise, args.seed, anim_args.noise_type,
                                          (anim_args.perlin_w, anim_args.perlin_h, anim_args.perlin_octaves, anim_args.perlin_persistence),
                                          root.noise_mask, args.invert_mask)
-                #mediator_setValue("deforum_perlin_octaves", anim_args.perlin_octaves)
-                #mediator_setValue("deforum_perlin_persistence", anim_args.perlin_persistence)
 
 
             # use transformed previous frame as init for current
@@ -925,6 +980,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 args.prompt = deforumation_positive_prompt + "--neg "+ deforumation_negative_prompt
             else:
                 args.prompt = prompt_series[frame_idx]
+                pos_prompt, neg_prompt = args.prompt.strip().split("--neg")
+                mediator_setValue("positive_prompt", pos_prompt)
+                mediator_setValue("negative_prompt", neg_prompt)
 
         else: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             args.prompt = prompt_series[frame_idx]
@@ -993,22 +1051,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             lowvram.setup_for_low_vram(sd_model, cmd_opts.medvram)
             sd_hijack.model_hijack.hijack(sd_model)
 
-        #If controlnet is being used, get the values from Deforumation
-        if usingDeforumation:
-            if is_controlnet_enabled(controlnet_args):
-                for cnIndex in range(5):
-                    currCnIndex = cnIndex+1
-                    setattr(controlnet_args, f'cn_{currCnIndex}_weight', "0:(" + str(mediator_getValue("cn_weight"+str(cnIndex+1)).strip().strip('\n')) + ")" )
-                    #print(str(getattr(controlnet_args, f'cn_{currCnIndex}_weight')))
-                    setattr(controlnet_args, f'cn_{currCnIndex}_guidance_start', "0:(" + str(mediator_getValue("cn_stepstart"+str(cnIndex+1)).strip().strip('\n')) + ")" )
-                    #print(str(getattr(controlnet_args, f'cn_{currCnIndex}_guidance_start')))
-                    setattr(controlnet_args, f'cn_{currCnIndex}_guidance_end', "0:(" + str(mediator_getValue("cn_stepend"+str(cnIndex+1)).strip().strip('\n')) + ")" )
-                    #print(str(getattr(controlnet_args, f'cn_{currCnIndex}_guidance_end')))
-                    setattr(controlnet_args, f'cn_{currCnIndex}_threshold_a', int(mediator_getValue("cn_lowt"+str(cnIndex+1)).strip().strip('\n')))
-                    #print(str(getattr(controlnet_args, f'cn_{currCnIndex}_threshold_a')))
-                    setattr(controlnet_args, f'cn_{currCnIndex}_threshold_b', int(mediator_getValue("cn_hight"+str(cnIndex+1)).strip().strip('\n')))
-                    #print(str(getattr(controlnet_args, f'cn_{currCnIndex}_threshold_b')))
-                
+
         # optical flow redo before generation
         if anim_args.optical_flow_redo_generation != 'None' and prev_img is not None and strength > 0:
             print(f"Optical flow redo is diffusing and warping using {anim_args.optical_flow_redo_generation} optical flow before generation.")
@@ -1091,6 +1134,14 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             save_image(image, 'PIL', filename, args, video_args, root)
             if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell 3:d parties what frame_idx we are on currently?
                 shouldResume = int(mediator_getValue("should_resume").strip().strip('\n'))  #If the user pushed "Set current image" in Deforumation, we can't just overwrite the new start_frame  
+                #Update all ControlNet values
+                for cnIndex in range(5):
+                    currCnIndex = cnIndex+1
+                    mediator_setValue("cn_weight"+str(cnIndex+1), getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[frame_idx])
+                    mediator_setValue("cn_stepstart"+str(cnIndex+1),getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_start_schedule_series")[frame_idx])
+                    mediator_setValue("cn_stepend"+str(cnIndex+1), getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_end_schedule_series")[frame_idx])
+                    mediator_setValue("cn_lowt"+str(cnIndex+1), getattr(controlnet_args, f"cn_{currCnIndex}_threshold_a"))
+                    mediator_setValue("cn_hight"+str(cnIndex+1), getattr(controlnet_args, f"cn_{currCnIndex}_threshold_b"))
                 if not shouldResume:
                     mediator_setValue("start_frame", frame_idx)
                 mediator_setValue("saved_frame_params", frame_idx)
@@ -1115,6 +1166,17 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             mediator_setValue("seed", args.seed)
         args.seed = next_seed(args, root)
         last_preview_frame = render_preview(args, anim_args, video_args, root, frame_idx, last_preview_frame)
+
+    #Restore Deforum CN Properties
+    for cnIndex in range(5):
+        currCnIndex = cnIndex+1
+        setattr(controlnet_args, f'cn_{currCnIndex}_weight', cnu[f'cn_{currCnIndex}_weight'] )
+        setattr(controlnet_args, f'cn_{currCnIndex}_guidance_start', cnu[f'cn_{currCnIndex}_guidance_start'])
+        setattr(controlnet_args, f'cn_{currCnIndex}_guidance_end', cnu[f'cn_{currCnIndex}_guidance_end'])
+        setattr(controlnet_args, f'cn_{currCnIndex}_threshold_a', cnu[f'cn_{currCnIndex}_threshold_a'])
+        setattr(controlnet_args, f'cn_{currCnIndex}_threshold_b', cnu[f'cn_{currCnIndex}_threshold_b'])
+
+
     if predict_depths and not keep_in_vram:
         depth_model.delete_model()  # handles adabins too
 
