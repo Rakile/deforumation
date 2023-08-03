@@ -451,28 +451,28 @@ async def main_websocket(websocket):
                 else:
                     if doVerbose:
                         print("should_use_total_recall:" + str(should_use_total_recall))
-                    await websocket.send(str.encode(str(should_use_total_recall)))
+                    await websocket.send(str(should_use_total_recall))
             elif str(parameter) == "total_recall_from":
                 if shouldWrite:
                     total_recall_from = int(value)
                 else:
                     if doVerbose:
                         print("total_recall_from:" + str(total_recall_from))
-                await websocket.send(str.encode(str(total_recall_from)))
+                await websocket.send(str(total_recall_from))
             elif str(parameter) == "total_recall_to":
                 if shouldWrite:
                     total_recall_to = int(value)
                 else:
                     if doVerbose:
                         print("total_recall_to:" + str(total_recall_to))
-                    await websocket.send(str.encode(str(total_recall_to)))
+                    await websocket.send(str(total_recall_to))
             elif str(parameter) == "should_use_deforumation_timestring":
                 if shouldWrite:
                     should_use_deforumation_timestring = int(value)
                 else:
-                    if doVerbose:
-                        print("should_use_deforumation_timestring:" + str(should_use_deforumation_timestring))
-                    await websocket.send(str.encode(str(should_use_deforumation_timestring)))
+                    #if doVerbose:
+                    print("should_use_deforumation_timestring:" + str(should_use_deforumation_timestring))
+                    await websocket.send(str(should_use_deforumation_timestring))
             elif str(parameter) == "should_allow_total_recall_prompt_changing":
                 if shouldWrite:
                     should_allow_total_recall_prompt_changing = int(value)
@@ -483,7 +483,7 @@ async def main_websocket(websocket):
                 else:
                     if doVerbose:
                         print("should_allow_total_recall_prompt_changing:" + str(should_allow_total_recall_prompt_changing))
-                    await websocket.send(str.encode(str(should_allow_total_recall_prompt_changing)))
+                    await websocket.send(str(should_allow_total_recall_prompt_changing))
             elif str(parameter) == "should_use_deforumation_prompt_scheduling":
                 if shouldWrite:
                     should_use_deforumation_prompt_scheduling = value
