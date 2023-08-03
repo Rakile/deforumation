@@ -77,12 +77,14 @@ CN_StepStart = []
 CN_StepEnd = []
 CN_LowT = []
 CN_HighT = []
+CN_UDCa = []
 for i in range(5):
     CN_Weight.append(1.0)
     CN_StepStart.append(0.0)
     CN_StepEnd.append(1.0)
     CN_LowT.append(0)
     CN_HighT.append(255)
+    CN_UDCa.append(0)
 #KEYBOARD KEYS
 pan_left_key = 0
 pan_right_key = 0
@@ -1400,6 +1402,7 @@ class Mywin(wx.Frame):
         self.control_net_lowt_slider_Text = []
         self.control_net_hight_slider = []
         self.control_net_hight_slider_Text = []
+        self.control_net_active_checkbox = []
         for cnIndex in range(5):
             self.control_net_weight_slider.append(wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_Weight[cnIndex]*100), minValue=0, maxValue=200, pos = (trbX-40, tbrY+190), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS ))
             self.control_net_weight_slider[cnIndex].SetToolTip("Tells, if activated, the ControlNet, what weight it should use. The slider value is scaled by 100 (actual value 100 times smaller)")
@@ -1438,7 +1441,7 @@ class Mywin(wx.Frame):
             self.control_net_lowt_slider[cnIndex].Hide()
             self.control_net_lowt_slider_Text[cnIndex].Hide()
             #CONTROLNET HIGH THRESHOLD
-            self.control_net_hight_slider.append(wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_HighT[cnIndex]), minValue=0, maxValue=255, pos = (trbX+300, tbrY+260), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS ))
+            self.control_net_hight_slider.append(wx.Slider(self.panel, id=wx.ID_ANY, value=int(CN_HighT[cnIndex]), minValue=0, maxValue=255, pos = (trbX+300, tbrY+250), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS ))
             self.control_net_hight_slider[cnIndex].SetToolTip("Tells, if activated, the ControlNet, what the higher threshold should be. Values below the low threshold always get discarded. Values above the high threshold always get kept. Values in between the the two thresholds may get kept or may get discarded depending on various rules and maths.")
             self.control_net_hight_slider[cnIndex].Bind(wx.EVT_SCROLL, self.OnClicked)
             self.control_net_hight_slider[cnIndex].SetTickFreq(1)
@@ -1446,6 +1449,11 @@ class Mywin(wx.Frame):
             self.control_net_hight_slider_Text.append(wx.StaticText(self.panel, label="ControlNet("+str(cnIndex+1)+") - High Threshold", pos=(trbX+300, tbrY+240)))
             self.control_net_hight_slider[cnIndex].Hide()
             self.control_net_hight_slider_Text[cnIndex].Hide()
+            # SHOULD USE DEFORUMATION CADENCE VALUES? CHECK-BOX
+            self.control_net_active_checkbox.append(wx.CheckBox(self.panel, label="U.D.Ca"+str(cnIndex), pos=(trbX+250, tbrY+148)))
+            self.control_net_active_checkbox[cnIndex].SetToolTip("When activated, Deforumations Cadence value will be used.")
+            self.control_net_active_checkbox[cnIndex].Bind(wx.EVT_CHECKBOX, self.OnClicked)
+            self.control_net_active_checkbox[cnIndex].Hide()
 
         #UN-HIDE CN 0
         self.SetCurrentActiveCN(1)
@@ -1863,6 +1871,7 @@ class Mywin(wx.Frame):
                 self.control_net_lowt_slider_Text[cnIndex].Show()
                 self.control_net_hight_slider[cnIndex].Show()
                 self.control_net_hight_slider_Text[cnIndex].Show()
+                self.control_net_active_checkbox[cnIndex].Show()
             else:
                 self.control_net_weight_slider_Text[cnIndex].Hide()
                 self.control_net_weight_slider[cnIndex].Hide()
@@ -1874,6 +1883,7 @@ class Mywin(wx.Frame):
                 self.control_net_lowt_slider_Text[cnIndex].Hide()
                 self.control_net_hight_slider[cnIndex].Hide()
                 self.control_net_hight_slider_Text[cnIndex].Hide()
+                self.control_net_active_checkbox[cnIndex].Hide()
 
 
     def OnResize(self, evt):
@@ -1962,6 +1972,7 @@ class Mywin(wx.Frame):
         global CN_StepEnd
         global CN_LowT
         global CN_HighT
+        global CN_UDCa
         global should_use_deforumation_prompt_scheduling
         global should_use_deforumation_cfg
         global should_use_deforumation_cadence
@@ -1980,7 +1991,7 @@ class Mywin(wx.Frame):
         global should_use_optical_flow
         global cadence_flow_factor
         global generation_flow_factor
-
+        global parameter_container
         parameter_container = pickle.loads(readValue_special("saved_frame_params", frameNumber))
         if parameter_container != 0x0:
             if parameter_container and parameter_container != None:
@@ -2025,6 +2036,8 @@ class Mywin(wx.Frame):
                     self.control_net_lowt_slider[cnIndex].SetValue(CN_LowT[cnIndex])
                     CN_HighT[cnIndex] = int(parameter_container.cn_hight[cnIndex])
                     self.control_net_hight_slider[cnIndex].SetValue(CN_HighT[cnIndex])
+                    CN_UDCa[cnIndex] = int(parameter_container.cn_udca[cnIndex])
+                    self.control_net_active_checkbox[cnIndex].SetValue(CN_UDCa[cnIndex])
                 ##CN END
                 noise_multiplier = float(parameter_container.noise_multiplier)
                 self.noise_slider.SetValue(int(float(noise_multiplier)*100))
@@ -2069,6 +2082,7 @@ class Mywin(wx.Frame):
         global CN_StepEnd
         global CN_LowT
         global CN_HighT
+        global CN_UDCa
         global should_use_deforumation_prompt_scheduling
         global should_use_deforumation_cfg
         global should_use_deforumation_cadence
@@ -2214,6 +2228,9 @@ class Mywin(wx.Frame):
                     self.control_net_lowt_slider[cnIndex].SetValue(CN_LowT[cnIndex])
                     CN_HighT[cnIndex] = int(deforumFile.readline().strip().strip('\n'))
                     self.control_net_hight_slider[cnIndex].SetValue(CN_HighT[cnIndex])
+                    CN_UDCa[cnIndex] = int(deforumFile.readline().strip().strip('\n'))
+                    self.control_net_hight_slider[cnIndex].SetValue(CN_UDCa[cnIndex])
+
                 ##CN END
                 noise_multiplier = float(deforumFile.readline().strip().strip('\n'))
                 self.noise_slider.SetValue(int(float(noise_multiplier)*100))
@@ -2288,6 +2305,7 @@ class Mywin(wx.Frame):
                 self.writeValue("cn_stepend"+str(cnIndex+1), float(CN_StepEnd[cnIndex]))
                 self.writeValue("cn_lowt"+str(cnIndex+1), float(CN_LowT[cnIndex]))
                 self.writeValue("cn_hight"+str(cnIndex+1), float(CN_HighT[cnIndex]))
+                self.writeValue("cn_udca" + str(cnIndex + 1), int(CN_UDCa[cnIndex]))
 
             self.writeValue("noise_multiplier", float(noise_multiplier))
             self.writeValue("perlin_octaves", int(Perlin_Octave_Value))
@@ -2366,6 +2384,7 @@ class Mywin(wx.Frame):
                 self.control_net_stepend_slider[cnIndex].SetValue(int(CN_StepEnd[cnIndex] * 100))
                 self.control_net_lowt_slider[cnIndex].SetValue(CN_LowT[cnIndex])
                 self.control_net_hight_slider[cnIndex].SetValue(CN_HighT[cnIndex])
+                self.control_net_active_checkbox[cnIndex].SetValue(CN_UDCa[cnIndex])
 
             self.noise_slider.SetValue(int(float(noise_multiplier) * 100))
             self.perlin_octave_slider.SetValue(int(Perlin_Octave_Value))
@@ -2441,6 +2460,7 @@ class Mywin(wx.Frame):
             deforumFile.write(str('%.2f' % CN_StepEnd[cnIndex])+"\n")
             deforumFile.write(str(CN_LowT[cnIndex])+"\n")
             deforumFile.write(str(CN_HighT[cnIndex])+"\n")
+            deforumFile.write(str(CN_UDCa[cnIndex]) + "\n")
 
         deforumFile.write(str('%.2f' % noise_multiplier)+"\n")
         deforumFile.write(str(Perlin_Octave_Value)+"\n")
@@ -2874,6 +2894,7 @@ class Mywin(wx.Frame):
         global CN_StepEnd
         global CN_LowT
         global CN_HighT
+        global CN_UDCa
         global isReplaying
         global replayFrom
         global replayTo
@@ -3470,6 +3491,10 @@ class Mywin(wx.Frame):
         elif btn.startswith("CN HIGHT"):
             CN_HighT[current_active_cn_index-1] = int(self.control_net_hight_slider[current_active_cn_index-1].GetValue())
             self.writeValue("cn_hight"+str(current_active_cn_index), CN_HighT[current_active_cn_index-1])
+        elif btn.startswith("U.D.Ca"):
+            CN_UDCa[current_active_cn_index-1] = int(self.control_net_active_checkbox[current_active_cn_index-1].GetValue())
+            self.writeValue("cn_udca"+str(current_active_cn_index), CN_UDCa[current_active_cn_index-1])
+
         #########END OF CN STUFF#############################
         elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2 or btn == "REWIND_CLOSEST" or btn == "FORWARD_CLOSEST":
             number_of_recalled_frames = int(self.readValue("get_number_of_recalled_frames"))
@@ -4441,13 +4466,14 @@ class ParameterContainer():
     cn_stepend = []
     cn_lowt = []
     cn_hight = []
+    cn_udca = []
     for i in range(5):
         cn_weight.append(1.0)
         cn_stepstart.append(0.0)
         cn_stepend.append(1.0)
         cn_lowt.append(0)
         cn_hight.append(255)
-
+        cn_udca.append(0)
     parseq_keys = 0
     use_parseq = 0
     parseq_manifest = ""
@@ -4459,7 +4485,12 @@ class ParameterContainer():
     perlin_octaves = 4
     perlin_persistence = 0.5
 
+class Package:
+    def __init__(self):
+        self.files = []
+
 if __name__ == '__main__':
+
 
     if len(sys.argv) < 2:
         print("Starting Deforumation with WebSocket communication")
@@ -4472,8 +4503,9 @@ if __name__ == '__main__':
     print("@nhoj - for rectangular zoom")
     app = wx.App()
 
+
     if len(sys.argv) < 2:
-        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.1 using WebSockets)')
+        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.2 using WebSockets)')
     else:
-        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.1 using named pipes)')
+        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.2 using named pipes)')
     app.MainLoop()

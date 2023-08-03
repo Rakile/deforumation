@@ -6,6 +6,7 @@ import pickle
 import win32pipe, win32file, pywintypes
 import threading
 import sys
+from pickle import HIGHEST_PROTOCOL
 
 # Server-stuff
 stop = None
@@ -66,13 +67,14 @@ cn_stepstart = []
 cn_stepend = []
 cn_lowt = []
 cn_hight = []
+cn_udca = []
 for i in range(5):
     cn_weight.append(1.0)
     cn_stepstart.append(0.0)
     cn_stepend.append(1.0)
     cn_lowt.append(0)
     cn_hight.append(255)
-
+    cn_udca.append(0)
 parseq_keys = 0
 use_parseq = 0
 parseq_manifest = ""
@@ -147,6 +149,7 @@ def RecallValues(frame):
     global cn_stepend
     global cn_lowt
     global cn_hight
+    global cn_udca
     global parseq_keys
     global use_parseq
     global parseq_manifest
@@ -218,6 +221,7 @@ def RecallValues(frame):
         cn_stepend[i] = parameter_container[frame].cn_stepend[i]
         cn_lowt[i] = parameter_container[frame].cn_lowt[i]
         cn_hight[i] = parameter_container[frame].cn_hight[i]
+        cn_udca[i] = parameter_container[frame].cn_udca[i]
     parseq_keys = parameter_container[frame].parseq_keys
     use_parseq = parameter_container[frame].use_parseq
     parseq_manifest = parameter_container[frame].parseq_manifest
@@ -255,18 +259,6 @@ class ParameterContainer():
     cadence = 2
     cadence_flow_factor = 1
     generation_flow_factor = 1
-    cn_weight = []
-    cn_stepstart = []
-    cn_stepend = []
-    cn_lowt = []
-    cn_hight = []
-    for i in range(5):
-        cn_weight.append(1.0)
-        cn_stepstart.append(0.0)
-        cn_stepend.append(1.0)
-        cn_lowt.append(0)
-        cn_hight.append(255)
-
     parseq_keys = 0
     use_parseq = 0
     parseq_manifest = ""
@@ -277,6 +269,20 @@ class ParameterContainer():
     noise_multiplier = 1.05
     perlin_octaves = 4
     perlin_persistence = 0.5
+    def __init__(self):
+        self.cn_weight = []
+        self.cn_stepstart = []
+        self.cn_stepend = []
+        self.cn_lowt = []
+        self.cn_hight = []
+        self.cn_udca = []
+        for i in range(5):
+            self.cn_weight.append(1.0)
+            self.cn_stepstart.append(0.0)
+            self.cn_stepend.append(1.0)
+            self.cn_lowt.append(0.0)
+            self.cn_hight.append(255)
+            self.cn_udca.append(0)
 
     def SetValues(self):
         # Run/Steps
@@ -301,11 +307,12 @@ class ParameterContainer():
         self.cadence_flow_factor = cadence_flow_factor
         self.generation_flow_factor = generation_flow_factor
         for i in range(5):
-            self.cn_weight[i] = cn_weight[i]
-            self.cn_stepstart[i] = cn_stepstart[i]
-            self.cn_stepend[i] = cn_stepend[i]
-            self.cn_lowt[i] = cn_lowt[i]
-            self.cn_hight[i] = cn_hight[i]
+            self.cn_weight[i] = float(cn_weight[i])
+            self.cn_stepstart[i] = float(cn_stepstart[i])
+            self.cn_stepend[i] = float(cn_stepend[i])
+            self.cn_lowt[i] = float(cn_lowt[i])
+            self.cn_hight[i] = float(cn_hight[i])
+            self.cn_udca[i] = float(cn_udca[i])
         self.parseq_keys = parseq_keys
         self.use_parseq = use_parseq
         self.parseq_manifest = parseq_manifest
@@ -367,6 +374,7 @@ async def main_websocket(websocket):
     global cn_stepend
     global cn_lowt
     global cn_hight
+    global cn_udca
     global parseq_keys
     global use_parseq
     global parseq_manifest
@@ -716,6 +724,16 @@ async def main_websocket(websocket):
                     if doVerbose:
                         print("sending cn_hight:" + str(cn_hight[cnIndex - 1]))
                     await websocket.send(str(cn_hight[cnIndex - 1]))
+            # ControlNet active or not
+            ###########################################################################
+            elif str(parameter).startswith("cn_udca"):
+                cnIndex = int(parameter[len(parameter) - 1])
+                if shouldWrite:
+                    cn_udca[cnIndex - 1] = int(value)
+                else:
+                    if doVerbose:
+                        print("sending cn_udca:" + str(cn_udca[cnIndex - 1]))
+                    await websocket.send(str(cn_udca[cnIndex - 1]))
             # Seed Params
             ###########################################################################
             elif str(parameter) == "seed":
@@ -1419,9 +1437,11 @@ def main_named_pipe(pipeName):
                     cnIndex = int(parameter[len(parameter) - 1])
                     if shouldWrite:
                         cn_weight[cnIndex - 1] = float(value)
+                        #print("Writing weight:" + str(value) + " to Controlnet:" + str(cnIndex))
                     else:
                         if doVerbose:
                             print("sending cn_weight:" + str(cn_weight[cnIndex - 1]))
+                        print("Sending weight:" + str(cn_weight[cnIndex - 1]) + " to Controlnet:" + str(cnIndex))
                         win32file.WriteFile(pipe, str.encode(str(cn_weight[cnIndex - 1])))
                 # ControlNet step start Params
                 ###########################################################################
@@ -1463,6 +1483,16 @@ def main_named_pipe(pipeName):
                         if doVerbose:
                             print("sending cn_hight:" + str(cn_hight[cnIndex - 1]))
                         win32file.WriteFile(pipe, str.encode(str(cn_hight[cnIndex - 1])))
+                # ControlNet active or not
+                ###########################################################################
+                elif str(parameter).startswith("cn_udca"):
+                    cnIndex = int(parameter[len(parameter) - 1])
+                    if shouldWrite:
+                        cn_udca[cnIndex - 1] = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending cn_udca:" + str(cn_udca[cnIndex - 1]))
+                        win32file.WriteFile(pipe, str.encode(str(cn_udca[cnIndex - 1])))
                 # Seed Params
                 ###########################################################################
                 elif str(parameter) == "seed":
@@ -1615,6 +1645,7 @@ def main_named_pipe(pipeName):
                     if shouldWrite:
                         if not should_use_total_recall:
                             if not int(value) in parameter_container:
+                                #print("Setting values for frame:"+str(value))
                                 parameter_container[int(value)] = ParameterContainer()
                             parameter_container[int(value)].SetValues()
                         elif (int(value) < total_recall_from) or (int(value) > total_recall_to):
@@ -1633,9 +1664,11 @@ def main_named_pipe(pipeName):
                                     copyof_parameter_container[int(value)].Prompt_Positive = Prompt_Positive
                                     bytesToSend = pickle.dumps(copyof_parameter_container[int(value)])
                                 else:
-                                    bytesToSend = pickle.dumps(parameter_container[int(value)])
+                                    bytesToSend = pickle.dumps(parameter_container[int(value)], HIGHEST_PROTOCOL)
+                                    arne = 1
                             else:
                                 bytesToSend = pickle.dumps(0x0)
+
                         win32file.WriteFile(pipe, bytesToSend)
                     number_of_recalled_frames = len(parameter_container)
                 elif str(parameter) == "upload_recall_file":
