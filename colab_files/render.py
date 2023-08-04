@@ -748,8 +748,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     if is_controlnet_enabled(controlnet_args):
                         for cnIndex in range(5):
                             currCnIndex = cnIndex+1
-                            cn_udca = int(mediator_getValue("cn_udca"+str(cnIndex+1)).strip().strip('\n'))
-                            if cn_udca == 1:
+                            cn_udcn = int(mediator_getValue("cn_udcn"+str(cnIndex+1)).strip().strip('\n'))
+                            if cn_udcn == 1:
                                 #print("ControlNet " + str(currCnIndex) + "should use Deforumation values.")
                                 getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[tween_frame_idx] = float(mediator_getValue("cn_weight"+str(cnIndex+1)))
                                 getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_start_schedule_series")[tween_frame_idx] = float(mediator_getValue("cn_stepstart"+str(cnIndex+1)))
