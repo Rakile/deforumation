@@ -209,7 +209,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     # create output folder for the batch
     os.makedirs(args.outdir, exist_ok=True)
-    print(f"Saving animation frames to:\n{args.outdir}")
+    print(f"Saving animation frames to:{args.outdir}")
 
     # save settings.txt file for the current run
     save_settings_from_animation_run(args, anim_args, parseq_args, loop_args, controlnet_args, video_args, root)
@@ -744,30 +744,35 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             for tween_frame_idx in range(tween_frame_start_idx, frame_idx):
                 #If controlnet is being used, get the values from Deforumation
                 if usingDeforumation:
-                    mediator_setValue("total_recall_relive", tween_frame_idx)
+                    mediator_setValue("total_recall_relive", frame_idx)
                     if is_controlnet_enabled(controlnet_args):
                         for cnIndex in range(5):
                             currCnIndex = cnIndex+1
                             cn_udcn = int(mediator_getValue("cn_udcn"+str(cnIndex+1)).strip().strip('\n'))
                             if cn_udcn == 1:
-                                #print("ControlNet " + str(currCnIndex) + "should use Deforumation values.")
-                                getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[tween_frame_idx] = float(mediator_getValue("cn_weight"+str(cnIndex+1)))
-                                getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_start_schedule_series")[tween_frame_idx] = float(mediator_getValue("cn_stepstart"+str(cnIndex+1)))
-                                getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_end_schedule_series")[tween_frame_idx] = float(mediator_getValue("cn_stepend"+str(cnIndex+1)))
-                                setattr(controlnet_args, f'cn_{currCnIndex}_threshold_a', float(mediator_getValue("cn_lowt"+str(cnIndex+1))))
-                                setattr(controlnet_args, f'cn_{currCnIndex}_threshold_b', float(mediator_getValue("cn_hight"+str(cnIndex+1))))
-                                #print("Current cn_weight is:" + str(getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[tween_frame_idx]))
-                            #else:
-                                #print("ControlNet " + str(currCnIndex) + " should use Deforum values.")
-                                #print("Current cn_weight is:" + str(getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[tween_frame_idx]))
-                        #Update all ControlNet values
-                        for cnIndex in range(5):
-                            currCnIndex = cnIndex+1
-                            mediator_setValue("cn_weight"+str(cnIndex+1), getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[tween_frame_idx])
-                            mediator_setValue("cn_stepstart"+str(cnIndex+1),getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_start_schedule_series")[tween_frame_idx])
-                            mediator_setValue("cn_stepend"+str(cnIndex+1), getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_end_schedule_series")[tween_frame_idx])
-                            mediator_setValue("cn_lowt"+str(cnIndex+1), getattr(controlnet_args, f"cn_{currCnIndex}_threshold_a"))
-                            mediator_setValue("cn_hight"+str(cnIndex+1), getattr(controlnet_args, f"cn_{currCnIndex}_threshold_b"))
+                                setattr(controlnet_args, f'cn_{currCnIndex}_weight', "0:(" + str(mediator_getValue("cn_weight"+str(cnIndex+1)).strip().strip('\n')) + ")" )
+                                #print(str(getattr(controlnet_args, f'cn_{currCnIndex}_weight')))
+                                setattr(controlnet_args, f'cn_{currCnIndex}_guidance_start', "0:(" + str(mediator_getValue("cn_stepstart"+str(cnIndex+1)).strip().strip('\n')) + ")" )
+                                #print(str(getattr(controlnet_args, f'cn_{currCnIndex}_guidance_start')))
+                                setattr(controlnet_args, f'cn_{currCnIndex}_guidance_end', "0:(" + str(mediator_getValue("cn_stepend"+str(cnIndex+1)).strip().strip('\n')) + ")" )
+                                #print(str(getattr(controlnet_args, f'cn_{currCnIndex}_guidance_end')))
+                                setattr(controlnet_args, f'cn_{currCnIndex}_threshold_a', int(mediator_getValue("cn_lowt"+str(cnIndex+1)).strip().strip('\n')))
+                                #print(str(getattr(controlnet_args, f'cn_{currCnIndex}_threshold_a')))
+                                setattr(controlnet_args, f'cn_{currCnIndex}_threshold_b', int(mediator_getValue("cn_hight"+str(cnIndex+1)).strip().strip('\n')))
+                                #print(str(getattr(controlnet_args, f'cn_{currCnIndex}_threshold_b')))
+                            else:
+                                setattr(controlnet_args, f'cn_{currCnIndex}_weight', cnu[f'cn_{currCnIndex}_weight'])
+                                setattr(controlnet_args, f'cn_{currCnIndex}_guidance_start', cnu[f'cn_{currCnIndex}_guidance_start'])
+                                setattr(controlnet_args, f'cn_{currCnIndex}_guidance_end', cnu[f'cn_{currCnIndex}_guidance_end'])
+                                setattr(controlnet_args, f'cn_{currCnIndex}_threshold_a', cnu[f'cn_{currCnIndex}_threshold_a'])
+                                setattr(controlnet_args, f'cn_{currCnIndex}_threshold_b', cnu[f'cn_{currCnIndex}_threshold_b'])
+                                mediator_setValue("cn_weight"+str(cnIndex+1), getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[frame_idx])
+                                mediator_setValue("cn_stepstart"+str(cnIndex+1),getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_start_schedule_series")[frame_idx])
+                                mediator_setValue("cn_stepend"+str(cnIndex+1), getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_end_schedule_series")[frame_idx])
+                                mediator_setValue("cn_lowt"+str(cnIndex+1), getattr(controlnet_args, f"cn_{currCnIndex}_threshold_a"))
+                                mediator_setValue("cn_hight"+str(cnIndex+1), getattr(controlnet_args, f"cn_{currCnIndex}_threshold_b"))
+
+
 
                 #print("!Inside tween for loop!")
                 # update progress during cadence
@@ -1053,6 +1058,35 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             sd_hijack.model_hijack.hijack(sd_model)
 
 
+        if usingDeforumation:
+            mediator_setValue("total_recall_relive", frame_idx)
+            if is_controlnet_enabled(controlnet_args):
+                for cnIndex in range(5):
+                    currCnIndex = cnIndex+1
+                    cn_udcn = int(mediator_getValue("cn_udcn"+str(cnIndex+1)).strip().strip('\n'))
+                    if cn_udcn == 1:
+                        #print("ControlNet " + str(currCnIndex) + " should use Deforumation values.")
+                        #print("Got weight from mediator:" + str(float(mediator_getValue("cn_weight"+str(cnIndex+1)))))
+                        setattr(controlnet_args, f'cn_{currCnIndex}_weight', "0:(" + str(mediator_getValue("cn_weight"+str(cnIndex+1)).strip().strip('\n')) + ")" )
+                        setattr(controlnet_args, f'cn_{currCnIndex}_guidance_start', "0:(" + str(mediator_getValue("cn_stepstart"+str(cnIndex+1)).strip().strip('\n')) + ")" )
+                        setattr(controlnet_args, f'cn_{currCnIndex}_guidance_end', "0:(" + str(mediator_getValue("cn_stepend"+str(cnIndex+1)).strip().strip('\n')) + ")" )
+                        setattr(controlnet_args, f'cn_{currCnIndex}_threshold_a', int(mediator_getValue("cn_lowt"+str(cnIndex+1)).strip().strip('\n')))
+                        setattr(controlnet_args, f'cn_{currCnIndex}_threshold_b', int(mediator_getValue("cn_hight"+str(cnIndex+1)).strip().strip('\n')))
+                    else:
+                        setattr(controlnet_args, f'cn_{currCnIndex}_weight', cnu[f'cn_{currCnIndex}_weight'])
+                        setattr(controlnet_args, f'cn_{currCnIndex}_guidance_start', cnu[f'cn_{currCnIndex}_guidance_start'])
+                        setattr(controlnet_args, f'cn_{currCnIndex}_guidance_end', cnu[f'cn_{currCnIndex}_guidance_end'])
+                        setattr(controlnet_args, f'cn_{currCnIndex}_threshold_a', cnu[f'cn_{currCnIndex}_threshold_a'])
+                        setattr(controlnet_args, f'cn_{currCnIndex}_threshold_b', cnu[f'cn_{currCnIndex}_threshold_b'])
+                        #print("ControlNet " + str(currCnIndex) + " should use Deforum values.")
+                        #print("Got weight:" + str(getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[frame_idx]))
+                        mediator_setValue("cn_weight"+str(cnIndex+1), getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[frame_idx])
+                        mediator_setValue("cn_stepstart"+str(cnIndex+1),getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_start_schedule_series")[frame_idx])
+                        mediator_setValue("cn_stepend"+str(cnIndex+1), getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_end_schedule_series")[frame_idx])
+                        mediator_setValue("cn_lowt"+str(cnIndex+1), getattr(controlnet_args, f"cn_{currCnIndex}_threshold_a"))
+                        mediator_setValue("cn_hight"+str(cnIndex+1), getattr(controlnet_args, f"cn_{currCnIndex}_threshold_b"))
+
+
         # optical flow redo before generation
         if anim_args.optical_flow_redo_generation != 'None' and prev_img is not None and strength > 0:
             print(f"Optical flow redo is diffusing and warping using {anim_args.optical_flow_redo_generation} optical flow before generation.")
@@ -1135,14 +1169,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             save_image(image, 'PIL', filename, args, video_args, root)
             if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell 3:d parties what frame_idx we are on currently?
                 shouldResume = int(mediator_getValue("should_resume").strip().strip('\n'))  #If the user pushed "Set current image" in Deforumation, we can't just overwrite the new start_frame  
-                #Update all ControlNet values
-                for cnIndex in range(5):
-                    currCnIndex = cnIndex+1
-                    mediator_setValue("cn_weight"+str(cnIndex+1), getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[frame_idx])
-                    mediator_setValue("cn_stepstart"+str(cnIndex+1),getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_start_schedule_series")[frame_idx])
-                    mediator_setValue("cn_stepend"+str(cnIndex+1), getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_end_schedule_series")[frame_idx])
-                    mediator_setValue("cn_lowt"+str(cnIndex+1), getattr(controlnet_args, f"cn_{currCnIndex}_threshold_a"))
-                    mediator_setValue("cn_hight"+str(cnIndex+1), getattr(controlnet_args, f"cn_{currCnIndex}_threshold_b"))
+
                 if not shouldResume:
                     mediator_setValue("start_frame", frame_idx)
                 mediator_setValue("saved_frame_params", frame_idx)
