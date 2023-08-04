@@ -195,6 +195,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
             print("Using Parseq through Deforumation.")
         else:
+            print("should_use_deforumation_timestring:" + str(mediator_getValue("should_use_deforumation_timestring").strip().strip('\n')))
             if int(mediator_getValue("should_use_deforumation_timestring").strip().strip('\n')) == 1:
                 #Deforum is forced to start from the frame specified by deforum
                 frame_idx = int(mediator_getValue("start_frame").strip().strip('\n'))
@@ -747,8 +748,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     if is_controlnet_enabled(controlnet_args):
                         for cnIndex in range(5):
                             currCnIndex = cnIndex+1
-                            cn_udca = int(mediator_getValue("cn_udca"+str(cnIndex+1)).strip().strip('\n'))
-                            if cn_udca == 1:
+                            cn_udcn = int(mediator_getValue("cn_udcn"+str(cnIndex+1)).strip().strip('\n'))
+                            if cn_udcn == 1:
                                 #print("ControlNet " + str(currCnIndex) + "should use Deforumation values.")
                                 getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[tween_frame_idx] = float(mediator_getValue("cn_weight"+str(cnIndex+1)))
                                 getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_start_schedule_series")[tween_frame_idx] = float(mediator_getValue("cn_stepstart"+str(cnIndex+1)))
