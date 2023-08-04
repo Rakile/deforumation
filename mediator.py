@@ -67,14 +67,14 @@ cn_stepstart = []
 cn_stepend = []
 cn_lowt = []
 cn_hight = []
-cn_udca = []
+cn_udcn = []
 for i in range(5):
     cn_weight.append(1.0)
     cn_stepstart.append(0.0)
     cn_stepend.append(1.0)
     cn_lowt.append(0)
     cn_hight.append(255)
-    cn_udca.append(0)
+    cn_udcn.append(0)
 parseq_keys = 0
 use_parseq = 0
 parseq_manifest = ""
@@ -149,7 +149,7 @@ def RecallValues(frame):
     global cn_stepend
     global cn_lowt
     global cn_hight
-    global cn_udca
+    global cn_udcn
     global parseq_keys
     global use_parseq
     global parseq_manifest
@@ -221,7 +221,7 @@ def RecallValues(frame):
         cn_stepend[i] = parameter_container[frame].cn_stepend[i]
         cn_lowt[i] = parameter_container[frame].cn_lowt[i]
         cn_hight[i] = parameter_container[frame].cn_hight[i]
-        cn_udca[i] = parameter_container[frame].cn_udca[i]
+        cn_udcn[i] = parameter_container[frame].cn_udcn[i]
     parseq_keys = parameter_container[frame].parseq_keys
     use_parseq = parameter_container[frame].use_parseq
     parseq_manifest = parameter_container[frame].parseq_manifest
@@ -275,14 +275,14 @@ class ParameterContainer():
         self.cn_stepend = []
         self.cn_lowt = []
         self.cn_hight = []
-        self.cn_udca = []
+        self.cn_udcn = []
         for i in range(5):
             self.cn_weight.append(1.0)
             self.cn_stepstart.append(0.0)
             self.cn_stepend.append(1.0)
             self.cn_lowt.append(0.0)
             self.cn_hight.append(255)
-            self.cn_udca.append(0)
+            self.cn_udcn.append(0)
 
     def SetValues(self):
         # Run/Steps
@@ -312,7 +312,7 @@ class ParameterContainer():
             self.cn_stepend[i] = float(cn_stepend[i])
             self.cn_lowt[i] = float(cn_lowt[i])
             self.cn_hight[i] = float(cn_hight[i])
-            self.cn_udca[i] = float(cn_udca[i])
+            self.cn_udcn[i] = float(cn_udcn[i])
         self.parseq_keys = parseq_keys
         self.use_parseq = use_parseq
         self.parseq_manifest = parseq_manifest
@@ -374,7 +374,7 @@ async def main_websocket(websocket):
     global cn_stepend
     global cn_lowt
     global cn_hight
-    global cn_udca
+    global cn_udcn
     global parseq_keys
     global use_parseq
     global parseq_manifest
@@ -470,8 +470,8 @@ async def main_websocket(websocket):
                 if shouldWrite:
                     should_use_deforumation_timestring = int(value)
                 else:
-                    #if doVerbose:
-                    print("should_use_deforumation_timestring:" + str(should_use_deforumation_timestring))
+                    if doVerbose:
+                        print("should_use_deforumation_timestring:" + str(should_use_deforumation_timestring))
                     await websocket.send(str(should_use_deforumation_timestring))
             elif str(parameter) == "should_allow_total_recall_prompt_changing":
                 if shouldWrite:
@@ -726,14 +726,14 @@ async def main_websocket(websocket):
                     await websocket.send(str(cn_hight[cnIndex - 1]))
             # ControlNet active or not
             ###########################################################################
-            elif str(parameter).startswith("cn_udca"):
+            elif str(parameter).startswith("cn_udcn"):
                 cnIndex = int(parameter[len(parameter) - 1])
                 if shouldWrite:
-                    cn_udca[cnIndex - 1] = int(value)
+                    cn_udcn[cnIndex - 1] = int(value)
                 else:
                     if doVerbose:
-                        print("sending cn_udca:" + str(cn_udca[cnIndex - 1]))
-                    await websocket.send(str(cn_udca[cnIndex - 1]))
+                        print("sending cn_udcn:" + str(cn_udcn[cnIndex - 1]))
+                    await websocket.send(str(cn_udcn[cnIndex - 1]))
             # Seed Params
             ###########################################################################
             elif str(parameter) == "seed":
@@ -1441,7 +1441,7 @@ def main_named_pipe(pipeName):
                     else:
                         if doVerbose:
                             print("sending cn_weight:" + str(cn_weight[cnIndex - 1]))
-                        print("Sending weight:" + str(cn_weight[cnIndex - 1]) + " to Controlnet:" + str(cnIndex))
+                        #print("Sending weight:" + str(cn_weight[cnIndex - 1]) + " to Controlnet:" + str(cnIndex))
                         win32file.WriteFile(pipe, str.encode(str(cn_weight[cnIndex - 1])))
                 # ControlNet step start Params
                 ###########################################################################
@@ -1485,14 +1485,14 @@ def main_named_pipe(pipeName):
                         win32file.WriteFile(pipe, str.encode(str(cn_hight[cnIndex - 1])))
                 # ControlNet active or not
                 ###########################################################################
-                elif str(parameter).startswith("cn_udca"):
+                elif str(parameter).startswith("cn_udcn"):
                     cnIndex = int(parameter[len(parameter) - 1])
                     if shouldWrite:
-                        cn_udca[cnIndex - 1] = int(value)
+                        cn_udcn[cnIndex - 1] = int(value)
                     else:
                         if doVerbose:
-                            print("sending cn_udca:" + str(cn_udca[cnIndex - 1]))
-                        win32file.WriteFile(pipe, str.encode(str(cn_udca[cnIndex - 1])))
+                            print("sending cn_udcn:" + str(cn_udcn[cnIndex - 1]))
+                        win32file.WriteFile(pipe, str.encode(str(cn_udcn[cnIndex - 1])))
                 # Seed Params
                 ###########################################################################
                 elif str(parameter) == "seed":

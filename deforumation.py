@@ -77,14 +77,14 @@ CN_StepStart = []
 CN_StepEnd = []
 CN_LowT = []
 CN_HighT = []
-CN_UDCa = []
+CN_UDCn = []
 for i in range(5):
     CN_Weight.append(1.0)
     CN_StepStart.append(0.0)
     CN_StepEnd.append(1.0)
     CN_LowT.append(0)
     CN_HighT.append(255)
-    CN_UDCa.append(0)
+    CN_UDCn.append(0)
 #KEYBOARD KEYS
 pan_left_key = 0
 pan_right_key = 0
@@ -1450,7 +1450,7 @@ class Mywin(wx.Frame):
             self.control_net_hight_slider[cnIndex].Hide()
             self.control_net_hight_slider_Text[cnIndex].Hide()
             # SHOULD USE DEFORUMATION CADENCE VALUES? CHECK-BOX
-            self.control_net_active_checkbox.append(wx.CheckBox(self.panel, label="U.D.Ca"+str(cnIndex), pos=(trbX+250, tbrY+148)))
+            self.control_net_active_checkbox.append(wx.CheckBox(self.panel, label="U.D.Cn"+str(cnIndex), pos=(trbX+250, tbrY+148)))
             self.control_net_active_checkbox[cnIndex].SetToolTip("When activated, Deforumations Cadence value will be used.")
             self.control_net_active_checkbox[cnIndex].Bind(wx.EVT_CHECKBOX, self.OnClicked)
             self.control_net_active_checkbox[cnIndex].Hide()
@@ -1972,7 +1972,7 @@ class Mywin(wx.Frame):
         global CN_StepEnd
         global CN_LowT
         global CN_HighT
-        global CN_UDCa
+        global CN_UDCn
         global should_use_deforumation_prompt_scheduling
         global should_use_deforumation_cfg
         global should_use_deforumation_cadence
@@ -2036,8 +2036,8 @@ class Mywin(wx.Frame):
                     self.control_net_lowt_slider[cnIndex].SetValue(CN_LowT[cnIndex])
                     CN_HighT[cnIndex] = int(parameter_container.cn_hight[cnIndex])
                     self.control_net_hight_slider[cnIndex].SetValue(CN_HighT[cnIndex])
-                    CN_UDCa[cnIndex] = int(parameter_container.cn_udca[cnIndex])
-                    self.control_net_active_checkbox[cnIndex].SetValue(CN_UDCa[cnIndex])
+                    CN_UDCn[cnIndex] = int(parameter_container.cn_udcn[cnIndex])
+                    self.control_net_active_checkbox[cnIndex].SetValue(CN_UDCn[cnIndex])
                 ##CN END
                 noise_multiplier = float(parameter_container.noise_multiplier)
                 self.noise_slider.SetValue(int(float(noise_multiplier)*100))
@@ -2082,7 +2082,7 @@ class Mywin(wx.Frame):
         global CN_StepEnd
         global CN_LowT
         global CN_HighT
-        global CN_UDCa
+        global CN_UDCn
         global should_use_deforumation_prompt_scheduling
         global should_use_deforumation_cfg
         global should_use_deforumation_cadence
@@ -2228,8 +2228,8 @@ class Mywin(wx.Frame):
                     self.control_net_lowt_slider[cnIndex].SetValue(CN_LowT[cnIndex])
                     CN_HighT[cnIndex] = int(deforumFile.readline().strip().strip('\n'))
                     self.control_net_hight_slider[cnIndex].SetValue(CN_HighT[cnIndex])
-                    CN_UDCa[cnIndex] = int(deforumFile.readline().strip().strip('\n'))
-                    self.control_net_hight_slider[cnIndex].SetValue(CN_UDCa[cnIndex])
+                    CN_UDCn[cnIndex] = int(deforumFile.readline().strip().strip('\n'))
+                    self.control_net_hight_slider[cnIndex].SetValue(CN_UDCn[cnIndex])
 
                 ##CN END
                 noise_multiplier = float(deforumFile.readline().strip().strip('\n'))
@@ -2305,7 +2305,7 @@ class Mywin(wx.Frame):
                 self.writeValue("cn_stepend"+str(cnIndex+1), float(CN_StepEnd[cnIndex]))
                 self.writeValue("cn_lowt"+str(cnIndex+1), float(CN_LowT[cnIndex]))
                 self.writeValue("cn_hight"+str(cnIndex+1), float(CN_HighT[cnIndex]))
-                self.writeValue("cn_udca" + str(cnIndex + 1), int(CN_UDCa[cnIndex]))
+                self.writeValue("cn_udcn" + str(cnIndex + 1), int(CN_UDCn[cnIndex]))
 
             self.writeValue("noise_multiplier", float(noise_multiplier))
             self.writeValue("perlin_octaves", int(Perlin_Octave_Value))
@@ -2384,7 +2384,7 @@ class Mywin(wx.Frame):
                 self.control_net_stepend_slider[cnIndex].SetValue(int(CN_StepEnd[cnIndex] * 100))
                 self.control_net_lowt_slider[cnIndex].SetValue(CN_LowT[cnIndex])
                 self.control_net_hight_slider[cnIndex].SetValue(CN_HighT[cnIndex])
-                self.control_net_active_checkbox[cnIndex].SetValue(CN_UDCa[cnIndex])
+                self.control_net_active_checkbox[cnIndex].SetValue(CN_UDCn[cnIndex])
 
             self.noise_slider.SetValue(int(float(noise_multiplier) * 100))
             self.perlin_octave_slider.SetValue(int(Perlin_Octave_Value))
@@ -2460,7 +2460,7 @@ class Mywin(wx.Frame):
             deforumFile.write(str('%.2f' % CN_StepEnd[cnIndex])+"\n")
             deforumFile.write(str(CN_LowT[cnIndex])+"\n")
             deforumFile.write(str(CN_HighT[cnIndex])+"\n")
-            deforumFile.write(str(CN_UDCa[cnIndex]) + "\n")
+            deforumFile.write(str(CN_UDCn[cnIndex]) + "\n")
 
         deforumFile.write(str('%.2f' % noise_multiplier)+"\n")
         deforumFile.write(str(Perlin_Octave_Value)+"\n")
@@ -2895,6 +2895,7 @@ class Mywin(wx.Frame):
         global CN_LowT
         global CN_HighT
         global CN_UDCa
+        global CN_UDCn
         global isReplaying
         global replayFrom
         global replayTo
@@ -3491,9 +3492,9 @@ class Mywin(wx.Frame):
         elif btn.startswith("CN HIGHT"):
             CN_HighT[current_active_cn_index-1] = int(self.control_net_hight_slider[current_active_cn_index-1].GetValue())
             self.writeValue("cn_hight"+str(current_active_cn_index), CN_HighT[current_active_cn_index-1])
-        elif btn.startswith("U.D.Ca"):
-            CN_UDCa[current_active_cn_index-1] = int(self.control_net_active_checkbox[current_active_cn_index-1].GetValue())
-            self.writeValue("cn_udca"+str(current_active_cn_index), CN_UDCa[current_active_cn_index-1])
+        elif btn.startswith("U.D.Cn"):
+            CN_UDCn[current_active_cn_index-1] = int(self.control_net_active_checkbox[current_active_cn_index-1].GetValue())
+            self.writeValue("cn_udcn"+str(current_active_cn_index), CN_UDCn[current_active_cn_index-1])
 
         #########END OF CN STUFF#############################
         elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2 or btn == "REWIND_CLOSEST" or btn == "FORWARD_CLOSEST":
@@ -4466,14 +4467,14 @@ class ParameterContainer():
     cn_stepend = []
     cn_lowt = []
     cn_hight = []
-    cn_udca = []
+    cn_udcn = []
     for i in range(5):
         cn_weight.append(1.0)
         cn_stepstart.append(0.0)
         cn_stepend.append(1.0)
         cn_lowt.append(0)
         cn_hight.append(255)
-        cn_udca.append(0)
+        cn_udcn.append(0)
     parseq_keys = 0
     use_parseq = 0
     parseq_manifest = ""
