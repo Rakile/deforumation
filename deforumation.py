@@ -1449,7 +1449,7 @@ class Mywin(wx.Frame):
             self.control_net_hight_slider_Text.append(wx.StaticText(self.panel, label="ControlNet("+str(cnIndex+1)+") - High Threshold", pos=(trbX+300, tbrY+240)))
             self.control_net_hight_slider[cnIndex].Hide()
             self.control_net_hight_slider_Text[cnIndex].Hide()
-            # SHOULD USE DEFORUMATION CADENCE VALUES? CHECK-BOX
+            # SHOULD USE CURRENT CONTROL NET?
             self.control_net_active_checkbox.append(wx.CheckBox(self.panel, label="U.D.Cn"+str(cnIndex), pos=(trbX+250, tbrY+148)))
             self.control_net_active_checkbox[cnIndex].SetToolTip("When activated, Deforumations Cadence value will be used.")
             self.control_net_active_checkbox[cnIndex].Bind(wx.EVT_CHECKBOX, self.OnClicked)
@@ -1630,9 +1630,9 @@ class Mywin(wx.Frame):
 
     def OnRadioBoxCN(self, event):
         btn = self.rbox.GetStringSelection()
-        print(btn)
+        #print(btn)
         currentActive = int(btn[int(len(btn)-1)])
-        print("IT IS CN:"+str(currentActive))
+        #print("IT IS CN:"+str(currentActive))
         self.SetCurrentActiveCN(currentActive)
 
     def OnShouldHide(self, event):
@@ -2000,61 +2000,61 @@ class Mywin(wx.Frame):
                 self.positive_prompt_input_ctrl_3.SetValue("")
                 self.positive_prompt_input_ctrl_4.SetValue("")
                 self.negative_prompt_input_ctrl.SetValue(parameter_container.Prompt_Negative)
-                Strength_Scheduler = float(parameter_container.strength_value)
-                self.strength_schedule_slider.SetValue(int(Strength_Scheduler*100))
-                CFG_Scale = float(parameter_container.cfg_scale)
-                self.cfg_schedule_slider.SetValue(int(CFG_Scale))
-                STEP_Schedule = int(parameter_container.steps)
-                self.sample_schedule_slider.SetValue(STEP_Schedule)
-                FOV_Scale = float(parameter_container.fov)
-                self.fov_slider.SetValue(int(FOV_Scale))
-                Translation_X = float(parameter_container.translation_x)
-                self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
-                Translation_Y = float(parameter_container.translation_y)
-                self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
-                Translation_Z = float(parameter_container.translation_z)
-                self.zoom_slider.SetValue(int(Translation_Z)*100)
-                self.zoom_value_text.SetLabel('%.2f' % (Translation_Z))
-                Rotation_3D_X = float(parameter_container.rotation_x)
-                Rotation_3D_Y = float(parameter_container.rotation_y)
-                Rotation_3D_Z = float(parameter_container.rotation_z)
-                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
-                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
-                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
+                #Strength_Scheduler = float(parameter_container.strength_value)
+                self.strength_schedule_slider.SetValue(int(float(parameter_container.strength_value)*100))
+                #CFG_Scale = float(parameter_container.cfg_scale)
+                self.cfg_schedule_slider.SetValue(int(float(parameter_container.cfg_scale)))
+                #STEP_Schedule = int(parameter_container.steps)
+                self.sample_schedule_slider.SetValue(int(parameter_container.steps))
+                #FOV_Scale = float(parameter_container.fov)
+                self.fov_slider.SetValue(int(float(parameter_container.fov)))
+                #Translation_X = float(parameter_container.translation_x)
+                self.pan_X_Value_Text.SetLabel(str('%.2f' % float(parameter_container.translation_x)))
+                #Translation_Y = float(parameter_container.translation_y)
+                self.pan_Y_Value_Text.SetLabel(str('%.2f' % float(parameter_container.translation_y)))
+                #Translation_Z = float(parameter_container.translation_z)
+                self.zoom_slider.SetValue(int(float(parameter_container.translation_z))*100)
+                self.zoom_value_text.SetLabel('%.2f' % (float(parameter_container.translation_z)))
+                #Rotation_3D_X = float(parameter_container.rotation_x)
+                #Rotation_3D_Y = float(parameter_container.rotation_y)
+                #Rotation_3D_Z = float(parameter_container.rotation_z)
+                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % float(parameter_container.rotation_x)))
+                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % float(parameter_container.rotation_y)))
+                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(parameter_container.rotation_z)))
 
-                Cadence_Schedule = int(parameter_container.cadence)
-                self.cadence_slider.SetValue(Cadence_Schedule)
+                #Cadence_Schedule = int(parameter_container.cadence)
+                self.cadence_slider.SetValue(int(parameter_container.cadence))
                 ###CN
                 for cnIndex in range(5):
-                    CN_Weight[cnIndex] = float(parameter_container.cn_weight[cnIndex])
-                    self.control_net_weight_slider[cnIndex].SetValue(int(CN_Weight[cnIndex]*100))
-                    CN_StepStart[cnIndex] = float(parameter_container.cn_stepstart[cnIndex])
-                    self.control_net_stepstart_slider[cnIndex].SetValue(int(CN_StepStart[cnIndex]*100))
-                    CN_StepEnd[cnIndex] = float(parameter_container.cn_stepend[cnIndex])
-                    self.control_net_stepend_slider[cnIndex].SetValue(int(CN_StepEnd[cnIndex]*100))
-                    CN_LowT[cnIndex] = int(parameter_container.cn_lowt[cnIndex])
-                    self.control_net_lowt_slider[cnIndex].SetValue(CN_LowT[cnIndex])
-                    CN_HighT[cnIndex] = int(parameter_container.cn_hight[cnIndex])
-                    self.control_net_hight_slider[cnIndex].SetValue(CN_HighT[cnIndex])
-                    CN_UDCn[cnIndex] = int(parameter_container.cn_udcn[cnIndex])
-                    self.control_net_active_checkbox[cnIndex].SetValue(CN_UDCn[cnIndex])
+                    #CN_Weight[cnIndex] = float(parameter_container.cn_weight[cnIndex])
+                    self.control_net_weight_slider[cnIndex].SetValue(int(float(parameter_container.cn_weight[cnIndex])*100))
+                    #CN_StepStart[cnIndex] = float(parameter_container.cn_stepstart[cnIndex])
+                    self.control_net_stepstart_slider[cnIndex].SetValue(int(float(parameter_container.cn_stepstart[cnIndex])*100))
+                    #CN_StepEnd[cnIndex] = float(parameter_container.cn_stepend[cnIndex])
+                    self.control_net_stepend_slider[cnIndex].SetValue(int(float(parameter_container.cn_stepend[cnIndex])*100))
+                    #CN_LowT[cnIndex] = int(parameter_container.cn_lowt[cnIndex])
+                    self.control_net_lowt_slider[cnIndex].SetValue(int(parameter_container.cn_lowt[cnIndex]))
+                    #CN_HighT[cnIndex] = int(parameter_container.cn_hight[cnIndex])
+                    self.control_net_hight_slider[cnIndex].SetValue(int(parameter_container.cn_hight[cnIndex]))
+                    #CN_UDCn[cnIndex] = int(parameter_container.cn_udcn[cnIndex])
+                    self.control_net_active_checkbox[cnIndex].SetValue(int(parameter_container.cn_udcn[cnIndex]))
                 ##CN END
-                noise_multiplier = float(parameter_container.noise_multiplier)
-                self.noise_slider.SetValue(int(float(noise_multiplier)*100))
-                Perlin_Octave_Value = int(parameter_container.perlin_octaves)
-                self.perlin_octave_slider.SetValue(int(Perlin_Octave_Value))
-                Perlin_Persistence_Value = float(parameter_container.perlin_persistence)
-                self.perlin_persistence_slider.SetValue(int(float(Perlin_Persistence_Value)*100))
+                #noise_multiplier = float(parameter_container.noise_multiplier)
+                self.noise_slider.SetValue(int(float(parameter_container.noise_multiplier)*100))
+                #Perlin_Octave_Value = int(parameter_container.perlin_octaves)
+                self.perlin_octave_slider.SetValue(int(parameter_container.perlin_octaves))
+                #Perlin_Persistence_Value = float(parameter_container.perlin_persistence)
+                self.perlin_persistence_slider.SetValue(int(float(parameter_container.perlin_persistence)*100))
 
                 #self.opticalflow_checkbox
-                cadence_flow_factor = int(parameter_container.cadence_flow_factor)
-                generation_flow_factor = int(parameter_container.generation_flow_factor)
-                self.cadence_flow_factor_box.SetValue(str(cadence_flow_factor))
-                self.generation_flow_factor_box.SetValue(str(generation_flow_factor))
+                #cadence_flow_factor = int(parameter_container.cadence_flow_factor)
+                #generation_flow_factor = int(parameter_container.generation_flow_factor)
+                self.cadence_flow_factor_box.SetValue(str(int(parameter_container.cadence_flow_factor)))
+                self.generation_flow_factor_box.SetValue(str(int(parameter_container.generation_flow_factor)))
 
                 #seed
-                seedValue = int(parameter_container.seed_value)
-                self.seed_input_box.SetValue(str(seedValue))
+                #seedValue = int(parameter_container.seed_value)
+                self.seed_input_box.SetValue(str(int(parameter_container.seed_value)))
         else:
             print("Frame " + str(frameNumber)+ " has no stored recall values.")
     def loadAllValues(self):
@@ -3495,6 +3495,11 @@ class Mywin(wx.Frame):
         elif btn.startswith("U.D.Cn"):
             CN_UDCn[current_active_cn_index-1] = int(self.control_net_active_checkbox[current_active_cn_index-1].GetValue())
             self.writeValue("cn_udcn"+str(current_active_cn_index), CN_UDCn[current_active_cn_index-1])
+            self.writeValue("cn_weight"+str(current_active_cn_index), CN_Weight[current_active_cn_index-1])
+            self.writeValue("cn_stepstart"+str(current_active_cn_index), CN_StepStart[current_active_cn_index-1])
+            self.writeValue("cn_stepend"+str(current_active_cn_index), CN_StepEnd[current_active_cn_index-1])
+            self.writeValue("cn_lowt"+str(current_active_cn_index), CN_LowT[current_active_cn_index-1])
+            self.writeValue("cn_hight"+str(current_active_cn_index), CN_HighT[current_active_cn_index-1])
 
         #########END OF CN STUFF#############################
         elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2 or btn == "REWIND_CLOSEST" or btn == "FORWARD_CLOSEST":
@@ -3605,6 +3610,7 @@ class Mywin(wx.Frame):
         elif btn == "USE DEFORUMATION STRENGTH":
             if should_use_deforumation_strength == 0:
                 self.writeValue("should_use_deforumation_strength", 1)
+                self.writeValue("strength", Strength_Scheduler)
                 should_use_deforumation_strength = 1
                 #print("NOW IT IS:"+str(should_use_deforumation_strength))
             else:
@@ -3614,6 +3620,7 @@ class Mywin(wx.Frame):
         elif btn == "USE DEFORUMATION CFG":
             if should_use_deforumation_cfg == 0:
                 self.writeValue("should_use_deforumation_cfg", 1)
+                self.writeValue("cfg", CFG_Scale)
                 should_use_deforumation_cfg = 1
             else:
                 self.writeValue("should_use_deforumation_cfg", 0)
@@ -3621,6 +3628,7 @@ class Mywin(wx.Frame):
         elif btn == "U.D.Ca":
             if should_use_deforumation_cadence == 0:
                 self.writeValue("should_use_deforumation_cadence", 1)
+                self.writeValue("cadence", Cadence_Schedule)
                 should_use_deforumation_cadence = 1
             else:
                 self.writeValue("should_use_deforumation_cadence", 0)
@@ -3628,13 +3636,18 @@ class Mywin(wx.Frame):
         elif btn == "U.D.No":
             if should_use_deforumation_noise == 0:
                 self.writeValue("should_use_deforumation_noise", 1)
+                self.writeValue("noise_multiplier", float(noise_multiplier))
                 should_use_deforumation_noise = 1
+                self.writeValue("perlin_octaves", int(Perlin_Octave_Value))
+                self.writeValue("perlin_persistence", float(Perlin_Persistence_Value))
             else:
                 self.writeValue("should_use_deforumation_noise", 0)
                 should_use_deforumation_noise = 0
         elif btn == "U.D.Pa":
             if should_use_deforumation_panning == 0:
                 self.writeValue("should_use_deforumation_panning", 1)
+                self.writeValue("translation_x", Translation_X)
+                self.writeValue("translation_y", Translation_Y)
                 should_use_deforumation_panning = 1
             else:
                 self.writeValue("should_use_deforumation_panning", 0)
@@ -3642,6 +3655,8 @@ class Mywin(wx.Frame):
         elif btn == "U.D.Zo":
             if should_use_deforumation_zoomfov == 0:
                 self.writeValue("should_use_deforumation_zoomfov", 1)
+                self.writeValue("translation_z", Translation_Z)
+                self.writeValue("fov", FOV_Scale)
                 should_use_deforumation_zoomfov = 1
             else:
                 self.writeValue("should_use_deforumation_zoomfov", 0)
@@ -3649,6 +3664,8 @@ class Mywin(wx.Frame):
         elif btn == "U.D.Ro":
             if should_use_deforumation_rotation == 0:
                 self.writeValue("should_use_deforumation_rotation", 1)
+                self.writeValue("rotation_x", Rotation_3D_X)
+                self.writeValue("rotation_y", Rotation_3D_Y)
                 should_use_deforumation_rotation = 1
             else:
                 self.writeValue("should_use_deforumation_rotation", 0)
@@ -3656,6 +3673,7 @@ class Mywin(wx.Frame):
         elif btn == "U.D.Ti":
             if should_use_deforumation_tilt == 0:
                 self.writeValue("should_use_deforumation_tilt", 1)
+                self.writeValue("rotation_z", Rotation_3D_Z)
                 should_use_deforumation_tilt = 1
             else:
                 self.writeValue("should_use_deforumation_tilt", 0)
@@ -3768,6 +3786,7 @@ class Mywin(wx.Frame):
                 self.writeValue("prompts_touched", 0)
                 self.loadCurrentPrompt("P", current_render_frame, 0)
                 self.loadCurrentPrompt("N", current_render_frame, 0)
+                self.setAllComponentValues()
 
         elif btn == "Optical flow on/off":
             if should_use_optical_flow == 0:
@@ -3783,6 +3802,7 @@ class Mywin(wx.Frame):
                 should_use_total_recall_in_deforumation = 0
                 self.loadCurrentPrompt("P", current_render_frame, 0)
                 self.loadCurrentPrompt("N", current_render_frame, 0)
+                self.setAllComponentValues()
         elif btn == "Allow changing prompts":
             if should_allow_total_recall_prompt_changing == 0:
                 should_allow_total_recall_prompt_changing = 1
