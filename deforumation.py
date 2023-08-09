@@ -130,8 +130,9 @@ should_use_total_recall = 0
 should_use_total_recall_in_deforumation = 0
 should_use_deforumation_timestring = 0
 number_of_recalled_frames = 0
-should_allow_total_recall_prompt_changing = 0
-
+should_use_total_recall_prompt = 0
+should_use_total_recall_movements = 0
+should_use_total_recall_others = 0
 async def sendAsync_special(value):
     if shouldUseNamedPipes:
         bufSize = 64 * 1024
@@ -918,8 +919,8 @@ class Mywin(wx.Frame):
 
 
         #####################################################
-        self.audioSettingsField = wx.StaticBox(self.panel, id=wx.ID_ANY, label='Total Recall', size=(400, 140), pos=(int(screenWidth / 2) + 14, 140))  # orient=wx.HORIZONTAL)
-
+        self.totalRecallSettingsField = wx.StaticBox(self.panel, id=wx.ID_ANY, label='Total Recall', size=(600, 140), pos=(int(screenWidth / 2) + 14, 140))  # orient=wx.HORIZONTAL)
+        self.totalRecallSettingsLine = wx.StaticLine(self.panel, size=(600, 2), id=wx.ID_ANY, style = wx.LI_HORIZONTAL, pos=(int(screenWidth / 2) + 14, 196))
         #SHOULD USE TOTAL RECALL
         self.should_use_total_recall_checkbox = wx.CheckBox(self.panel, label="Use total recall...", pos=(int(screenWidth / 2) + 20, 160))
         self.should_use_total_recall_checkbox.SetToolTip("When activated, total recall is used on the chosen range.")
@@ -939,17 +940,27 @@ class Mywin(wx.Frame):
         self.total_recall_to_input_box.SetValue("0")
         self.total_recall_to_input_box.Bind(wx.EVT_KILL_FOCUS, self.OnFocus)
         #SHOULD USE TOTAL RECALL
-        self.should_use_total_recall_in_deforumation_checkbox = wx.CheckBox(self.panel, label="View original values in Deforumation", pos=(int(screenWidth / 2) + 20, 180))
+        self.should_use_total_recall_in_deforumation_checkbox = wx.CheckBox(self.panel, label="View original values in Deforumation", pos=(int(screenWidth / 2) + 20, 200))
         self.should_use_total_recall_in_deforumation_checkbox.SetToolTip("When activated, original values used, will be shown in Deforumation.")
         self.should_use_total_recall_in_deforumation_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
         #BYPASS PROMPTS
-        self.should_allow_total_recall_prompt_changing_checkbox = wx.CheckBox(self.panel, label="Allow changing prompts", pos=(int(screenWidth / 2) + 260, 180))
-        self.should_allow_total_recall_prompt_changing_checkbox.SetToolTip("When activated, total recall will allow manual prompt changing.")
-        self.should_allow_total_recall_prompt_changing_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+        self.should_use_total_recall_prompt_checkbox = wx.CheckBox(self.panel, label="Recall prompts", pos=(int(screenWidth / 2) + 260, 180))
+        self.should_use_total_recall_prompt_checkbox.SetToolTip("When activated, total recall will allow manual prompt changing.")
+        self.should_use_total_recall_prompt_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
+        #TOTAL RECALL MOVEMENT
+        self.should_use_total_recall_movement_checkbox = wx.CheckBox(self.panel, label="Recall movements", pos=(int(screenWidth / 2) + 20, 180))
+        self.should_use_total_recall_movement_checkbox.SetToolTip("When activated, total recall will include all movements (PAN, ZOOM, TILT), else if not checked, movements are not recalled.")
+        self.should_use_total_recall_movement_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
+        #TOTAL RECALL OTHER
+        self.should_use_total_recall_others_checkbox = wx.CheckBox(self.panel, label="Recall \"others\"", pos=(int(screenWidth / 2) + 150, 180))
+        self.should_use_total_recall_others_checkbox.SetToolTip("When activated, total recall will include all parameters but Movements and Prompt, else if not checked, \"others\" are not recalled.")
+        self.should_use_total_recall_others_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
         #SHOULD FORCE DEFORUM To USE DEFORUMATION'S START FRAME ON RESUME FROM TIMESTRING
-        self.should_use_deforumation_start_string_checkbox = wx.CheckBox(self.panel, label="Use Deforumation timestamp when resuming", pos=(int(screenWidth / 2) + 20, 200))
+        self.should_use_deforumation_start_string_checkbox = wx.CheckBox(self.panel, label="Use Deforumation timestamp when resuming", pos=(int(screenWidth / 2) + 260, 253))
         self.should_use_deforumation_start_string_checkbox.SetToolTip("When activated, and you have choosen to \"Resume from timestring\" in Deforum, Deforum is forced to start at the frame chosen by you through \"Set current image\".")
         self.should_use_deforumation_start_string_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
@@ -2316,6 +2327,9 @@ class Mywin(wx.Frame):
             self.writeValue("cadence_flow_factor", int(cadence_flow_factor))
             self.writeValue("generation_flow_factor", int(generation_flow_factor))
 
+            #Get Number of recall points
+            number_of_recalled_frames = int(self.readValue("get_number_of_recalled_frames"))
+            self.total_current_recall_frames_text.SetLabel("Number of recall points: " + str(number_of_recalled_frames))
         else:
             self.writeAllValues()
     def writeValue(self, param, value):
@@ -2399,28 +2413,29 @@ class Mywin(wx.Frame):
             print(e)
 
     def writeAllValues(self):
-        try:
-            if is_paused_rendering:
-                # Arrange the possitive prompts according to priority (now for some lazy programing):
-                positive_prio = {
-                    int(self.positive_prompt_input_ctrl_prio.GetValue()): self.positive_prompt_input_ctrl.GetValue(),
-                    int(self.positive_prompt_input_ctrl_2_prio.GetValue()): self.positive_prompt_input_ctrl_2.GetValue(),
-                    int(self.positive_prompt_input_ctrl_3_prio.GetValue()): self.positive_prompt_input_ctrl_3.GetValue(),
-                    int(self.positive_prompt_input_ctrl_4_prio.GetValue()): self.positive_prompt_input_ctrl_4.GetValue()}
-                sortedDict = sorted(positive_prio.items())
-                #totalPossitivePromptString = sortedDict[0][1] + "," + sortedDict[1][1] + "," + sortedDict[2][1] + "," + sortedDict[3][1]
-                totalPossitivePromptString = sortedDict[0][1]
-                if sortedDict[1][1] != "":
-                    totalPossitivePromptString += "," + sortedDict[1][1]
-                if sortedDict[2][1] != "":
-                    totalPossitivePromptString += "," + sortedDict[2][1]
-                if sortedDict[3][1] != "":
-                    totalPossitivePromptString += "," + sortedDict[3][1]
 
-                self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n")
-                self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
-        except Exception as e:
-            print(e)
+        #OLD STUFF
+        #try:
+        #    if is_paused_rendering:
+        #        # Arrange the possitive prompts according to priority (now for some lazy programing):
+        #        positive_prio = {
+        #            int(self.positive_prompt_input_ctrl_prio.GetValue()): self.positive_prompt_input_ctrl.GetValue(),
+        #            int(self.positive_prompt_input_ctrl_2_prio.GetValue()): self.positive_prompt_input_ctrl_2.GetValue(),
+        #            int(self.positive_prompt_input_ctrl_3_prio.GetValue()): self.positive_prompt_input_ctrl_3.GetValue(),
+        #            int(self.positive_prompt_input_ctrl_4_prio.GetValue()): self.positive_prompt_input_ctrl_4.GetValue()}
+        #        sortedDict = sorted(positive_prio.items())
+        #        totalPossitivePromptString = sortedDict[0][1]
+        #        if sortedDict[1][1] != "":
+        #            totalPossitivePromptString += "," + sortedDict[1][1]
+        #        if sortedDict[2][1] != "":
+        #            totalPossitivePromptString += "," + sortedDict[2][1]
+        #        if sortedDict[3][1] != "":
+        #            totalPossitivePromptString += "," + sortedDict[3][1]
+
+        #       self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n")
+        #        self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
+        #except Exception as e:
+        #    print(e)
         deforumFile = open(deforumationSettingsPath, 'w')
         deforumFile.write(str(int(is_paused_rendering))+"\n")
         deforumFile.write(self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '`^')+"\n")
@@ -2856,6 +2871,44 @@ class Mywin(wx.Frame):
             newevent.SetEventObject(self.update_prompts)
             newevent.SetId(self.update_prompts.GetId())
             self.update_prompts.GetEventHandler().ProcessEvent(newevent)
+
+        if should_use_total_recall_in_deforumation:
+            if current_render_frame != -1:
+                self.setValuesFromSavedFrame(int(current_render_frame))
+        elif should_use_total_recall and (
+                int(current_render_frame) >= int(self.total_recall_from_input_box.GetValue())) and (
+                int(current_render_frame) <= int(self.total_recall_to_input_box.GetValue())):
+            if current_render_frame != -1:
+                self.setValuesFromSavedFrame(int(current_render_frame))
+        else:
+            if armed_pan:
+                self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
+                self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
+            else:
+                if not showLiveValues:
+                    self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+                    self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+            if armed_rotation:
+                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
+                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X_ARMED))
+            else:
+                if not showLiveValues:
+                    self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
+                    self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
+            if armed_zoom:
+                self.zoom_value_text.SetLabel(str('%.2f' % Translation_Z_ARMED))
+                self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
+            else:
+                if not showLiveValues:
+                    self.zoom_value_text.SetLabel(str('%.2f' % Translation_Z))
+                    self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
+                    # self.fov_slider.SetValue(int(FOV_Scale))
+
+            if not showLiveValues:
+                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
+
+        # obj.SetToolTip(obj_tooltip)
+        self.writeAllValues()
         event.Skip()
 
     def OnClicked(self, event):
@@ -2929,7 +2982,9 @@ class Mywin(wx.Frame):
         global should_use_total_recall_in_deforumation
         global should_use_deforumation_timestring
         global number_of_recalled_frames
-        global should_allow_total_recall_prompt_changing
+        global should_use_total_recall_prompt
+        global should_use_total_recall_movements
+        global should_use_total_recall_others
         btn = event.GetEventObject().GetLabel()
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
@@ -3770,12 +3825,12 @@ class Mywin(wx.Frame):
                 Rotation_3D_X_ARMED = 0
                 Rotation_3D_Y_ARMED = 0
                 Rotation_3D_Z_ARMED = 0
-                Rotation_3D_X = 0
-                Rotation_3D_Y = 0
-                Rotation_3D_Z = 0
-                Translation_X = 0
-                Translation_Y = 0
-                Translation_Z = 0
+                #Rotation_3D_X = 0
+                #Rotation_3D_Y = 0
+                #Rotation_3D_Z = 0
+                #Translation_X = 0
+                #Translation_Y = 0
+                #Translation_Z = 0
                 #Translation_X = 0
                 #self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
                 #Translation_Y = 0
@@ -3803,13 +3858,31 @@ class Mywin(wx.Frame):
                 self.loadCurrentPrompt("P", current_render_frame, 0)
                 self.loadCurrentPrompt("N", current_render_frame, 0)
                 self.setAllComponentValues()
-        elif btn == "Allow changing prompts":
-            if should_allow_total_recall_prompt_changing == 0:
-                should_allow_total_recall_prompt_changing = 1
-                self.writeValue("should_allow_total_recall_prompt_changing", 1)
+        elif btn == "Recall prompts":
+            if should_use_total_recall_prompt == 0:
+                should_use_total_recall_prompt = 1
+                self.writeValue("should_use_total_recall_prompt", 1)
             else:
-                should_allow_total_recall_prompt_changing = 0
-                self.writeValue("should_allow_total_recall_prompt_changing", 0)
+                should_use_total_recall_prompt = 0
+                self.writeValue("should_use_total_recall_prompt", 0)
+                self.writeValue("prompts_touched", 0)
+                self.loadCurrentPrompt("P", current_render_frame, 0)
+                self.loadCurrentPrompt("N", current_render_frame, 0)
+                self.setAllComponentValues()
+        elif btn == "Recall movements":
+            if should_use_total_recall_movements == 0:
+                should_use_total_recall_movements = 1
+                self.writeValue("should_use_total_recall_movements", 1)
+            else:
+                should_use_total_recall_movements = 0
+                self.writeValue("should_use_total_recall_movements", 0)
+        elif btn == "Recall \"others\"":
+            if should_use_total_recall_others == 0:
+                should_use_total_recall_others = 1
+                self.writeValue("should_use_total_recall_others", 1)
+            else:
+                should_use_total_recall_others = 0
+                self.writeValue("should_use_total_recall_others", 0)
         elif btn == "Use Deforumation timestamp when resuming":
             if should_use_deforumation_timestring == 0:
                 should_use_deforumation_timestring = 1
@@ -4009,39 +4082,39 @@ class Mywin(wx.Frame):
         if should_use_total_recall_in_deforumation:
             if current_render_frame != -1:
                 self.setValuesFromSavedFrame(int(current_render_frame))
-        if should_use_total_recall and (int(current_render_frame) >= int(self.total_recall_from_input_box.GetValue())) and (int(current_render_frame) <= int(self.total_recall_to_input_box.GetValue())):
+        elif should_use_total_recall and (int(current_render_frame) >= int(self.total_recall_from_input_box.GetValue())) and (int(current_render_frame) <= int(self.total_recall_to_input_box.GetValue())):
             if current_render_frame != -1:
                 self.setValuesFromSavedFrame(int(current_render_frame))
-
-        #else:
-        #    self.loadCurrentPrompt("P", current_render_frame, 0)
-        #    self.loadCurrentPrompt("N", current_render_frame, 0)
-
-        if armed_pan:
-            self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
-            self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
         else:
-            if not showLiveValues:
-                self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
-                self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
-        if armed_rotation:
-            self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
-            self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' %Rotation_3D_X_ARMED))
-        else:
-            if not showLiveValues:
-                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
-                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' %Rotation_3D_X))
-        if armed_zoom:
-            self.zoom_value_text.SetLabel(str('%.2f' %Translation_Z_ARMED))
-            self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
-        else:
-            if not showLiveValues:
-                self.zoom_value_text.SetLabel(str('%.2f' %Translation_Z))
-                self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
-                #self.fov_slider.SetValue(int(FOV_Scale))
+            #else:
+            #    self.loadCurrentPrompt("P", current_render_frame, 0)
+            #    self.loadCurrentPrompt("N", current_render_frame, 0)
 
-        if not showLiveValues:
-            self.rotation_Z_Value_Text.SetLabel(str('%.2f' %Rotation_3D_Z))
+            if armed_pan:
+                self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
+                self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
+            else:
+                if not showLiveValues:
+                    self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+                    self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+            if armed_rotation:
+                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
+                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' %Rotation_3D_X_ARMED))
+            else:
+                if not showLiveValues:
+                    self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
+                    self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' %Rotation_3D_X))
+            if armed_zoom:
+                self.zoom_value_text.SetLabel(str('%.2f' %Translation_Z_ARMED))
+                self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
+            else:
+                if not showLiveValues:
+                    self.zoom_value_text.SetLabel(str('%.2f' %Translation_Z))
+                    self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
+                    #self.fov_slider.SetValue(int(FOV_Scale))
+
+            if not showLiveValues:
+                self.rotation_Z_Value_Text.SetLabel(str('%.2f' %Rotation_3D_Z))
 
         #obj.SetToolTip(obj_tooltip)
         self.writeAllValues()
@@ -4526,7 +4599,7 @@ if __name__ == '__main__':
 
 
     if len(sys.argv) < 2:
-        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.2 using WebSockets)')
+        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.3 using WebSockets)')
     else:
-        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.2 using named pipes)')
+        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.3 using named pipes)')
     app.MainLoop()
