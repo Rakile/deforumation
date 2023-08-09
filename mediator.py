@@ -114,7 +114,9 @@ rotation_z_under_recall = 0
 
 number_of_recalled_frames = 0
 
-should_allow_total_recall_prompt_changing = 0
+should_use_total_recall_prompt = 0
+should_use_total_recall_movements = 0
+should_use_total_recall_others = 0
 
 def RecallValues(frame):
     global serverShutDown
@@ -191,6 +193,22 @@ def RecallValues(frame):
     if not int(frame) in parameter_container:
         print("Mediator has no data for frame (" + str(frame) + ")" +" to send!")
         return
+    #Movement
+    rotation_x = parameter_container[frame].rotation_x + rotation_x_under_recall
+    rotation_y = parameter_container[frame].rotation_y + rotation_y_under_recall
+    rotation_z = parameter_container[frame].rotation_z + rotation_z_under_recall
+    translation_x = parameter_container[frame].translation_x + translation_x_under_recall
+    translation_y = parameter_container[frame].translation_y + translation_y_under_recall
+    translation_z = parameter_container[frame].translation_z + translation_z_under_recall
+    #prompt
+    if should_use_total_recall_prompt == 1:
+        Prompt_Positive = parameter_container[frame].Prompt_Positive
+    if should_use_total_recall_prompt == 1:
+        Prompt_Negative = parameter_container[frame].Prompt_Negative
+    seed_value = parameter_container[frame].seed_value
+
+    #Other values
+    # Keyframes/Field Of View/FOV schedule
     # Run/Steps
     steps = parameter_container[frame].steps
     # Keyframes/Strength
@@ -198,19 +216,6 @@ def RecallValues(frame):
     # Keyframes/CFG
     cfg_scale = parameter_container[frame].cfg_scale
     # Keyframes/3D/Motion
-
-    rotation_x = parameter_container[frame].rotation_x + rotation_x_under_recall
-    rotation_y = parameter_container[frame].rotation_y + rotation_y_under_recall
-    rotation_z = parameter_container[frame].rotation_z + rotation_z_under_recall
-    translation_x = parameter_container[frame].translation_x + translation_x_under_recall
-    translation_y = parameter_container[frame].translation_y + translation_y_under_recall
-    translation_z = parameter_container[frame].translation_z + translation_z_under_recall
-    if should_allow_total_recall_prompt_changing ==0:
-        Prompt_Positive = parameter_container[frame].Prompt_Positive
-    if should_allow_total_recall_prompt_changing == 0:
-        Prompt_Negative = parameter_container[frame].Prompt_Negative
-    seed_value = parameter_container[frame].seed_value
-    # Keyframes/Field Of View/FOV schedule
     fov = parameter_container[frame].fov
     cadence = parameter_container[frame].cadence
     cadence_flow_factor = parameter_container[frame].cadence_flow_factor
@@ -234,6 +239,132 @@ def RecallValues(frame):
     #frame_outdir = parameter_container[frame].frame_outdir
     #resume_timestring = parameter_container[frame].resume_timestring
 
+
+def RecallValuesTemp(copyof_parameter_container):
+    global serverShutDown
+    global Prompt_Positive
+    global Prompt_Negative
+    global rotation_x
+    global rotation_y
+    global rotation_z
+    global translation_x
+    global translation_y
+    global translation_z
+    global deforum_translation_x
+    global deforum_translation_y
+    global deforum_translation_z
+    global fov
+    global cfg_scale
+    global strength_value
+    global steps
+    global should_resume
+    global start_frame
+    global frame_outdir
+    global resume_timestring
+    global shouldPause
+    global seed_value
+    global did_seed_change
+    global should_use_deforumation_strength
+    global should_use_deforumation_cfg
+    global cadence
+    global should_use_deforumation_prompt_scheduling
+    global cn_weight
+    global cn_stepstart
+    global cn_stepend
+    global cn_lowt
+    global cn_hight
+    global cn_udcn
+    global parseq_keys
+    global use_parseq
+    global parseq_manifest
+    global parseq_strength
+    global parseq_movements
+    global deforum_rotation_x
+    global deforum_rotation_y
+    global deforum_rotation_z
+    global deforum_fov
+    global deforum_strength
+    global deforum_cfg
+    global deforum_steps
+    global parseq_prompt
+    global noise_multiplier
+    global deforum_perlin_octaves
+    global deforum_perlin_persistence
+    global deforum_noise_multiplier
+    global perlin_octaves
+    global perlin_persistence
+    global deforum_cadence
+    global should_use_deforumation_cadence
+    global should_use_deforumation_noise
+    global should_use_deforumation_panning
+    global should_use_deforumation_zoomfov
+    global should_use_deforumation_rotation
+    global should_use_deforumation_tilt
+    global use_deforumation_cadence_scheduling
+    global deforumation_cadence_scheduling_manifest
+    global should_use_optical_flow
+    global cadence_flow_factor
+    global generation_flow_factor
+    global translation_x_under_recall
+    global translation_y_under_recall
+    global translation_z_under_recall
+    global rotation_x_under_recall
+    global rotation_y_under_recall
+    global rotation_z_under_recall
+
+    if not should_use_total_recall_movements:
+        #print("-Original translation_x is:" + str(copyof_parameter_container.translation_x))
+        #print("--But sending:" + str(translation_x))
+        #print("-Original translation_y is:" + str(copyof_parameter_container.translation_y))
+        #print("--But sending:" + str(translation_y))
+        copyof_parameter_container.rotation_x = rotation_x
+        copyof_parameter_container.rotation_y = rotation_y
+        copyof_parameter_container.rotation_z = rotation_z
+        copyof_parameter_container.translation_x = translation_x
+        copyof_parameter_container.translation_y = translation_y
+        copyof_parameter_container.translation_z = translation_z
+
+    # prompt
+    if not should_use_total_recall_prompt:
+        #print("-Original prompt is:" + str(copyof_parameter_container.Prompt_Positive))
+        #print("--But sending:" + str(Prompt_Positive))
+        copyof_parameter_container.Prompt_Positive = Prompt_Positive
+        copyof_parameter_container.Prompt_Negative = Prompt_Negative
+    if not should_use_total_recall_others:
+        # Other values
+        # Run/Steps
+        copyof_parameter_container.steps = steps
+        # Keyframes/Strength
+        copyof_parameter_container.strength_value = strength_value
+        # Keyframes/CFG
+        copyof_parameter_container.cfg_scale = cfg_scale
+
+        # Keyframes/Field Of View/FOV schedule
+        copyof_parameter_container.seed_value = seed_value
+
+        copyof_parameter_container.fov = fov
+        copyof_parameter_container.cadence = cadence
+        copyof_parameter_container.cadence_flow_factor = cadence_flow_factor
+        copyof_parameter_container.generation_flow_factor = generation_flow_factor
+        for i in range(5):
+            copyof_parameter_container.cn_weight[i] = cn_weight[i]
+            copyof_parameter_container.cn_stepstart[i] = cn_stepstart[i]
+            copyof_parameter_container.cn_stepend[i] = cn_stepend[i]
+            copyof_parameter_container.cn_lowt[i] = cn_lowt[i]
+            copyof_parameter_container.cn_hight[i] = cn_hight[i]
+            copyof_parameter_container.cn_udcn[i] = cn_udcn[i]
+        copyof_parameter_container.parseq_keys = parseq_keys
+        copyof_parameter_container.use_parseq = use_parseq
+        copyof_parameter_container.parseq_manifest = parseq_manifest
+        copyof_parameter_container.parseq_strength = parseq_strength
+        copyof_parameter_container.parseq_movements = parseq_movements
+        copyof_parameter_container.parseq_prompt = parseq_prompt
+        copyof_parameter_container.noise_multiplier = noise_multiplier
+        copyof_parameter_container.perlin_octaves = perlin_octaves
+        copyof_parameter_container.perlin_persistence = perlin_persistence
+        # frame_outdir = parameter_container[frame].frame_outdir
+        # resume_timestring = parameter_container[frame].resume_timestring
+    return copyof_parameter_container
 class ParameterContainer():
     # Run/Steps
     steps = 25
@@ -414,7 +545,13 @@ async def main_websocket(websocket):
     global Prompt_Positive_touched
     global parameter_container
     global number_of_recalled_frames
-    global should_allow_total_recall_prompt_changing
+    global should_use_total_recall_prompt
+    global should_use_total_recall_movements
+    global should_use_total_recall_others
+    global translation_x_under_recall
+    global translation_y_under_recall
+    global translation_z_under_recall
+
     async for message in websocket:
         # print("Incomming message:"+str(message))
         arr = pickle.loads(message)
@@ -473,17 +610,40 @@ async def main_websocket(websocket):
                     if doVerbose:
                         print("should_use_deforumation_timestring:" + str(should_use_deforumation_timestring))
                     await websocket.send(str(should_use_deforumation_timestring))
-            elif str(parameter) == "should_allow_total_recall_prompt_changing":
+            elif str(parameter) == "should_use_total_recall_prompt":
                 if shouldWrite:
-                    should_allow_total_recall_prompt_changing = int(value)
-                    if should_allow_total_recall_prompt_changing:
+                    should_use_total_recall_prompt = int(value)
+                    if not should_use_total_recall_prompt:
                         print("Manual Prompt has been Allowed!")
                     else:
                         print("Manual Prompt has been Dis-Allowed!")
                 else:
                     if doVerbose:
-                        print("should_allow_total_recall_prompt_changing:" + str(should_allow_total_recall_prompt_changing))
-                    await websocket.send(str(should_allow_total_recall_prompt_changing))
+                        print("should_use_total_recall_prompt:" + str(should_use_total_recall_prompt))
+                    await websocket.send(str(should_use_total_recall_prompt))
+            elif str(parameter) == "should_use_total_recall_movements":
+                if shouldWrite:
+                    should_use_total_recall_movements = int(value)
+                    if not should_use_total_recall_movements:
+                        print("Manual Movements has been Allowed!")
+                    else:
+                        print("Manual Movements has been Dis-Allowed!")
+                else:
+                    if doVerbose:
+                        print("should_use_total_recall_movements:" + str(should_use_total_recall_movements))
+                    await websocket.send(str(should_use_total_recall_movements))
+            elif str(parameter) == "should_use_total_recall_others":
+                if shouldWrite:
+                    should_use_total_recall_others = int(value)
+                    if not should_use_total_recall_others:
+                        print("Manual Others has been Allowed!")
+                    else:
+                        print("Manual Others has been Dis-Allowed!")
+                else:
+                    if doVerbose:
+                        print("should_use_total_recall_others:" + str(should_use_total_recall_others))
+                    await websocket.send(str(should_use_total_recall_others))
+
             elif str(parameter) == "should_use_deforumation_prompt_scheduling":
                 if shouldWrite:
                     should_use_deforumation_prompt_scheduling = value
@@ -909,16 +1069,27 @@ async def main_websocket(websocket):
                         print("sending parameter_container")
                     if int(value) == -1:
                         bytesToSend = pickle.dumps(parameter_container)
-                    else:
-                        if int(value) in parameter_container:
-                            if should_allow_total_recall_prompt_changing:
-                                copyof_parameter_container = copy.deepcopy(parameter_container)
-                                copyof_parameter_container[int(value)].Prompt_Positive = Prompt_Positive
-                                bytesToSend = pickle.dumps(copyof_parameter_container[int(value)])
-                            else:
-                                bytesToSend = pickle.dumps(parameter_container[int(value)])
+                    elif int(value) in parameter_container:
+                        if not should_use_total_recall:
+                            bytesToSend = pickle.dumps(parameter_container[int(value)])
+                            #print("Sending ALL original parameters.")
                         else:
-                            bytesToSend = pickle.dumps(0x0)
+                            #print("Sending some or all original parameters:")
+                            copyof_parameter_container = copy.deepcopy(parameter_container[int(value)])
+                            copyof_parameter_container = RecallValuesTemp(copyof_parameter_container)
+                            bytesToSend = pickle.dumps(copyof_parameter_container)
+                        #if not should_use_total_recall_prompt:
+                        #    copyof_parameter_container.Prompt_Positive = Prompt_Positive
+                        #if not should_use_total_recall_movements:
+                        #    copyof_parameter_container.rotation_x = rotation_x
+                        #    copyof_parameter_container.rotation_y = rotation_y
+                        #    copyof_parameter_container.rotation_z = rotation_z
+                        #    copyof_parameter_container.translation_x = translation_x
+                        #    copyof_parameter_container.translation_y = translation_y
+                        #    copyof_parameter_container.translation_z = translation_z
+                        #if not should_use_total_recall_others:
+                    else:
+                        bytesToSend = pickle.dumps(0x0)
                     await websocket.send(bytesToSend)
             elif str(parameter) == "frame_outdir":
                 if shouldWrite:
@@ -1127,9 +1298,13 @@ def main_named_pipe(pipeName):
     global rotation_y_under_recall
     global rotation_z_under_recall
     global should_use_deforumation_timestring
-    global should_allow_total_recall_prompt_changing
+    global should_use_total_recall_prompt
     global parameter_container
     global number_of_recalled_frames
+    global should_use_total_recall_movements
+    global should_use_total_recall_prompt
+    global should_use_total_recall_others
+
     print("pipe server:" + str(pipeName))
     count = 0
     bufSize = 64 * 1024
@@ -1189,17 +1364,40 @@ def main_named_pipe(pipeName):
                         if doVerbose:
                             print("should_use_deforumation_timestring:" + str(should_use_deforumation_timestring))
                         win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_timestring)))
-                elif str(parameter) == "should_allow_total_recall_prompt_changing":
+                elif str(parameter) == "should_use_total_recall_prompt":
                     if shouldWrite:
-                        should_allow_total_recall_prompt_changing = int(value)
-                        if should_allow_total_recall_prompt_changing:
+                        should_use_total_recall_prompt = int(value)
+                        if should_use_total_recall_prompt:
                             print("Manual Prompt has been Allowed!")
                         else:
                             print("Manual Prompt has been Dis-Allowed!")
                     else:
                         if doVerbose:
-                            print("should_allow_total_recall_prompt_changing:" + str(should_allow_total_recall_prompt_changing))
-                        win32file.WriteFile(pipe, str.encode(str(should_allow_total_recall_prompt_changing)))
+                            print("should_use_total_recall_prompt:" + str(should_use_total_recall_prompt))
+                        win32file.WriteFile(pipe, str.encode(str(should_use_total_recall_prompt)))
+                elif str(parameter) == "should_use_total_recall_movements":
+                    if shouldWrite:
+                        should_use_total_recall_movements = int(value)
+                        if not should_use_total_recall_movements:
+                            print("Manual Movements has been Allowed!")
+                        else:
+                            print("Manual Movements has been Dis-Allowed!")
+                    else:
+                        if doVerbose:
+                            print("should_use_total_recall_movements:" + str(should_use_total_recall_movements))
+                        win32file.WriteFile(pipe, str.encode(str(should_use_total_recall_movements)))
+                elif str(parameter) == "should_use_total_recall_others":
+                    if shouldWrite:
+                        should_use_total_recall_others = int(value)
+                        if not should_use_total_recall_others:
+                            print("Manual Others has been Allowed!")
+                        else:
+                            print("Manual Others has been Dis-Allowed!")
+                    else:
+                        if doVerbose:
+                            print("should_use_total_recall_others:" + str(should_use_total_recall_others))
+                        win32file.WriteFile(pipe, str.encode(str(should_use_total_recall_others)))
+
                 elif str(parameter) == "should_use_total_recall":
                     if shouldWrite:
                         should_use_total_recall = int(value)
@@ -1657,17 +1855,24 @@ def main_named_pipe(pipeName):
                             print("sending parameter_container")
                         if int(value) == -1:
                             bytesToSend = pickle.dumps(parameter_container)
-                        else:
-                            if int(value) in parameter_container:
-                                if should_allow_total_recall_prompt_changing:
-                                    copyof_parameter_container = copy.deepcopy(parameter_container)
-                                    copyof_parameter_container[int(value)].Prompt_Positive = Prompt_Positive
-                                    bytesToSend = pickle.dumps(copyof_parameter_container[int(value)])
-                                else:
-                                    bytesToSend = pickle.dumps(parameter_container[int(value)], HIGHEST_PROTOCOL)
-                                    arne = 1
+                        elif int(value) in parameter_container:
+                            if not should_use_total_recall:
+                                bytesToSend = pickle.dumps(parameter_container[int(value)])
+                                #print("Sending ALL original parameters.")
                             else:
-                                bytesToSend = pickle.dumps(0x0)
+                                #print("Sending some or all original parameters:")
+                                copyof_parameter_container = copy.deepcopy(parameter_container[int(value)])
+                                copyof_parameter_container = RecallValuesTemp(copyof_parameter_container)
+                                bytesToSend = pickle.dumps(copyof_parameter_container)
+                            #if should_use_total_recall_prompt:
+                            #    copyof_parameter_container = copy.deepcopy(parameter_container)
+                            #    copyof_parameter_container[int(value)].Prompt_Positive = Prompt_Positive
+                            #    bytesToSend = pickle.dumps(copyof_parameter_container[int(value)])
+                            #else:
+                            #    bytesToSend = pickle.dumps(parameter_container[int(value)], HIGHEST_PROTOCOL)
+                            #    arne = 1
+                        else:
+                            bytesToSend = pickle.dumps(0x0)
 
                         win32file.WriteFile(pipe, bytesToSend)
                     number_of_recalled_frames = len(parameter_container)
@@ -1852,10 +2057,10 @@ async def main_websockets():
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Starting Mediator with WebSocket communication, version 0.6.1")
+        print("Starting Mediator with WebSocket communication, version 0.6.3")
         shouldUseNamedPipes = False
     else:
-        print("Starting Mediator with Named Pipes communication, version 0.6.1")
+        print("Starting Mediator with Named Pipes communication, version 0.6.3")
         shouldUseNamedPipes = True
 
     try:
