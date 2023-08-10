@@ -323,6 +323,13 @@ def RecallValuesTemp(copyof_parameter_container):
         copyof_parameter_container.translation_x = translation_x
         copyof_parameter_container.translation_y = translation_y
         copyof_parameter_container.translation_z = translation_z
+    else:
+        copyof_parameter_container.rotation_x += rotation_x_under_recall
+        copyof_parameter_container.rotation_y += rotation_y_under_recall
+        copyof_parameter_container.rotation_z += rotation_z_under_recall
+        copyof_parameter_container.translation_x += translation_x_under_recall
+        copyof_parameter_container.translation_y += translation_y_under_recall
+        copyof_parameter_container.translation_z += translation_z_under_recall
 
     # prompt
     if not should_use_total_recall_prompt:
@@ -551,6 +558,9 @@ async def main_websocket(websocket):
     global translation_x_under_recall
     global translation_y_under_recall
     global translation_z_under_recall
+    global rotation_x_under_recall
+    global rotation_y_under_recall
+    global rotation_z_under_recall
 
     async for message in websocket:
         # print("Incomming message:"+str(message))
@@ -583,8 +593,14 @@ async def main_websocket(websocket):
             elif str(parameter) ==  "should_use_total_recall":
                 if shouldWrite:
                     should_use_total_recall = int(value)
+                    Prompt_Positive_touched = 0
                     if should_use_total_recall == 1:
-                        Prompt_Positive_touched = 0
+                        translation_x_under_recall = 0
+                        translation_y_under_recall = 0
+                        translation_z_under_recall = 0
+                        rotation_x_under_recall = 0
+                        rotation_y_under_recall = 0
+                        rotation_z_under_recall = 0
                 else:
                     if doVerbose:
                         print("should_use_total_recall:" + str(should_use_total_recall))
@@ -690,23 +706,33 @@ async def main_websocket(websocket):
             ###########################################################################
             elif str(parameter) == "translation_x":
                 if shouldWrite:
-                    translation_x = float(value)
-                    translation_x_under_recall = float(value)
+                    if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
+                        translation_x = float(value)
+                    else:
+                        translation_x_under_recall = float(value)
+
                 else:
                     if doVerbose:
                         print("sending translation_x:" + str(translation_x))
                     await websocket.send(str(translation_x))
+
             elif str(parameter) == "translation_y":
                 if shouldWrite:
-                    translation_y = float(value)
-                    translation_y_under_recall = float(value)
+                    if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
+                        translation_y = float(value)
+                    else:
+                        translation_y_under_recall = float(value)
                 else:
                     if doVerbose:
                         print("sending translation_y:" + str(translation_y))
                     await websocket.send(str(translation_y))
+
             elif str(parameter) == "translation_z":
                 if shouldWrite:
-                    translation_z = float(value)
+                    if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
+                        translation_z = float(value)
+                    else:
+                        translation_z_under_recall = float(value)
                 else:
                     if doVerbose:
                         print("sending translation_z:" + str(translation_z))
@@ -759,7 +785,11 @@ async def main_websocket(websocket):
             ###########################################################################
             elif str(parameter) == "rotation_x":
                 if shouldWrite:
-                    rotation_x = float(value)
+                    if not should_use_total_recall or (
+                            should_use_total_recall and not should_use_total_recall_movements):
+                        rotation_x = float(value)
+                    else:
+                        rotation_x_under_recall = float(value)
                     # print("writing rotation_x:" + str(rotation_x))
                     # time.sleep(20)
                 else:
@@ -768,18 +798,27 @@ async def main_websocket(websocket):
                     await websocket.send(str(rotation_x))
             elif str(parameter) == "rotation_y":
                 if shouldWrite:
-                    rotation_y = float(value)
+                    if not should_use_total_recall or (
+                            should_use_total_recall and not should_use_total_recall_movements):
+                        rotation_y = float(value)
+                    else:
+                        rotation_y_under_recall = float(value)
                 else:
                     if doVerbose:
                         print("sending rotation_y:" + str(rotation_y))
                     await websocket.send(str(rotation_y))
             elif str(parameter) == "rotation_z":
                 if shouldWrite:
-                    rotation_z = float(value)
+                    if not should_use_total_recall or (
+                            should_use_total_recall and not should_use_total_recall_movements):
+                        rotation_z = float(value)
+                    else:
+                        rotation_z_under_recall = float(value)
                 else:
                     if doVerbose:
                         print("sending rotation_z:" + str(rotation_z))
                     await websocket.send(str(rotation_z))
+
             # FOV Params
             ###########################################################################
             elif str(parameter) == "fov":
@@ -1402,9 +1441,13 @@ def main_named_pipe(pipeName):
                     if shouldWrite:
                         should_use_total_recall = int(value)
                         Prompt_Positive_touched = 0
-                        #if should_use_total_recall == 1:
-                        #    translation_x = 0
-                        #    translation_y = 0
+                        if should_use_total_recall == 1:
+                            translation_x_under_recall = 0
+                            translation_y_under_recall = 0
+                            translation_z_under_recall = 0
+                            rotation_x_under_recall = 0
+                            rotation_y_under_recall = 0
+                            rotation_z_under_recall = 0
                     else:
                         if doVerbose:
                             print("should_use_total_recall:" + str(should_use_total_recall))
@@ -1469,7 +1512,7 @@ def main_named_pipe(pipeName):
                 ###########################################################################
                 elif str(parameter) == "translation_x":
                     if shouldWrite:
-                        if not should_use_total_recall:
+                        if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
                             translation_x = float(value)
                         else:
                             translation_x_under_recall = float(value)
@@ -1481,7 +1524,7 @@ def main_named_pipe(pipeName):
 
                 elif str(parameter) == "translation_y":
                     if shouldWrite:
-                        if not should_use_total_recall:
+                        if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
                             translation_y = float(value)
                         else:
                             translation_y_under_recall = float(value)
@@ -1492,7 +1535,7 @@ def main_named_pipe(pipeName):
 
                 elif str(parameter) == "translation_z":
                     if shouldWrite:
-                        if not should_use_total_recall:
+                        if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
                             translation_z = float(value)
                         else:
                             translation_z_under_recall = float(value)
@@ -1548,7 +1591,7 @@ def main_named_pipe(pipeName):
                 ###########################################################################
                 elif str(parameter) == "rotation_x":
                     if shouldWrite:
-                        if not should_use_total_recall:
+                        if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
                             rotation_x = float(value)
                         else:
                             rotation_x_under_recall = float(value)
@@ -1560,7 +1603,7 @@ def main_named_pipe(pipeName):
                         win32file.WriteFile(pipe, str.encode(str(rotation_x)))
                 elif str(parameter) == "rotation_y":
                     if shouldWrite:
-                        if not should_use_total_recall:
+                        if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
                             rotation_y = float(value)
                         else:
                             rotation_y_under_recall = float(value)
@@ -1570,7 +1613,10 @@ def main_named_pipe(pipeName):
                         win32file.WriteFile(pipe, str.encode(str(rotation_y)))
                 elif str(parameter) == "rotation_z":
                     if shouldWrite:
-                        rotation_z = float(value)
+                        if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
+                            rotation_z = float(value)
+                        else:
+                            rotation_z_under_recall = float(value)
                     else:
                         if doVerbose:
                             print("sending rotation_z:" + str(rotation_z))

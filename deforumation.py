@@ -2020,17 +2020,39 @@ class Mywin(wx.Frame):
                 #FOV_Scale = float(parameter_container.fov)
                 self.fov_slider.SetValue(int(float(parameter_container.fov)))
                 #Translation_X = float(parameter_container.translation_x)
-                self.pan_X_Value_Text.SetLabel(str('%.2f' % float(parameter_container.translation_x)))
-                #Translation_Y = float(parameter_container.translation_y)
-                self.pan_Y_Value_Text.SetLabel(str('%.2f' % float(parameter_container.translation_y)))
+                if not armed_pan:
+                    self.pan_X_Value_Text.SetLabel(str('%.2f' % float(parameter_container.translation_x)))
+                    self.pan_Y_Value_Text.SetLabel(str('%.2f' % float(parameter_container.translation_y)))
+                else:
+                    self.pan_X_Value_Text.SetLabel(str('%.2f' % float(Translation_X_ARMED)))
+                    self.pan_Y_Value_Text.SetLabel(str('%.2f' % float(Translation_Y_ARMED)))
+
                 #Translation_Z = float(parameter_container.translation_z)
-                self.zoom_slider.SetValue(int(float(parameter_container.translation_z))*100)
-                self.zoom_value_text.SetLabel('%.2f' % (float(parameter_container.translation_z)))
+                #elif armed_pan:
+                #    self.pan_X_Value_Text.SetLabel(str('%.2f' % float(Translation_X_ARMED)))
+                #    #Translation_Y = float(parameter_container.translation_y)
+                #    self.pan_Y_Value_Text.SetLabel(str('%.2f' % float(Translation_Y_ARMED)))
+                #    #Translation_Z = float(parameter_container.translation_z)
+
+                #self.zoom_slider.SetValue(int(float(parameter_container.translation_z))*100)
+                #self.zoom_value_text.SetLabel('%.2f' % (float(parameter_container.translation_z)))
                 #Rotation_3D_X = float(parameter_container.rotation_x)
                 #Rotation_3D_Y = float(parameter_container.rotation_y)
                 #Rotation_3D_Z = float(parameter_container.rotation_z)
-                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % float(parameter_container.rotation_x)))
-                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % float(parameter_container.rotation_y)))
+                if not armed_rotation:
+                    self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % float(parameter_container.rotation_y)))
+                    self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % float(parameter_container.rotation_x)))
+                else:
+                    self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Y_ARMED)))
+                    self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_X_ARMED)))
+
+                if not armed_zoom:
+                    self.zoom_value_text.SetLabel(str('%.2f' % float(parameter_container.translation_z)))
+                    self.zoom_slider.SetValue(int(float(parameter_container.translation_z) * 100))
+                else:
+                    self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z_ARMED)))
+                    self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
+
                 self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(parameter_container.rotation_z)))
 
                 #Cadence_Schedule = int(parameter_container.cadence)
@@ -3189,7 +3211,10 @@ class Mywin(wx.Frame):
                     Translation_X = Translation_X - float(self.pan_step_input_box.GetValue())
                 self.writeValue("translation_x", Translation_X)
             elif armed_pan:
-                Translation_X_ARMED =  round(Translation_X_ARMED - float(self.pan_step_input_box.GetValue()),2)
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Translation_X_ARMED = 0
+                else:
+                    Translation_X_ARMED =  round(Translation_X_ARMED - float(self.pan_step_input_box.GetValue()),2)
                 if should_use_total_recall:
                     self.writeValue("translation_x", Translation_X_ARMED)
         elif btn == "PAN_RIGHT":
@@ -3200,7 +3225,10 @@ class Mywin(wx.Frame):
                     Translation_X = Translation_X + float(self.pan_step_input_box.GetValue())
                 self.writeValue("translation_x", Translation_X)
             elif armed_pan:
-                Translation_X_ARMED = round(Translation_X_ARMED + float(self.pan_step_input_box.GetValue()),2)
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Translation_X_ARMED = 0
+                else:
+                    Translation_X_ARMED = round(Translation_X_ARMED + float(self.pan_step_input_box.GetValue()),2)
                 if should_use_total_recall:
                     self.writeValue("translation_x", Translation_X_ARMED)
         elif btn == "PAN_UP":
@@ -3211,7 +3239,10 @@ class Mywin(wx.Frame):
                     Translation_Y = Translation_Y + float(self.pan_step_input_box.GetValue())
                 self.writeValue("translation_y", Translation_Y)
             elif armed_pan:
-                Translation_Y_ARMED =  round(Translation_Y_ARMED + float(self.pan_step_input_box.GetValue()),2)
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Translation_Y_ARMED = 0
+                else:
+                    Translation_Y_ARMED =  round(Translation_Y_ARMED + float(self.pan_step_input_box.GetValue()),2)
                 if should_use_total_recall:
                     self.writeValue("translation_y", Translation_Y_ARMED)
         elif btn == "PAN_DOWN":
@@ -3222,7 +3253,10 @@ class Mywin(wx.Frame):
                     Translation_Y = Translation_Y - float(self.pan_step_input_box.GetValue())
                 self.writeValue("translation_y", Translation_Y)
             elif armed_pan:
-                Translation_Y_ARMED =  round(Translation_Y_ARMED - float(self.pan_step_input_box.GetValue()),2)
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Translation_Y_ARMED = 0
+                else:
+                    Translation_Y_ARMED =  round(Translation_Y_ARMED - float(self.pan_step_input_box.GetValue()),2)
                 if should_use_total_recall:
                     self.writeValue("translation_y", Translation_Y_ARMED)
         elif btn == "ZERO PAN":
@@ -3252,7 +3286,6 @@ class Mywin(wx.Frame):
 
         elif btn == "ZOOM":
             currentEventTypeID = event.GetEventType()
-
             if not armed_zoom and not should_use_total_recall:
                 if self.eventDict[currentEventTypeID] == "EVT_RIGHT_UP":
                     self.zoom_slider.SetValue(0)
@@ -3360,7 +3393,7 @@ class Mywin(wx.Frame):
                     self.writeValue("rotation_y", Rotation_3D_Y_ARMED)
 
         elif btn == "LOOK_RIGHT":
-            if not armed_rotation and not should_use_total_recall:
+            if not armed_rotation and (not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements)):
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_Y = 0
                 else:
@@ -3374,7 +3407,7 @@ class Mywin(wx.Frame):
                 if should_use_total_recall:
                     self.writeValue("rotation_y", Rotation_3D_Y_ARMED)
         elif btn == "LOOK_UP":
-            if not armed_rotation and not should_use_total_recall:
+            if not armed_rotation and (not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements)):
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_X = 0
                 else:
@@ -3388,7 +3421,7 @@ class Mywin(wx.Frame):
                 if should_use_total_recall:
                     self.writeValue("rotation_x", Rotation_3D_X_ARMED)
         elif btn == "LOOK_DOWN":
-            if not armed_rotation and not should_use_total_recall:
+            if not armed_rotation and (not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements)):
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_X = 0
                 else:
@@ -3427,17 +3460,19 @@ class Mywin(wx.Frame):
                 zero_rotate_active = False
 
         elif btn == "ROTATE_LEFT":
-            if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
-                Rotation_3D_Z = 0
-            else:
-                Rotation_3D_Z = Rotation_3D_Z + float(self.tilt_step_input_box.GetValue())
-            self.writeValue("rotation_z", Rotation_3D_Z)
+            if (not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements)):
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Rotation_3D_Z = 0
+                else:
+                    Rotation_3D_Z = Rotation_3D_Z + float(self.tilt_step_input_box.GetValue())
+                self.writeValue("rotation_z", Rotation_3D_Z)
         elif btn == "ROTATE_RIGHT":
-            if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
-                Rotation_3D_Z = 0
-            else:
-                Rotation_3D_Z = Rotation_3D_Z - float(self.tilt_step_input_box.GetValue())
-            self.writeValue("rotation_z", Rotation_3D_Z)
+            if (not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements)):
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Rotation_3D_Z = 0
+                else:
+                    Rotation_3D_Z = Rotation_3D_Z - float(self.tilt_step_input_box.GetValue())
+                self.writeValue("rotation_z", Rotation_3D_Z)
         elif btn == "ZERO TILT":
             Rotation_3D_Z = 0
             self.writeValue("rotation_z", Rotation_3D_Z)
@@ -3813,12 +3848,12 @@ class Mywin(wx.Frame):
                 self.writeValue("should_use_total_recall", 1)
                 self.writeValue("total_recall_from", int(self.total_recall_from_input_box.GetValue()))
                 self.writeValue("total_recall_to", int(self.total_recall_to_input_box.GetValue()))
-                self.writeValue("translation_x", 0)
-                self.writeValue("translation_y", 0)
-                self.writeValue("translation_z", 0)
-                self.writeValue("rotation_x", 0)
-                self.writeValue("rotation_y", 0)
-                self.writeValue("rotation_z", 0)
+                #self.writeValue("translation_x", 0)
+                #self.writeValue("translation_y", 0)
+                #self.writeValue("translation_z", 0)
+                #self.writeValue("rotation_x", 0)
+                #self.writeValue("rotation_y", 0)
+                #self.writeValue("rotation_z", 0)
                 Translation_X_ARMED = 0
                 Translation_Y_ARMED = 0
                 Translation_Z_ARMED = 0
