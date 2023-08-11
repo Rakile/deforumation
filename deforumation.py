@@ -20,13 +20,15 @@ import pyeaze
 import win32pipe, win32file, pywintypes
 import sys
 import subprocess
+import shutil
 
 #import subprocess
 cadenceArray = {}
 totalRecallFilePath = "./totalrecall.txt"
-deforumationSettingsPath="./deforumation_settings.txt"
+deforumationSettingsPath = "./deforumation_settings.txt"
 deforumationSettingsPath_Keys = "./deforum_settings_keys.txt"
-deforumationPromptsPath ="./prompts/"
+deforumationPromptsPath = "./prompts/"
+deforumation_image_backup_folder = "./image_backup/"
 screenWidth = 1500
 screenHeight = 1060
 USE_BUFFERED_DC = True
@@ -133,6 +135,7 @@ number_of_recalled_frames = 0
 should_use_total_recall_prompt = 0
 should_use_total_recall_movements = 0
 should_use_total_recall_others = 0
+windowlabel = ""
 async def sendAsync_special(value):
     if shouldUseNamedPipes:
         bufSize = 64 * 1024
@@ -692,7 +695,8 @@ class Mywin(wx.Frame):
         self.positive_prompt_input_ctrl.SetToolTip("This is the main positive prompt window. When \"Save Prompts\" is pushed, this prompt will belong to the current image frame.")
         sizer.Add(self.positive_prompt_input_ctrl, 0, wx.ALL , 0)
         #self.positive_prompt_input_ctrl.Bind(wx.EVT_KILL_FOCUS, self.OnFocus)
-        self.positive_prompt_input_ctrl.Bind(wx.EVT_KEY_UP, self.OnKeyEvent)
+        self.positive_prompt_input_ctrl.Bind(wx.EVT_KEY_DOWN, self.OnKeyEvent)
+        self.positive_prompt_input_ctrl.Bind(wx.EVT_KEY_UP, self.OnKeyEvent_Empty)
 
         self.positive_prompt_input_ctrl_2_prio = wx.TextCtrl(self.panel, size=(20,20))
         sizer3.Add(self.positive_prompt_input_ctrl_2_prio, 0, wx.ALL, 0)
@@ -708,7 +712,8 @@ class Mywin(wx.Frame):
         self.positive_prompt_input_ctrl_2 = wx.TextCtrl(self.panel, id=9999, style=wx.TE_MULTILINE, size=(int(screenWidth/2),50))
         self.positive_prompt_input_ctrl_2.SetToolTip("This is a secondary positive prompt window. When \"Save Prompts\" is pushed, it will be part of the combined positive prompts. It doesn't belong to a certain frame.")
         sizer.Add(self.positive_prompt_input_ctrl_2, 0, wx.ALL, 0)
-        self.positive_prompt_input_ctrl_2.Bind(wx.EVT_KEY_UP, self.OnKeyEvent)
+        self.positive_prompt_input_ctrl_2.Bind(wx.EVT_KEY_DOWN, self.OnKeyEvent)
+        self.positive_prompt_input_ctrl_2.Bind(wx.EVT_KEY_UP, self.OnKeyEvent_Empty)
         #self.positive_prompt_input_ctrl_2.Bind(wx.EVT_KILL_FOCUS, self.OnFocus)
 
         self.positive_prompt_input_ctrl_3_prio = wx.TextCtrl(self.panel, size=(20,20))
@@ -726,7 +731,8 @@ class Mywin(wx.Frame):
         self.positive_prompt_input_ctrl_3 = wx.TextCtrl(self.panel, id=9999, style=wx.TE_MULTILINE, size=(int(screenWidth/2),50))
         self.positive_prompt_input_ctrl_3.SetToolTip("This is a secondary positive prompt window. When \"Save Prompts\" is pushed, it will be part of the combined positive prompts. It doesn't belong to a certain frame.")
         sizer.Add(self.positive_prompt_input_ctrl_3, 0, wx.ALL, 0)
-        self.positive_prompt_input_ctrl_3.Bind(wx.EVT_KEY_UP, self.OnKeyEvent)
+        self.positive_prompt_input_ctrl_3.Bind(wx.EVT_KEY_DOWN, self.OnKeyEvent)
+        self.positive_prompt_input_ctrl_3.Bind(wx.EVT_KEY_UP, self.OnKeyEvent_Empty)
         #self.positive_prompt_input_ctrl_3.Bind(wx.EVT_KILL_FOCUS, self.OnFocus)
 
         self.positive_prompt_input_ctrl_4_prio = wx.TextCtrl(self.panel, size=(20,20))
@@ -743,7 +749,8 @@ class Mywin(wx.Frame):
         self.positive_prompt_input_ctrl_4 = wx.TextCtrl(self.panel, id=9999, style=wx.TE_MULTILINE, size=(int(screenWidth/2),50))
         self.positive_prompt_input_ctrl_4.SetToolTip("This is a secondary positive prompt window. When \"Save Prompts\" is pushed, it will be part of the combined positive prompts. It doesn't belong to a certain frame.")
         sizer.Add(self.positive_prompt_input_ctrl_4, 0, wx.ALL, 0)
-        self.positive_prompt_input_ctrl_4.Bind(wx.EVT_KEY_UP, self.OnKeyEvent)
+        self.positive_prompt_input_ctrl_4.Bind(wx.EVT_KEY_DOWN, self.OnKeyEvent)
+        self.positive_prompt_input_ctrl_4.Bind(wx.EVT_KEY_UP, self.OnKeyEvent_Empty)
         #self.positive_prompt_input_ctrl_4.Bind(wx.EVT_KILL_FOCUS, self.OnFocus)
 
         #ERASE TOTAL RECALL MEMORY
@@ -778,7 +785,8 @@ class Mywin(wx.Frame):
         self.negative_prompt_input_ctrl = wx.TextCtrl(self.panel, id=9999, style=wx.TE_MULTILINE, size=(int(screenWidth/2),100))
         self.negative_prompt_input_ctrl.SetToolTip("This is the negative prompt window. When \"Save Prompts\" is pushed, this prompt will belong to the current image frame.")
         sizer.Add(self.negative_prompt_input_ctrl, 0, wx.ALL, 0)
-        self.negative_prompt_input_ctrl.Bind(wx.EVT_KEY_UP, self.OnKeyEvent)
+        self.negative_prompt_input_ctrl.Bind(wx.EVT_KEY_DOWN, self.OnKeyEvent)
+        self.negative_prompt_input_ctrl.Bind(wx.EVT_KEY_UP, self.OnKeyEvent_Empty)
         #self.negative_prompt_input_ctrl.Bind(wx.EVT_KILL_FOCUS, self.OnFocus)
 
         #if os.path.isfile(deforumationSettingsPath):
@@ -984,7 +992,16 @@ class Mywin(wx.Frame):
 
 
         #####################################################
+        #BACKUP ALL CURRENT FRAMES
+        self.backup_all_images = wx.Button(self.panel, label="Backup All Images", pos=(int(screenWidth / 2) + 360, 150))
+        self.backup_all_images.SetToolTip("Make a quick backup of all your currently generated images.")
+        self.backup_all_images.Bind(wx.EVT_BUTTON, self.OnClicked)
 
+        #RESTORE ALL CURRENT FRAMES
+        self.restore_all_images = wx.Button(self.panel, label="Restore All Images", pos=(int(screenWidth / 2) + 480, 150))
+        self.restore_all_images.SetToolTip("Restores images to current Deforum timestring directory, from the latest backup made.")
+        self.restore_all_images.Bind(wx.EVT_BUTTON, self.OnClicked)
+        ###############
         #SAVE PROMPTS BUTTON
         self.update_prompts = wx.Button(self.panel, label="SAVE PROMPTS")
         self.update_prompts.SetToolTip("When pushing this, the current Positive Prompt, and the current Negative Prompt will be saved on the currently set frame. While generating, the current frame will be increasing, and your prompts will be saved along with it.")
@@ -1099,6 +1116,7 @@ class Mywin(wx.Frame):
         self.fov_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=70, minValue=20, maxValue=120, pos = (190+trbX, tbrY-5), size = (40, 150), style = wx.SL_VERTICAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
         self.fov_slider.SetToolTip("Sets the current Field Of View (70 is default).")
         self.fov_slider.Bind(wx.EVT_SCROLL, self.OnClicked)
+        self.fov_slider.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.fov_slider.SetTickFreq(1)
         self.fov_slider.SetLabel("FOV")
         self.FOV_Text = wx.StaticText(self.panel, label="F", pos=(250+trbX, tbrY+40))
@@ -1584,7 +1602,8 @@ class Mywin(wx.Frame):
         self.panel.Bind(wx.EVT_LEFT_DOWN, self.PanelClicked)
 
 
-
+    def OnKeyEvent_Empty(self, e): #Dummy Event handler to not get BEEP sound when Ctrl+S
+        e.Skip()
 
     def OnKeyEvent(self, e):
         keycode = e.GetKeyCode()
@@ -1596,7 +1615,8 @@ class Mywin(wx.Frame):
             event.SetEventObject(self.update_prompts)
             event.SetId(self.update_prompts.GetId())
             self.update_prompts.GetEventHandler().ProcessEvent(event)
-
+        else:
+            e.Skip()
     def OnBezierChoice(self, event):
         global bezierArray
         selectionString = self.bezier_chooser_choice.GetString(self.bezier_chooser_choice.GetSelection())
@@ -2884,6 +2904,11 @@ class Mywin(wx.Frame):
         if event.GetId() == 1239 or event.GetId() == 1240:
             self.writeValue("total_recall_from", int(self.total_recall_from_input_box.GetValue()))
             self.writeValue("total_recall_to", int(self.total_recall_to_input_box.GetValue()))
+            if should_use_total_recall:
+                self.SetLabel(windowlabel + " -- Using total recall from frame " + str(self.total_recall_from_input_box.GetValue()) + " to frame " + self.total_recall_to_input_box.GetValue())
+            else:
+                self.SetLabel(windowlabel + " -- \"From\" or \"To\" has changed... (From = " + str(self.total_recall_from_input_box.GetValue()) + " To = " + self.total_recall_to_input_box.GetValue()+")")
+
         if event.GetId() == 3:
             seedValue = int(self.seed_input_box.GetValue())
             self.writeValue("seed", seedValue)
@@ -3202,6 +3227,7 @@ class Mywin(wx.Frame):
             self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', '') + "\n")
             self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '') + "\n")
             self.writeValue("prompts_touched", 1)
+            self.SetLabel(windowlabel + " -- Prompts saved to mediator, specifically to frame " + str(self.readValue("start_frame")))
 
         elif btn == "PAN_LEFT":
             if not armed_pan and not should_use_total_recall:
@@ -3519,7 +3545,12 @@ class Mywin(wx.Frame):
                 self.arm_zoom_button.SetBitmap(bmp)
                 self.arm_zoom_button.SetSize(bmp.GetWidth()+10, bmp.GetHeight()+10)
         elif btn == "FOV":
-            FOV_Scale = float(self.fov_slider.GetValue())
+            currentEventTypeID = event.GetEventType()
+            if self.eventDict[currentEventTypeID] == "EVT_RIGHT_UP":
+                FOV_Scale = 70
+                self.fov_slider.SetValue(int(FOV_Scale))
+            else:
+                FOV_Scale = float(self.fov_slider.GetValue())
             self.writeValue("fov", FOV_Scale)
         elif btn == "LOCK FOV":
             if is_fov_locked:
@@ -3590,6 +3621,80 @@ class Mywin(wx.Frame):
             self.writeValue("cn_stepend"+str(current_active_cn_index), CN_StepEnd[current_active_cn_index-1])
             self.writeValue("cn_lowt"+str(current_active_cn_index), CN_LowT[current_active_cn_index-1])
             self.writeValue("cn_hight"+str(current_active_cn_index), CN_HighT[current_active_cn_index-1])
+        elif btn == "Backup All Images":
+            if not os.path.isdir(deforumation_image_backup_folder):
+                os.mkdir(deforumation_image_backup_folder)
+            outdir = str(readValue("frame_outdir")).replace('\\', '/').replace('\n', '')
+            resume_timestring = str(readValue("resume_timestring"))
+            #folder = outdir + "/" + resume_timestring + "_" + current_render_frame + ".png"
+            if os.path.isdir(outdir):
+                for item in os.listdir(deforumation_image_backup_folder):
+                    os.remove(deforumation_image_backup_folder + item)
+                numFiles = 0
+                for item in os.listdir(outdir):
+                    if ".txt" in item or ".mp4" in item:
+                        continue
+                    else:
+                        srcPath = outdir + "/" + item
+                        dstPath = deforumation_image_backup_folder + item
+                        shutil.copy(srcPath, dstPath)
+                        numFiles += 1
+                self.SetLabel(windowlabel + " -- Backup done, backed up " + str(numFiles) + " files.")
+                print("Backup done, backed up " + str(numFiles) + " files.")
+            else:
+                self.SetLabel(windowlabel + " -- No ongoing render folder. No backup done.")
+        elif btn == "Restore All Images":
+            if not os.path.isdir(deforumation_image_backup_folder):
+                os.mkdir(deforumation_image_backup_folder)
+            outdir = str(readValue("frame_outdir")).replace('\\', '/').replace('\n', '')
+            resume_timestring = str(readValue("resume_timestring"))
+            #folder = outdir + "/" + resume_timestring + "_" + current_render_frame + ".png"
+            if os.path.isdir(outdir):
+                backed_up_timestring = ""
+                for item in os.listdir(deforumation_image_backup_folder):
+                    if ".txt" in item or ".mp4" in item:
+                        continue
+                    frameNumberStart = item.rfind("_")
+                    backed_up_timestring = item[:frameNumberStart]
+
+                shouldContinue = True
+                if resume_timestring != backed_up_timestring:
+                    dlg = wx.MessageDialog(self, "Backup is from another timestring, do you really want to restore?", "Mismatching timestrings", wx.YES_NO | wx.ICON_WARNING)
+                    result = dlg.ShowModal()
+                    if result == wx.ID_YES:
+                        shouldContinue = True
+                    else:
+                        shouldContinue = False
+
+                if shouldContinue:
+                    numFiles = 0
+                    for item in os.listdir(outdir):
+                        if ".txt" in item or ".mp4" in item:
+                            continue
+                        os.remove(outdir + "/" + item)
+                    if(numFiles !=0):
+                        print("Removed " + str(numFiles) + " files from original folder:"+str(outdir))
+                    else:
+                        print("No files removed from original folder:"+str(outdir))
+
+                    numFiles = 0
+                    #resume_timestring + "_" + current_render_frame + ".png"
+                    for item in os.listdir(deforumation_image_backup_folder):
+                        if ".txt" in item or ".mp4" in item:
+                            continue
+                        else:
+                            frameNumberStart = item.rfind("_")
+                            frameNumberEnd = item.rfind(".")
+                            frameNumber = item[frameNumberStart+1:frameNumberEnd]
+                            srcPath = deforumation_image_backup_folder + item
+                            dstPath = outdir + "/" + resume_timestring + "_" + frameNumber + ".png"
+                            shutil.copy(srcPath, dstPath)
+                            numFiles += 1
+                    self.SetLabel(windowlabel + " -- Backup done, backed up " + str(numFiles) + " files.")
+                    print("Restore done, restored " + str(numFiles) + " files.")
+            else:
+                self.SetLabel(windowlabel + " -- No ongoing render folder. No restore done.")
+
 
         #########END OF CN STUFF#############################
         elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2 or btn == "REWIND_CLOSEST" or btn == "FORWARD_CLOSEST":
@@ -3848,28 +3953,13 @@ class Mywin(wx.Frame):
                 self.writeValue("should_use_total_recall", 1)
                 self.writeValue("total_recall_from", int(self.total_recall_from_input_box.GetValue()))
                 self.writeValue("total_recall_to", int(self.total_recall_to_input_box.GetValue()))
-                #self.writeValue("translation_x", 0)
-                #self.writeValue("translation_y", 0)
-                #self.writeValue("translation_z", 0)
-                #self.writeValue("rotation_x", 0)
-                #self.writeValue("rotation_y", 0)
-                #self.writeValue("rotation_z", 0)
                 Translation_X_ARMED = 0
                 Translation_Y_ARMED = 0
                 Translation_Z_ARMED = 0
                 Rotation_3D_X_ARMED = 0
                 Rotation_3D_Y_ARMED = 0
                 Rotation_3D_Z_ARMED = 0
-                #Rotation_3D_X = 0
-                #Rotation_3D_Y = 0
-                #Rotation_3D_Z = 0
-                #Translation_X = 0
-                #Translation_Y = 0
-                #Translation_Z = 0
-                #Translation_X = 0
-                #self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
-                #Translation_Y = 0
-                #self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+                self.SetLabel(windowlabel + " -- Using total recall from frame " + str(self.total_recall_from_input_box.GetValue()) + " to frame " + self.total_recall_to_input_box.GetValue())
             else:
                 self.writeValue("should_use_total_recall", 0)
                 should_use_total_recall = 0
@@ -3888,11 +3978,13 @@ class Mywin(wx.Frame):
         elif btn == "View original values in Deforumation":
             if should_use_total_recall_in_deforumation == 0:
                 should_use_total_recall_in_deforumation = 1
+                self.SetLabel(windowlabel + " -- Now showing original values as recalled from original render.")
             else:
                 should_use_total_recall_in_deforumation = 0
                 self.loadCurrentPrompt("P", current_render_frame, 0)
                 self.loadCurrentPrompt("N", current_render_frame, 0)
                 self.setAllComponentValues()
+                self.SetLabel(windowlabel + " -- Now showing manually set deforumation values.")
         elif btn == "Recall prompts":
             if should_use_total_recall_prompt == 0:
                 should_use_total_recall_prompt = 1
@@ -4100,8 +4192,10 @@ class Mywin(wx.Frame):
                 self.live_values_thread = threading.Thread(target=self.LiveValues, args=())
                 self.live_values_thread.daemon = True
                 self.live_values_thread.start()
+                self.SetLabel(windowlabel + " -- Live values is now activated.")
             else:
                 showLiveValues = False
+                self.SetLabel(windowlabel + " -- Live values is now de-activated.")
         elif btn == "Turn off tooltips":
             children = self.panel.GetChildren()
             for child in children:
@@ -4634,7 +4728,9 @@ if __name__ == '__main__':
 
 
     if len(sys.argv) < 2:
-        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.3 using WebSockets)')
+        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.4 using WebSockets)'
+        Mywin(None, windowlabel)
     else:
-        Mywin(None, 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.3 using named pipes)')
+        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.4 using named pipes)'
+        Mywin(None, windowlabel)
     app.MainLoop()

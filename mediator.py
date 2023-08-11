@@ -2103,10 +2103,10 @@ async def main_websockets():
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Starting Mediator with WebSocket communication, version 0.6.3")
+        print("Starting Mediator with WebSocket communication, version 0.6.4")
         shouldUseNamedPipes = False
     else:
-        print("Starting Mediator with Named Pipes communication, version 0.6.3")
+        print("Starting Mediator with Named Pipes communication, version 0.6.4")
         shouldUseNamedPipes = True
 
     try:
