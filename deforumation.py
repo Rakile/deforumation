@@ -2922,9 +2922,7 @@ class Mywin(wx.Frame):
         if should_use_total_recall_in_deforumation:
             if current_render_frame != -1:
                 self.setValuesFromSavedFrame(int(current_render_frame))
-        elif should_use_total_recall and (
-                int(current_render_frame) >= int(self.total_recall_from_input_box.GetValue())) and (
-                int(current_render_frame) <= int(self.total_recall_to_input_box.GetValue())):
+        elif should_use_total_recall and (int(current_render_frame) >= int(self.total_recall_from_input_box.GetValue())) and (int(current_render_frame) <= int(self.total_recall_to_input_box.GetValue())):
             if current_render_frame != -1:
                 self.setValuesFromSavedFrame(int(current_render_frame))
         else:
@@ -4270,7 +4268,7 @@ class Mywin(wx.Frame):
             deforum_Perlin_Persistence_Value = readValue("deforum_perlin_persistence")
             number_of_recalled_frames = int(self.readValue("get_number_of_recalled_frames"))
             self.total_current_recall_frames_text.SetLabel("Number of recall points: " + str(number_of_recalled_frames))
-            if should_use_total_recall_in_deforumation:
+            if should_use_total_recall_in_deforumation or (should_use_total_recall and (int(current_render_frame) >= int(self.total_recall_from_input_box.GetValue())) and (int(current_render_frame) <= int(self.total_recall_to_input_box.GetValue()))):
                 current_frame_live = int(readValue("start_frame"))
                 if int(current_frame_live) != -1:
                     if recalledFrame != current_frame_live:

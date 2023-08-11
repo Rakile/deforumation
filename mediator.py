@@ -194,50 +194,53 @@ def RecallValues(frame):
         print("Mediator has no data for frame (" + str(frame) + ")" +" to send!")
         return
     #Movement
-    rotation_x = parameter_container[frame].rotation_x + rotation_x_under_recall
-    rotation_y = parameter_container[frame].rotation_y + rotation_y_under_recall
-    rotation_z = parameter_container[frame].rotation_z + rotation_z_under_recall
-    translation_x = parameter_container[frame].translation_x + translation_x_under_recall
-    translation_y = parameter_container[frame].translation_y + translation_y_under_recall
-    translation_z = parameter_container[frame].translation_z + translation_z_under_recall
-    #prompt
-    if should_use_total_recall_prompt == 1:
-        Prompt_Positive = parameter_container[frame].Prompt_Positive
-    if should_use_total_recall_prompt == 1:
-        Prompt_Negative = parameter_container[frame].Prompt_Negative
-    seed_value = parameter_container[frame].seed_value
+    if should_use_total_recall_movements:
+        rotation_x = parameter_container[frame].rotation_x + rotation_x_under_recall
+        rotation_y = parameter_container[frame].rotation_y + rotation_y_under_recall
+        rotation_z = parameter_container[frame].rotation_z + rotation_z_under_recall
+        translation_x = parameter_container[frame].translation_x + translation_x_under_recall
+        #print("Total Recall: parameter_container[frame].translation_x (" + str(parameter_container[frame].translation_x)+")"+" translation_x_under_recall ("+ str(translation_x_under_recall)+")")
+        translation_y = parameter_container[frame].translation_y + translation_y_under_recall
+        translation_z = parameter_container[frame].translation_z + translation_z_under_recall
+        #prompt
+        if should_use_total_recall_prompt == 1:
+            Prompt_Positive = parameter_container[frame].Prompt_Positive
+            Prompt_Negative = parameter_container[frame].Prompt_Negative
 
-    #Other values
-    # Keyframes/Field Of View/FOV schedule
-    # Run/Steps
-    steps = parameter_container[frame].steps
-    # Keyframes/Strength
-    strength_value = parameter_container[frame].strength_value
-    # Keyframes/CFG
-    cfg_scale = parameter_container[frame].cfg_scale
-    # Keyframes/3D/Motion
-    fov = parameter_container[frame].fov
-    cadence = parameter_container[frame].cadence
-    cadence_flow_factor = parameter_container[frame].cadence_flow_factor
-    generation_flow_factor = parameter_container[frame].generation_flow_factor
-    for i in range(5):
-        cn_weight[i] = parameter_container[frame].cn_weight[i]
-        cn_stepstart[i] = parameter_container[frame].cn_stepstart[i]
-        cn_stepend[i] = parameter_container[frame].cn_stepend[i]
-        cn_lowt[i] = parameter_container[frame].cn_lowt[i]
-        cn_hight[i] = parameter_container[frame].cn_hight[i]
-        cn_udcn[i] = parameter_container[frame].cn_udcn[i]
-    parseq_keys = parameter_container[frame].parseq_keys
-    use_parseq = parameter_container[frame].use_parseq
-    parseq_manifest = parameter_container[frame].parseq_manifest
-    parseq_strength = parameter_container[frame].parseq_strength
-    parseq_movements = parameter_container[frame].parseq_movements
-    parseq_prompt = parameter_container[frame].parseq_prompt
-    noise_multiplier = parameter_container[frame].noise_multiplier
-    perlin_octaves = parameter_container[frame].perlin_octaves
-    perlin_persistence = parameter_container[frame].perlin_persistence
-    #frame_outdir = parameter_container[frame].frame_outdir
-    #resume_timestring = parameter_container[frame].resume_timestring
+    if should_use_total_recall_others:
+        #Other values
+        # Keyframes/Field Of View/FOV schedule
+        # Run/Steps
+        seed_value = parameter_container[frame].seed_value
+        steps = parameter_container[frame].steps
+        # Keyframes/Strength
+        strength_value = parameter_container[frame].strength_value
+        # Keyframes/CFG
+        cfg_scale = parameter_container[frame].cfg_scale
+        # Keyframes/3D/Motion
+        fov = parameter_container[frame].fov
+        cadence = parameter_container[frame].cadence
+        cadence_flow_factor = parameter_container[frame].cadence_flow_factor
+        generation_flow_factor = parameter_container[frame].generation_flow_factor
+        for i in range(5):
+            cn_weight[i] = parameter_container[frame].cn_weight[i]
+            cn_stepstart[i] = parameter_container[frame].cn_stepstart[i]
+            cn_stepend[i] = parameter_container[frame].cn_stepend[i]
+            cn_lowt[i] = parameter_container[frame].cn_lowt[i]
+            cn_hight[i] = parameter_container[frame].cn_hight[i]
+            cn_udcn[i] = parameter_container[frame].cn_udcn[i]
+        parseq_keys = parameter_container[frame].parseq_keys
+        use_parseq = parameter_container[frame].use_parseq
+        parseq_manifest = parameter_container[frame].parseq_manifest
+        parseq_strength = parameter_container[frame].parseq_strength
+        parseq_movements = parameter_container[frame].parseq_movements
+        parseq_prompt = parameter_container[frame].parseq_prompt
+        noise_multiplier = parameter_container[frame].noise_multiplier
+        perlin_octaves = parameter_container[frame].perlin_octaves
+        perlin_persistence = parameter_container[frame].perlin_persistence
+        #frame_outdir = parameter_container[frame].frame_outdir
+        #resume_timestring = parameter_container[frame].resume_timestring
+
 
 
 def RecallValuesTemp(copyof_parameter_container):
@@ -321,10 +324,12 @@ def RecallValuesTemp(copyof_parameter_container):
         copyof_parameter_container.rotation_y = rotation_y
         copyof_parameter_container.rotation_z = rotation_z
         copyof_parameter_container.translation_x = translation_x
+        #print("Total RecallValuesTemp: copyof_parameter_container.translation_x (" + str(copyof_parameter_container.translation_x) + ")")
         copyof_parameter_container.translation_y = translation_y
         copyof_parameter_container.translation_z = translation_z
     else:
         copyof_parameter_container.rotation_x += rotation_x_under_recall
+        #print("Total RecallValuesTemp (should_use_total_recall_movements): copyof_parameter_container.translation_x (" + str(copyof_parameter_container.translation_x) + ")")
         copyof_parameter_container.rotation_y += rotation_y_under_recall
         copyof_parameter_container.rotation_z += rotation_z_under_recall
         copyof_parameter_container.translation_x += translation_x_under_recall
@@ -1516,6 +1521,7 @@ def main_named_pipe(pipeName):
                             translation_x = float(value)
                         else:
                             translation_x_under_recall = float(value)
+                            print("Received translation_x_under_recall: " + str(translation_x_under_recall))
 
                     else:
                         if doVerbose:
