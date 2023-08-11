@@ -101,7 +101,7 @@ def get_resume_vars_d(folder, timestring, cadence,startframe=-1):
         prev_img = None
         next_img = None   
     else:
-        prev_frame = frame_count - cadence -1
+        prev_frame = frame_count -1 # - cadence -1
         next_frame = prev_frame + 1
 
         # get prev_img/next_img from prev/next frame index (files start at 0, so subtract 1 for index var)
@@ -609,6 +609,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             if int(mediator_getValue("should_use_deforumation_noise").strip().strip('\n')) == 1:
                 scheduled_noise_multiplier = float(mediator_getValue("noise_multiplier").strip().strip('\n'))
                 mediator_setValue("deforum_noise_multiplier", scheduled_noise_multiplier)
+                if scheduled_noise_multiplier == 0:
+                    scheduled_noise_multiplier = None
+                    print("Noise multiplier scheduling, Disabled")
             else:
                 if anim_args.enable_noise_multiplier_scheduling and keys.noise_multiplier_schedule_series[frame_idx] is not None:
                     scheduled_noise_multiplier = float(keys.noise_multiplier_schedule_series[frame_idx])
