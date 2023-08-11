@@ -227,9 +227,9 @@ def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
             mediator_setValue("deforum_translation_x",txs)
             mediator_setValue("deforum_translation_y",tys)
             mediator_setValue("deforum_translation_z",tzs)
-            mediator_setValue("translation_x",txs)
-            mediator_setValue("translation_y",tys)
-            mediator_setValue("translation_z",tzs)
+            #mediator_setValue("translation_x",txs)
+            #mediator_setValue("translation_y",tys)
+            #mediator_setValue("translation_z",tzs)
 
     else: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
         translate_xyz = [
@@ -262,9 +262,9 @@ def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
             mediator_setValue("deforum_rotation_x",rxs)
             mediator_setValue("deforum_rotation_y",rys)
             mediator_setValue("deforum_rotation_z",rzs)
-            mediator_setValue("rotation_x",rxs)
-            mediator_setValue("rotation_y",rys)
-            mediator_setValue("rotation_z",rzs)
+            #mediator_setValue("rotation_x",rxs)
+            #mediator_setValue("rotation_y",rys)
+            #mediator_setValue("rotation_z",rzs)
 
     else: 
         rotate_xyz = [
@@ -306,7 +306,7 @@ def transform_image_3d_legacy(device, prev_img_cv2, depth_tensor, rot_mat, trans
         else:
             fov_deg = keys.fov_series[frame_idx]
             mediator_setValue("deforum_fov", fov_deg)
-            mediator_setValue("fov", fov_deg)
+            #mediator_setValue("fov", fov_deg)
     else: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
         fov_deg = keys.fov_series[frame_idx]
     persp_cam_old = p3d.FoVPerspectiveCameras(near, far, aspect_ratio, fov=fov_deg, degrees=True, device=device)
@@ -386,7 +386,7 @@ def transform_image_3d_new(device, prev_img_cv2, depth_tensor, rot_mat, translat
         else:
             fov_deg = keys.fov_series[frame_idx]
             mediator_setValue("deforum_fov", fov_deg)
-            mediator_setValue("fov", fov_deg)
+            #mediator_setValue("fov", fov_deg)
     else: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
         fov_deg = keys.fov_series[frame_idx]
 
