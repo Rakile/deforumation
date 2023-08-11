@@ -4,3 +4,4 @@ keyboard >= 0.13.5
 requests
 pyeaze
 pywin32
+pytest-shutil
