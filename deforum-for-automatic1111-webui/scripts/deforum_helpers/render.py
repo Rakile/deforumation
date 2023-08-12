@@ -518,6 +518,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
                     mediator_setValue("total_recall_relive", frame_idx)
                     args.seed = int(mediator_getValue("seed").strip().strip('\n'))
+                    if args.seed == -1:
+                        args.seed = random.randint(0, 2**32 - 1)
+                        print("Using random seed:"+str(args.seed))
 
                     state.job_count = anim_args.max_frames
                     last_preview_frame = frame_idx                
@@ -731,6 +734,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 tween_frame_start_idx = 0
 
             if usingDeforumation:
+                if int(mediator_getValue("should_use_total_recall").strip().strip('\n')):
+                    #mediator_setValue("total_recall_relive", frame_idx)
+                    mediator_setValue("total_recall_relive", tween_frame_start_idx)
+                    print("Total recall (before tween_creation) at frame " + str(tween_frame_start_idx))
                 should_use_optical_flow = int(mediator_getValue("should_use_optical_flow").strip().strip('\n'))
                 if should_use_optical_flow != 1:
                     anim_args.optical_flow_cadence = "None"
@@ -747,7 +754,11 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             for tween_frame_idx in range(tween_frame_start_idx, frame_idx):
                 #If controlnet is being used, get the values from Deforumation
                 if usingDeforumation:
-                    mediator_setValue("total_recall_relive", frame_idx)
+                    if int(mediator_getValue("should_use_total_recall").strip().strip('\n')):
+                        #mediator_setValue("total_recall_relive", frame_idx)
+                        mediator_setValue("total_recall_relive", tween_frame_idx)
+                        print("Total recall (inside tween_creation) at frame " + str(tween_frame_idx))
+
                     if is_controlnet_enabled(controlnet_args):
                         for cnIndex in range(5):
                             currCnIndex = cnIndex+1
@@ -1066,7 +1077,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             if is_controlnet_enabled(controlnet_args):
                 for cnIndex in range(5):
                     currCnIndex = cnIndex+1
-                    cn_udcn = int(mediator_getValue("cn_udcn"+str(cnIndex+1)).strip().strip('\n'))
+                    isCnActive = mediator_getValue("cn_udcn"+str(cnIndex+1)).strip().strip('\n')
+                    print("ControlNet " + str(currCnIndex) + " has activeValue:" + str(isCnActive))
+                    cn_udcn = int(isCnActive)
                     if cn_udcn == 1:
                         #print("ControlNet " + str(currCnIndex) + " should use Deforumation values.")
                         #print("Got weight from mediator:" + str(float(mediator_getValue("cn_weight"+str(cnIndex+1)))))
@@ -1195,7 +1208,15 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         state.current_image = image
         if not int(mediator_getValue("seed_changed").strip().strip('\n')):
             mediator_setValue("seed", args.seed)
-        args.seed = next_seed(args, root)
+
+        if int(mediator_getValue("should_use_total_recall").strip().strip('\n')):
+            mediator_setValue("total_recall_relive", frame_idx)
+            print("Total recall (last to get seed) at frame " + str(frame_idx))
+            args.seed = int(mediator_getValue("seed").strip().strip('\n'))
+            print("Using seed:" + str())
+        else:
+            args.seed = next_seed(args, root)
+
         last_preview_frame = render_preview(args, anim_args, video_args, root, frame_idx, last_preview_frame)
 
     #Restore Deforum CN Properties
