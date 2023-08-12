@@ -2318,8 +2318,6 @@ class Mywin(wx.Frame):
                 int(self.positive_prompt_input_ctrl_3_prio.GetValue()): self.positive_prompt_input_ctrl_3.GetValue(),
                 int(self.positive_prompt_input_ctrl_4_prio.GetValue()): self.positive_prompt_input_ctrl_4.GetValue()}
             sortedDict = sorted(positive_prio.items())
-            #totalPossitivePromptString = sortedDict[0][1] + "," + sortedDict[1][1] + "," + sortedDict[2][1] + "," + \
-            #                             sortedDict[3][1]
             totalPossitivePromptString = sortedDict[0][1]
             if sortedDict[1][1] !="":
                 totalPossitivePromptString += "," + sortedDict[1][1]
@@ -2330,8 +2328,6 @@ class Mywin(wx.Frame):
 
             self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', ' ') + "\n")
             self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', ' ') + "\n")
-            #self.writeValue("positive_prompt", self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
-            #self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '')+"\n")
             self.writeValue("strength", Strength_Scheduler)
             self.writeValue("cfg", CFG_Scale)
             self.writeValue("steps", STEP_Schedule)
@@ -2396,15 +2392,81 @@ class Mywin(wx.Frame):
                 #print("Deforumation Mediator Error:" + str(e))
                 #print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)...ererror:reading:"+str(param))
                 time.sleep(0.05)
+
+    def setAllPromptCopmponentValues(self):
+        if should_use_deforumation_prompt_scheduling:
+            self.shouldUseDeforumPromptScheduling_Checkbox.SetValue(1)
+            self.writeValue("should_use_deforumation_prompt_scheduling", 1)
+        else:
+            self.shouldUseDeforumPromptScheduling_Checkbox.SetValue(0)
+            self.writeValue("should_use_deforumation_prompt_scheduling", 0)
+        self.loadCurrentPrompt("P", current_render_frame, 0)
+        self.loadCurrentPrompt("N", current_render_frame, 0)
+
+    def setAllMotionComponentValues(self):
+        self.fov_slider.SetValue(int(FOV_Scale))
+        self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+        self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+        self.zoom_slider.SetValue(int(Translation_Z) * 100)
+        self.zoom_value_text.SetLabel('%.2f' % (Translation_Z))
+        self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
+        self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
+        self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
+        self.should_use_deforumation_zoomfov_checkbox.SetValue(int(should_use_deforumation_zoomfov))
+        self.should_use_deforumation_rotation_checkbox.SetValue(int(should_use_deforumation_rotation))
+        self.should_use_deforumation_tilt_checkbox.SetValue(int(should_use_deforumation_tilt))
+        self.should_use_deforumation_panning_checkbox.SetValue(int(should_use_deforumation_panning))
+        self.zero_pan_step_input_box.SetValue(zero_pan_step_input_box_value)
+        self.zero_rotate_step_input_box.SetValue(zero_rotate_step_input_box_value)
+        self.zero_zoom_step_input_box.SetValue(zero_zoom_step_input_box_value)
+        self.pan_step_input_box.SetValue(pan_step_input_box_value)
+        self.rotate_step_input_box.SetValue(rotate_step_input_box_value)
+        self.tilt_step_input_box.SetValue(tilt_step_input_box_value)
+
+    def setAllOtherComponentValues(self):
+        # OTHER COMPONENTS
+        self.strength_schedule_slider.SetValue(int(Strength_Scheduler * 100))
+        self.cfg_schedule_slider.SetValue(int(CFG_Scale))
+        self.sample_schedule_slider.SetValue(STEP_Schedule)
+        self.seed_input_box.SetValue(str(seedValue))
+        self.should_use_deforumation_strength_checkbox.SetValue(int(should_use_deforumation_strength))
+        self.should_use_deforumation_cfg_checkbox.SetValue(int(should_use_deforumation_cfg))
+        self.should_use_deforumation_cadence_checkbox.SetValue(int(should_use_deforumation_cadence))
+        self.should_use_deforumation_noise_checkbox.SetValue(int(should_use_deforumation_noise))
+        self.cadence_slider.SetValue(Cadence_Schedule)
+        for cnIndex in range(5):
+            self.control_net_weight_slider[cnIndex].SetValue(int(CN_Weight[cnIndex] * 100))
+            self.control_net_stepstart_slider[cnIndex].SetValue(int(CN_StepStart[cnIndex] * 100))
+            self.control_net_stepend_slider[cnIndex].SetValue(int(CN_StepEnd[cnIndex] * 100))
+            self.control_net_lowt_slider[cnIndex].SetValue(CN_LowT[cnIndex])
+            self.control_net_hight_slider[cnIndex].SetValue(CN_HighT[cnIndex])
+            self.control_net_active_checkbox[cnIndex].SetValue(CN_UDCn[cnIndex])
+
+        self.noise_slider.SetValue(int(float(noise_multiplier) * 100))
+        self.perlin_octave_slider.SetValue(int(Perlin_Octave_Value))
+        self.perlin_persistence_slider.SetValue(int(float(Perlin_Persistence_Value) * 100))
+
+        self.opticalflow_checkbox.SetValue(int(should_use_optical_flow))
+        self.cadence_flow_factor_box.SetValue(str(cadence_flow_factor))
+        self.generation_flow_factor_box.SetValue(str(generation_flow_factor))
+
     def setAllComponentValues(self):
         try:
             if is_paused_rendering:
                 self.pause_rendering.SetLabel("PUSH TO RESUME RENDERING")
             else:
                 self.pause_rendering.SetLabel("PUSH TO PAUSE RENDERING")
-            self.strength_schedule_slider.SetValue(int(Strength_Scheduler * 100))
-            self.cfg_schedule_slider.SetValue(int(CFG_Scale))
-            self.sample_schedule_slider.SetValue(STEP_Schedule)
+            #PROMPT COMPONENTS
+            if should_use_deforumation_prompt_scheduling:
+                self.shouldUseDeforumPromptScheduling_Checkbox.SetValue(1)
+                self.writeValue("should_use_deforumation_prompt_scheduling", 1)
+            else:
+                self.shouldUseDeforumPromptScheduling_Checkbox.SetValue(0)
+                self.writeValue("should_use_deforumation_prompt_scheduling", 0)
+            self.loadCurrentPrompt("P", current_render_frame, 0)
+            self.loadCurrentPrompt("N", current_render_frame, 0)
+
+            #MOTION COMPONENTS
             self.fov_slider.SetValue(int(FOV_Scale))
             self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
             self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
@@ -2413,27 +2475,27 @@ class Mywin(wx.Frame):
             self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
             self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
             self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
-            if should_use_deforumation_prompt_scheduling:
-                self.shouldUseDeforumPromptScheduling_Checkbox.SetValue(1)
-                self.writeValue("should_use_deforumation_prompt_scheduling", 1)
-            else:
-                self.shouldUseDeforumPromptScheduling_Checkbox.SetValue(0)
-                self.writeValue("should_use_deforumation_prompt_scheduling", 0)
+            self.should_use_deforumation_zoomfov_checkbox.SetValue(int(should_use_deforumation_zoomfov))
+            self.should_use_deforumation_rotation_checkbox.SetValue(int(should_use_deforumation_rotation))
+            self.should_use_deforumation_tilt_checkbox.SetValue(int(should_use_deforumation_tilt))
+            self.should_use_deforumation_panning_checkbox.SetValue(int(should_use_deforumation_panning))
+            self.zero_pan_step_input_box.SetValue(zero_pan_step_input_box_value)
+            self.zero_rotate_step_input_box.SetValue(zero_rotate_step_input_box_value)
+            self.zero_zoom_step_input_box.SetValue(zero_zoom_step_input_box_value)
+            self.pan_step_input_box.SetValue(pan_step_input_box_value)
+            self.rotate_step_input_box.SetValue(rotate_step_input_box_value)
+            self.tilt_step_input_box.SetValue(tilt_step_input_box_value)
+
+            #OTHER COMPONENTS
+            self.strength_schedule_slider.SetValue(int(Strength_Scheduler * 100))
+            self.cfg_schedule_slider.SetValue(int(CFG_Scale))
+            self.sample_schedule_slider.SetValue(STEP_Schedule)
+            self.seed_input_box.SetValue(str(seedValue))
             self.should_use_deforumation_strength_checkbox.SetValue(int(should_use_deforumation_strength))
             self.should_use_deforumation_cfg_checkbox.SetValue(int(should_use_deforumation_cfg))
             self.should_use_deforumation_cadence_checkbox.SetValue(int(should_use_deforumation_cadence))
             self.should_use_deforumation_noise_checkbox.SetValue(int(should_use_deforumation_noise))
-            self.should_use_deforumation_panning_checkbox.SetValue(int(should_use_deforumation_panning))
-            self.should_use_deforumation_zoomfov_checkbox.SetValue(int(should_use_deforumation_zoomfov))
-            self.should_use_deforumation_rotation_checkbox.SetValue(int(should_use_deforumation_rotation))
-            self.should_use_deforumation_tilt_checkbox.SetValue(int(should_use_deforumation_tilt))
-            self.pan_step_input_box.SetValue(pan_step_input_box_value)
-            self.rotate_step_input_box.SetValue(rotate_step_input_box_value)
-            self.tilt_step_input_box.SetValue(tilt_step_input_box_value)
             self.cadence_slider.SetValue(Cadence_Schedule)
-            self.zero_pan_step_input_box.SetValue(zero_pan_step_input_box_value)
-            self.zero_rotate_step_input_box.SetValue(zero_rotate_step_input_box_value)
-            self.zero_zoom_step_input_box.SetValue(zero_zoom_step_input_box_value)
             for cnIndex in range(5):
                 self.control_net_weight_slider[cnIndex].SetValue(int(CN_Weight[cnIndex] * 100))
                 self.control_net_stepstart_slider[cnIndex].SetValue(int(CN_StepStart[cnIndex] * 100))
@@ -2453,6 +2515,122 @@ class Mywin(wx.Frame):
 
         except Exception as e:
             print(e)
+
+    def sendAllMotionValues(self):
+        self.writeValue("fov", FOV_Scale)
+        self.writeValue("translation_x", Translation_X)
+        self.writeValue("translation_y", Translation_Y)
+        self.writeValue("translation_z", Translation_Z)
+        self.writeValue("rotation_x", Rotation_3D_X)
+        self.writeValue("rotation_y", Rotation_3D_Y)
+        self.writeValue("rotation_z", Rotation_3D_Z)
+        self.writeValue("should_use_deforumation_panning", int(should_use_deforumation_panning))
+        self.writeValue("should_use_deforumation_zoomfov", int(should_use_deforumation_zoomfov))
+        self.writeValue("should_use_deforumation_rotation", int(should_use_deforumation_rotation))
+        self.writeValue("should_use_deforumation_tilt", int(should_use_deforumation_tilt))
+
+    def sendAllOtherValues(self):
+        self.writeValue("strength", Strength_Scheduler)
+        self.writeValue("cfg", CFG_Scale)
+        self.writeValue("steps", STEP_Schedule)
+        self.writeValue("fov", FOV_Scale)
+        self.writeValue("should_use_deforumation_strength", int(should_use_deforumation_strength))
+        self.writeValue("should_use_deforumation_cfg", int(should_use_deforumation_cfg))
+        self.writeValue("should_use_deforumation_cadence", int(should_use_deforumation_cadence))
+        self.writeValue("should_use_deforumation_noise", int(should_use_deforumation_noise))
+        self.writeValue("cadence", int(Cadence_Schedule))
+        for cnIndex in range(5):
+            self.writeValue("cn_weight" + str(cnIndex + 1), float(CN_Weight[cnIndex]))
+            self.writeValue("cn_stepstart" + str(cnIndex + 1), float(CN_StepStart[cnIndex]))
+            self.writeValue("cn_stepend" + str(cnIndex + 1), float(CN_StepEnd[cnIndex]))
+            self.writeValue("cn_lowt" + str(cnIndex + 1), float(CN_LowT[cnIndex]))
+            self.writeValue("cn_hight" + str(cnIndex + 1), float(CN_HighT[cnIndex]))
+            self.writeValue("cn_udcn" + str(cnIndex + 1), int(CN_UDCn[cnIndex]))
+
+        self.writeValue("noise_multiplier", float(noise_multiplier))
+        self.writeValue("perlin_octaves", int(Perlin_Octave_Value))
+        self.writeValue("perlin_persistence", float(Perlin_Persistence_Value))
+        self.writeValue("use_deforumation_cadence_scheduling", 0)
+
+        self.writeValue("should_use_optical_flow", int(should_use_optical_flow))
+        self.writeValue("cadence_flow_factor", int(cadence_flow_factor))
+        self.writeValue("generation_flow_factor", int(generation_flow_factor))
+
+    def sendAllPropmptValues(self):
+        positive_prio = {
+            int(self.positive_prompt_input_ctrl_prio.GetValue()): self.positive_prompt_input_ctrl.GetValue(),
+            int(self.positive_prompt_input_ctrl_2_prio.GetValue()): self.positive_prompt_input_ctrl_2.GetValue(),
+            int(self.positive_prompt_input_ctrl_3_prio.GetValue()): self.positive_prompt_input_ctrl_3.GetValue(),
+            int(self.positive_prompt_input_ctrl_4_prio.GetValue()): self.positive_prompt_input_ctrl_4.GetValue()}
+        sortedDict = sorted(positive_prio.items())
+        totalPossitivePromptString = sortedDict[0][1]
+        if sortedDict[1][1] != "":
+            totalPossitivePromptString += "," + sortedDict[1][1]
+        if sortedDict[2][1] != "":
+            totalPossitivePromptString += "," + sortedDict[2][1]
+        if sortedDict[3][1] != "":
+            totalPossitivePromptString += "," + sortedDict[3][1]
+        self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', ' ') + "\n")
+        self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', ' ') + "\n")
+        self.writeValue("should_use_deforumation_prompt_scheduling", int(should_use_deforumation_prompt_scheduling))
+
+    def sendAllValues(self):
+        #Prompt Values
+        positive_prio = {
+            int(self.positive_prompt_input_ctrl_prio.GetValue()): self.positive_prompt_input_ctrl.GetValue(),
+            int(self.positive_prompt_input_ctrl_2_prio.GetValue()): self.positive_prompt_input_ctrl_2.GetValue(),
+            int(self.positive_prompt_input_ctrl_3_prio.GetValue()): self.positive_prompt_input_ctrl_3.GetValue(),
+            int(self.positive_prompt_input_ctrl_4_prio.GetValue()): self.positive_prompt_input_ctrl_4.GetValue()}
+        sortedDict = sorted(positive_prio.items())
+        totalPossitivePromptString = sortedDict[0][1]
+        if sortedDict[1][1] != "":
+            totalPossitivePromptString += "," + sortedDict[1][1]
+        if sortedDict[2][1] != "":
+            totalPossitivePromptString += "," + sortedDict[2][1]
+        if sortedDict[3][1] != "":
+            totalPossitivePromptString += "," + sortedDict[3][1]
+        self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', ' ') + "\n")
+        self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', ' ') + "\n")
+        self.writeValue("should_use_deforumation_prompt_scheduling", int(should_use_deforumation_prompt_scheduling))
+
+        #Motion Values
+        self.writeValue("translation_x", Translation_X)
+        self.writeValue("translation_y", Translation_Y)
+        self.writeValue("translation_z", Translation_Z)
+        self.writeValue("rotation_x", Rotation_3D_X)
+        self.writeValue("rotation_y", Rotation_3D_Y)
+        self.writeValue("rotation_z", Rotation_3D_Z)
+        self.writeValue("should_use_deforumation_panning", int(should_use_deforumation_panning))
+        self.writeValue("should_use_deforumation_zoomfov", int(should_use_deforumation_zoomfov))
+        self.writeValue("should_use_deforumation_rotation", int(should_use_deforumation_rotation))
+        self.writeValue("should_use_deforumation_tilt", int(should_use_deforumation_tilt))
+
+        #Other Values
+        self.writeValue("strength", Strength_Scheduler)
+        self.writeValue("cfg", CFG_Scale)
+        self.writeValue("steps", STEP_Schedule)
+        self.writeValue("fov", FOV_Scale)
+        self.writeValue("should_use_deforumation_strength", int(should_use_deforumation_strength))
+        self.writeValue("should_use_deforumation_cfg", int(should_use_deforumation_cfg))
+        self.writeValue("should_use_deforumation_cadence", int(should_use_deforumation_cadence))
+        self.writeValue("should_use_deforumation_noise", int(should_use_deforumation_noise))
+        self.writeValue("cadence", int(Cadence_Schedule))
+        for cnIndex in range(5):
+            self.writeValue("cn_weight" + str(cnIndex + 1), float(CN_Weight[cnIndex]))
+            self.writeValue("cn_stepstart" + str(cnIndex + 1), float(CN_StepStart[cnIndex]))
+            self.writeValue("cn_stepend" + str(cnIndex + 1), float(CN_StepEnd[cnIndex]))
+            self.writeValue("cn_lowt" + str(cnIndex + 1), float(CN_LowT[cnIndex]))
+            self.writeValue("cn_hight" + str(cnIndex + 1), float(CN_HighT[cnIndex]))
+            self.writeValue("cn_udcn" + str(cnIndex + 1), int(CN_UDCn[cnIndex]))
+
+        self.writeValue("noise_multiplier", float(noise_multiplier))
+        self.writeValue("perlin_octaves", int(Perlin_Octave_Value))
+        self.writeValue("perlin_persistence", float(Perlin_Persistence_Value))
+        self.writeValue("use_deforumation_cadence_scheduling", 0)
+
+        self.writeValue("should_use_optical_flow", int(should_use_optical_flow))
+        self.writeValue("cadence_flow_factor", int(cadence_flow_factor))
+        self.writeValue("generation_flow_factor", int(generation_flow_factor))
 
     def writeAllValues(self):
 
@@ -2579,17 +2757,36 @@ class Mywin(wx.Frame):
                 promptToShow =  self.positive_prompt_input_ctrl.GetValue()
             else:
                 promptToShow = self.negative_prompt_input_ctrl.GetValue()
+            loadedFromFile = False
             for index in range(0, len(old_lines), 2):
                 param = old_lines[index].strip('\n').replace(" ", "").split(',')
                 frame_index = param[0]
                 type = param[1]
                 if int(frame_start) >= int(frame_index):
                     promptToShow = old_lines[index+1]
+                    loadedFromFile = True
                 else:
                     break
             if showType == 0:
-                if promptType == "P":
-                    self.positive_prompt_input_ctrl.SetValue(str(promptToShow).replace('`^','\n'))
+                if promptType == "P" and loadedFromFile:
+                    aPromptStart = 0
+                    aPromptEnd = promptToShow.find("`~")
+                    aPrompt = promptToShow[aPromptStart:aPromptEnd]
+                    self.positive_prompt_input_ctrl.SetValue(str(aPrompt).replace('`^','\n'))
+                    aPromptStart = aPromptEnd + 2
+                    aPromptEnd = promptToShow[aPromptStart:].find("`~")
+                    aPrompt = promptToShow[aPromptStart:aPromptEnd+aPromptStart]
+                    self.positive_prompt_input_ctrl_2.SetValue(str(aPrompt).replace('`^','\n'))
+                    aPromptStart = aPromptStart + aPromptEnd + 2
+                    aPromptEnd = promptToShow[aPromptStart:].find("`~")
+                    aPrompt = promptToShow[aPromptStart:aPromptEnd+aPromptStart]
+                    self.positive_prompt_input_ctrl_3.SetValue(str(aPrompt).replace('`^','\n'))
+                    aPromptStart = aPromptStart + aPromptEnd + 2
+                    aPromptEnd = promptToShow[aPromptStart:].find("`~")
+                    aPrompt = promptToShow[aPromptStart:aPromptEnd+aPromptStart]
+                    self.positive_prompt_input_ctrl_4.SetValue(str(aPrompt).replace('`^','\n'))
+                elif promptType == "P" and not loadedFromFile:
+                    self.positive_prompt_input_ctrl.SetValue(str(promptToShow).replace('`^', '\n'))
                 else:
                     self.negative_prompt_input_ctrl.SetValue(str(promptToShow).replace('`^','\n'))
             elif showType == 1:
@@ -2651,6 +2848,9 @@ class Mywin(wx.Frame):
                             new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '`^')
                             if new_lines[1] == "":
                                 new_lines[1] = " "
+                            new_lines[1] += "`~" + self.positive_prompt_input_ctrl_2.GetValue().strip().replace('\n', '`^')
+                            new_lines[1] += "`~" + self.positive_prompt_input_ctrl_3.GetValue().strip().replace('\n', '`^')
+                            new_lines[1] += "`~" + self.positive_prompt_input_ctrl_4.GetValue().strip().replace('\n', '`^') + "`~"
                         else:
                             new_lines[1] = self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '`^')
                             if new_lines[1] == "":
@@ -3688,7 +3888,7 @@ class Mywin(wx.Frame):
                             dstPath = outdir + "/" + resume_timestring + "_" + frameNumber + ".png"
                             shutil.copy(srcPath, dstPath)
                             numFiles += 1
-                    self.SetLabel(windowlabel + " -- Backup done, backed up " + str(numFiles) + " files.")
+                    self.SetLabel(windowlabel + " -- Restore done, restored " + str(numFiles) + " files.")
                     print("Restore done, restored " + str(numFiles) + " files.")
             else:
                 self.SetLabel(windowlabel + " -- No ongoing render folder. No restore done.")
@@ -3962,9 +4162,8 @@ class Mywin(wx.Frame):
                 self.writeValue("should_use_total_recall", 0)
                 should_use_total_recall = 0
                 self.writeValue("prompts_touched", 0)
-                self.loadCurrentPrompt("P", current_render_frame, 0)
-                self.loadCurrentPrompt("N", current_render_frame, 0)
                 self.setAllComponentValues()
+                self.sendAllValues()
 
         elif btn == "Optical flow on/off":
             if should_use_optical_flow == 0:
@@ -3979,8 +4178,6 @@ class Mywin(wx.Frame):
                 self.SetLabel(windowlabel + " -- Now showing original values as recalled from original render.")
             else:
                 should_use_total_recall_in_deforumation = 0
-                self.loadCurrentPrompt("P", current_render_frame, 0)
-                self.loadCurrentPrompt("N", current_render_frame, 0)
                 self.setAllComponentValues()
                 self.SetLabel(windowlabel + " -- Now showing manually set deforumation values.")
         elif btn == "Recall prompts":
@@ -3991,9 +4188,11 @@ class Mywin(wx.Frame):
                 should_use_total_recall_prompt = 0
                 self.writeValue("should_use_total_recall_prompt", 0)
                 self.writeValue("prompts_touched", 0)
-                self.loadCurrentPrompt("P", current_render_frame, 0)
-                self.loadCurrentPrompt("N", current_render_frame, 0)
-                self.setAllComponentValues()
+                #self.loadCurrentPrompt("P", current_render_frame, 0)
+                #self.loadCurrentPrompt("N", current_render_frame, 0)
+                #self.setAllComponentValues()
+                self.setAllPromptCopmponentValues()
+                self.sendAllPropmptValues()
         elif btn == "Recall movements":
             if should_use_total_recall_movements == 0:
                 should_use_total_recall_movements = 1
@@ -4001,6 +4200,8 @@ class Mywin(wx.Frame):
             else:
                 should_use_total_recall_movements = 0
                 self.writeValue("should_use_total_recall_movements", 0)
+                self.setAllMotionComponentValues()
+                self.sendAllMotionValues()
         elif btn == "Recall \"others\"":
             if should_use_total_recall_others == 0:
                 should_use_total_recall_others = 1
@@ -4008,6 +4209,9 @@ class Mywin(wx.Frame):
             else:
                 should_use_total_recall_others = 0
                 self.writeValue("should_use_total_recall_others", 0)
+                self.setAllOtherComponentValues()
+                self.sendAllOtherValues()
+
         elif btn == "Use Deforumation timestamp when resuming":
             if should_use_deforumation_timestring == 0:
                 should_use_deforumation_timestring = 1

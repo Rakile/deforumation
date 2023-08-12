@@ -202,10 +202,10 @@ def RecallValues(frame):
         #print("Total Recall: parameter_container[frame].translation_x (" + str(parameter_container[frame].translation_x)+")"+" translation_x_under_recall ("+ str(translation_x_under_recall)+")")
         translation_y = parameter_container[frame].translation_y + translation_y_under_recall
         translation_z = parameter_container[frame].translation_z + translation_z_under_recall
-        #prompt
-        if should_use_total_recall_prompt == 1:
-            Prompt_Positive = parameter_container[frame].Prompt_Positive
-            Prompt_Negative = parameter_container[frame].Prompt_Negative
+    #prompt
+    if should_use_total_recall_prompt == 1:
+        Prompt_Positive = parameter_container[frame].Prompt_Positive
+        Prompt_Negative = parameter_container[frame].Prompt_Negative
 
     if should_use_total_recall_others:
         #Other values
@@ -220,6 +220,7 @@ def RecallValues(frame):
         # Keyframes/3D/Motion
         fov = parameter_container[frame].fov
         cadence = parameter_container[frame].cadence
+        should_use_optical_flow = parameter_container[frame].should_use_optical_flow
         cadence_flow_factor = parameter_container[frame].cadence_flow_factor
         generation_flow_factor = parameter_container[frame].generation_flow_factor
         for i in range(5):
@@ -356,6 +357,7 @@ def RecallValuesTemp(copyof_parameter_container):
 
         copyof_parameter_container.fov = fov
         copyof_parameter_container.cadence = cadence
+        copyof_parameter_container.should_use_optical_flow = should_use_optical_flow
         copyof_parameter_container.cadence_flow_factor = cadence_flow_factor
         copyof_parameter_container.generation_flow_factor = generation_flow_factor
         for i in range(5):
@@ -400,6 +402,7 @@ class ParameterContainer():
     # Keyframes/Field Of View/FOV schedule
     fov = 70.0
     cadence = 2
+    should_use_optical_flow = 0
     cadence_flow_factor = 1
     generation_flow_factor = 1
     parseq_keys = 0
@@ -423,7 +426,7 @@ class ParameterContainer():
             self.cn_weight.append(1.0)
             self.cn_stepstart.append(0.0)
             self.cn_stepend.append(1.0)
-            self.cn_lowt.append(0.0)
+            self.cn_lowt.append(0)
             self.cn_hight.append(255)
             self.cn_udcn.append(0)
 
@@ -447,15 +450,16 @@ class ParameterContainer():
         # Keyframes/Field Of View/FOV schedule
         self.fov = fov
         self.cadence = cadence
+        self.should_use_optical_flow = should_use_optical_flow
         self.cadence_flow_factor = cadence_flow_factor
         self.generation_flow_factor = generation_flow_factor
         for i in range(5):
             self.cn_weight[i] = float(cn_weight[i])
             self.cn_stepstart[i] = float(cn_stepstart[i])
             self.cn_stepend[i] = float(cn_stepend[i])
-            self.cn_lowt[i] = float(cn_lowt[i])
-            self.cn_hight[i] = float(cn_hight[i])
-            self.cn_udcn[i] = float(cn_udcn[i])
+            self.cn_lowt[i] = int(cn_lowt[i])
+            self.cn_hight[i] = int(cn_hight[i])
+            self.cn_udcn[i] = int(cn_udcn[i])
         self.parseq_keys = parseq_keys
         self.use_parseq = use_parseq
         self.parseq_manifest = parseq_manifest
@@ -1103,11 +1107,12 @@ async def main_websocket(websocket):
                         if not int(value) in parameter_container:
                             parameter_container[int(value)] = ParameterContainer()
                         parameter_container[int(value)].SetValues()
-                    elif (int(value) < total_recall_from) or (int(value) > total_recall_to):
-                        if not int(value) in parameter_container:
-                            parameter_container[int(value)] = ParameterContainer()
-                        parameter_container[int(value)].SetValues()
-                        number_of_recalled_frames = len(parameter_container)
+                    #The snippet beneath allows for saving values if outside total recall (But don't allow it, for now)
+                    #elif (int(value) < total_recall_from) or (int(value) > total_recall_to):
+                    #    if not int(value) in parameter_container:
+                    #        parameter_container[int(value)] = ParameterContainer()
+                    #    parameter_container[int(value)].SetValues()
+                    number_of_recalled_frames = len(parameter_container)
                 else:
                     if doVerbose2:
                         print("sending parameter_container")
