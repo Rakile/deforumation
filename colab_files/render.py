@@ -1,3 +1,19 @@
+# Copyright (C) 2023 Deforum LLC
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+# Contact the authors: https://deforum.github.io/
+
 import os
 import pandas as pd
 import cv2
@@ -12,12 +28,10 @@ from .generate import generate, isJson
 from .noise import add_noise
 from .animation import anim_frame_warp
 from .animation_key_frames import DeformAnimKeys, LooperAnimKeys, ControlNetKeys
-#from .video_audio_utilities import get_frame_name, get_next_frame
 from .video_audio_utilities import get_frame_name, get_next_frame, render_preview
 from .depth import DepthModel
 from .colors import maintain_colors
 from .parseq_adapter import ParseqAdapter
-from modules.processing import StableDiffusionProcessingImg2Img
 from .seed import next_seed
 from .image_sharpening import unsharp_mask
 from .load_images import get_mask, load_img, load_image, get_mask_from_file
@@ -35,11 +49,15 @@ from .prompt import prepare_prompt
 from modules.shared import opts, cmd_opts, state, sd_model
 from modules import lowvram, devices, sd_hijack
 from .RAFT import RAFT
-#Deforumation_mediator imports/settings
+
+from deforum_api import JobStatusTracker
+
+#Deforumation_mediator imports/settings and other libraries needed by Deforumation
 import pickle
 import json
 import types, copy
 from .deforum_mediator import mediator_getValue, mediator_setValue, mediator_set_anim_args
+from modules.processing import StableDiffusionProcessingImg2Img
 #End settings
 
 
@@ -181,7 +199,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     #Deforumation has a chance to overwrite the keys values, if it is using parseq
     if usingDeforumation:
-        print("Made for Deforumation version: 0.6.2")
+        print("Made for Deforumation version: 0.7.0")
         print("------------------------------------")
         if int(mediator_getValue("use_parseq").strip().strip('\n')) == 1:
             #parseq_adapter.use_parseq = 1
@@ -202,8 +220,13 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 mediator_setValue("total_recall_relive", frame_idx)
             args.seed = int(mediator_getValue("seed").strip().strip('\n'))
             if args.seed == -1:
+
                 args.seed = random.randint(0, 2**32 - 1)
+
+    # initialise Parseq adapter                
     parseq_adapter = ParseqAdapter(parseq_args, anim_args, video_args, controlnet_args, loop_args)
+
+    # expand key frame strings to values
     keys = DeformAnimKeys(anim_args, args.seed) if not parseq_adapter.use_parseq else parseq_adapter.anim_keys
     loopSchedulesAndData = LooperAnimKeys(loop_args, anim_args, args.seed) if not parseq_adapter.use_parseq else parseq_adapter.looper_keys
 
@@ -242,6 +265,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     # load depth model for 3D
     predict_depths = (anim_args.animation_mode == '3D' and anim_args.use_depth_warping) or anim_args.save_depth_maps
     predict_depths = predict_depths or (anim_args.hybrid_composite and anim_args.hybrid_comp_mask_type in ['Depth', 'Video Depth'])
+    predict_depths = predict_depths and not args.motion_preview_mode
     if predict_depths:
         keep_in_vram = opts.data.get("deforum_keep_3d_models_in_vram")
 
@@ -260,6 +284,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     load_raft = (anim_args.optical_flow_cadence == "RAFT" and int(anim_args.diffusion_cadence) > 1) or \
                 (anim_args.hybrid_motion == "Optical Flow" and anim_args.hybrid_flow_method == "RAFT") or \
                 (anim_args.optical_flow_redo_generation == "RAFT")
+    load_raft = load_raft and not args.motion_preview_mode
     if load_raft:
         print("Loading RAFT model...")
         raft_model = RAFT()
@@ -329,6 +354,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 print("Trying to close StableDiffusionProcessingImg2Img")
                 p = StableDiffusionProcessingImg2Img(sd_model=sd_model,outpath_samples = opts.outdir_samples or opts.outdir_img2img_samples, )
                 p.close()
+            else:
+                start_frame = frame_idx
             mediator_setValue("total_recall_relive", frame_idx)
             args.seed = int(mediator_getValue("seed").strip().strip('\n'))
             state.job_count = anim_args.max_frames
@@ -647,7 +674,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             if predict_depths: depth_model.to(root.device)
 
         if turbo_steps == 1 and opts.data.get("deforum_save_gen_info_as_srt"):
-            params_string = format_animation_params(keys, prompt_series, frame_idx)
+            params_to_print = opts.data.get("deforum_save_gen_info_as_srt_params", ['Seed'])
+            params_string = format_animation_params(keys, prompt_series, frame_idx, params_to_print)
             write_frame_subtitle(srt_filename, frame_idx, srt_frame_duration, f"F#: {frame_idx}; Cadence: false; Seed: {args.seed}; {params_string}")
             params_string = None
 
@@ -806,7 +834,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                             turbo_next_image = image_transform_optical_flow(turbo_next_image, -cadence_flow, 1)
 
                 if opts.data.get("deforum_save_gen_info_as_srt"):
-                    params_string = format_animation_params(keys, prompt_series, tween_frame_idx)
+                    params_to_print = opts.data.get("deforum_save_gen_info_as_srt_params", ['Seed'])
+                    params_string = format_animation_params(keys, prompt_series, tween_frame_idx, params_to_print)
                     write_frame_subtitle(srt_filename, tween_frame_idx, srt_frame_duration, f"F#: {tween_frame_idx}; Cadence: {tween < 1.0}; Seed: {args.seed}; {params_string}")
                     params_string = None
 
@@ -1071,6 +1100,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             lowvram.setup_for_low_vram(sd_model, cmd_opts.medvram)
             sd_hijack.model_hijack.hijack(sd_model)
 
+        optical_flow_redo_generation = anim_args.optical_flow_redo_generation if not args.motion_preview_mode else 'None'
 
         if usingDeforumation:
             mediator_setValue("total_recall_relive", frame_idx)
@@ -1078,7 +1108,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 for cnIndex in range(5):
                     currCnIndex = cnIndex+1
                     isCnActive = mediator_getValue("cn_udcn"+str(cnIndex+1)).strip().strip('\n')
-                    print("ControlNet " + str(currCnIndex) + " has activeValue:" + str(isCnActive))
+                    #print("ControlNet " + str(currCnIndex) + " has activeValue:" + str(isCnActive))
                     cn_udcn = int(isCnActive)
                     if cn_udcn == 1:
                         #print("ControlNet " + str(currCnIndex) + " should use Deforumation values.")
@@ -1104,15 +1134,15 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
 
         # optical flow redo before generation
-        if anim_args.optical_flow_redo_generation != 'None' and prev_img is not None and strength > 0:
-            print(f"Optical flow redo is diffusing and warping using {anim_args.optical_flow_redo_generation} optical flow before generation.")
+        if optical_flow_redo_generation != 'None' and prev_img is not None and strength > 0:
+            print(f"Optical flow redo is diffusing and warping using {optical_flow_redo_generation} optical flow before generation.")
             stored_seed = args.seed
             args.seed = random.randint(0, 2 ** 32 - 1)
             #disposable_image = generate(args, keys, anim_args, loop_args, controlnet_args, root, frame_idx, sampler_name=scheduled_sampler_name)
             disposable_image = generate(args, keys, anim_args, loop_args, controlnet_args, root, parseq_adapter, frame_idx, sampler_name=scheduled_sampler_name)
             if disposable_image != None:
                 disposable_image = cv2.cvtColor(np.array(disposable_image), cv2.COLOR_RGB2BGR)
-                disposable_flow = get_flow_from_images(prev_img, disposable_image, anim_args.optical_flow_redo_generation, raft_model)
+                disposable_flow = get_flow_from_images(prev_img, disposable_image, optical_flow_redo_generation, raft_model)
                 disposable_image = cv2.cvtColor(disposable_image, cv2.COLOR_BGR2RGB)
                 disposable_image = image_transform_optical_flow(disposable_image, disposable_flow, redo_flow_factor)
                 args.seed = stored_seed
@@ -1121,7 +1151,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 gc.collect()
 
         # diffusion redo
-        if int(anim_args.diffusion_redo) > 0 and prev_img is not None and strength > 0:
+        if int(anim_args.diffusion_redo) > 0 and prev_img is not None and strength > 0 and not args.motion_preview_mode:
             stored_seed = args.seed
             for n in range(0, int(anim_args.diffusion_redo)):
                 print(f"Redo generation {n + 1} of {int(anim_args.diffusion_redo)} before final generation")
@@ -1219,6 +1249,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
         last_preview_frame = render_preview(args, anim_args, video_args, root, frame_idx, last_preview_frame)
 
+        JobStatusTracker().update_phase(root.job_id, phase="GENERATING", progress=frame_idx/anim_args.max_frames)
     #Restore Deforum CN Properties
     for cnIndex in range(5):
         currCnIndex = cnIndex+1
