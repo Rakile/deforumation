@@ -1,0 +1,8 @@
+#Usage
+#<Name of motion>,     <Path to Gif Animation>                    <PanX value>, <PanY value>, <Zoom Value>, <LookLeft value>, <LookRight value>, <Tilt Value>
+Close Rotation Right, ./motion_images/close_rotation_right.gif,     1.0,         0.0,          0.20,          -0.20,            0.0,                0.0
+Close Rotation Left, ./motion_images/close_rotation_left.gif,      -1.0,         0.0,          0.20,           0.20,            0.0,                0.0
+Medium Rotation Right, ./motion_images/medium_rotation_right.gif,   1.0,         0.0,          0.15,          -0.20,            0.0,                0.0
+Medium Rotation Left, ./motion_images/medium_rotation_left.gif,    -1.0,         0.0,          0.15,           0.20,            0.0,                0.0
+Far Rotation Right, ./motion_images/far_rotation_right.gif,         1.0,         0.0,          0.12,          -0.20,            0.0,                0.0
+Far Rotation Left, ./motion_images/far_rotation_left.gif,          -1.0,         0.0,          0.12,           0.20,            0.0,                0.0
