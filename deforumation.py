@@ -2,6 +2,8 @@ import inspect
 
 import wx
 import wx.media
+from wx.adv import Animation, AnimationCtrl
+import wx.lib.scrolledpanel
 import asyncio
 import websockets
 import os
@@ -26,9 +28,11 @@ import shutil
 cadenceArray = {}
 totalRecallFilePath = "./totalrecall.txt"
 deforumationSettingsPath = "./deforumation_settings.txt"
+deforumationPredefinedMotionPathSettings = "./deforumation_settings_motions.txt"
 deforumationSettingsPath_Keys = "./deforum_settings_keys.txt"
 deforumationPromptsPath = "./prompts/"
 deforumation_image_backup_folder = "./image_backup/"
+gif_animation_output_path = "./motion_images/animated_gif.gif"
 screenWidth = 1500
 screenHeight = 1060
 USE_BUFFERED_DC = True
@@ -136,6 +140,7 @@ should_use_total_recall_prompt = 0
 should_use_total_recall_movements = 0
 should_use_total_recall_others = 0
 windowlabel = ""
+create_gif_animation_on_preview = 0
 async def sendAsync_special(value):
     if shouldUseNamedPipes:
         bufSize = 64 * 1024
@@ -862,6 +867,7 @@ class Mywin(wx.Frame):
         self.bitmap = wx.StaticBitmap(self.panel, wx.ID_ANY, wx.Bitmap(img), pos=(trbX + 650 +340, tbrY - 100))
         self.bitmap.SetToolTip("This is a preview window, that will only update to the current image through using the \"Show current frame\"-button, or by using the controls for rewinding or forwarding.")
 
+
         # Variables for rectangle drawing
         self.start_pos = None
         self.current_pos = None
@@ -873,6 +879,62 @@ class Mywin(wx.Frame):
         self.bitmap.Bind(wx.EVT_LEFT_UP, self.on_mouse_left_up)
         self.bitmap.Bind(wx.EVT_MOTION, self.on_mouse_motion)
         self.bitmap.Bind(wx.EVT_PAINT, self.on_paint)
+
+        #ANIMATED MOTION "BUTTONS"
+        self.p2 = wx.lib.scrolledpanel.ScrolledPanel(self.panel, -1, size=(602, 110), pos=(int(screenWidth / 2) + 13, 280),style=wx.SIMPLE_BORDER)
+        self.p2.SetupScrolling()
+        self.p2.SetBackgroundColour('#FFFFFF')
+        self.bSizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        #PRE DEFINED MOTIONS
+        self.predefinedMotions = wx.StaticBox(self.panel, id=wx.ID_ANY, label='Predefined Motions', size=(300, 103), pos=(int(screenWidth / 2) + 416, 38))  # orient=wx.HORIZONTAL)
+        predefined_motions_name = []
+        predefined_motions_gif = []
+        self.predefined_motions_line = []
+        if os.path.isfile(deforumationPredefinedMotionPathSettings):
+            deforumFile = open(deforumationPredefinedMotionPathSettings, 'r')
+            lines = deforumFile.readlines()
+            motion_index = 0
+            for motion in lines:
+                if motion.startswith("#"):
+                    continue
+                motionNameStart = 0
+                motionNameEnd = motion.find(",")
+                motionName = motion[motionNameStart:motionNameEnd]
+                predefined_motions_name.append(motionName)
+
+                motionGifEnd = motion[motionNameEnd+1:].find(",")
+                motionGif = motion[motionNameEnd+1:motionGifEnd+motionNameEnd+1].lstrip().rstrip()
+                predefined_motions_gif.append(motionGif)
+                self.predefined_motions_line.append(motion[motionGifEnd+1+motionNameEnd+1:].strip("\n").strip(" "))
+                if os.path.isfile(motionGif):
+                    self.anim = Animation(motionGif)  # , type=wx.adv.ANIMATION_TYPE_GIF)
+                    self.ctrl = AnimationCtrl(self.p2, -1, self.anim, pos=(motion_index * self.anim.GetSize()[0] + motion_index * 20, 10))
+                    self.ctrl.SetLabel("IMAGE_MOTION_"+str(motion_index))
+                    self.ctrl.Bind(wx.EVT_LEFT_UP, self.OnClicked)
+                    self.ctrl.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
+                    self.ctrl.SetToolTip(motionName)
+                    self.ctrl.Play()
+                    self.bSizer.Add(self.ctrl, 0, wx.ALL, 5)
+                motion_index += 1
+        self.p2.SetSizer(self.bSizer)
+
+        self.predefined_motion_choice = wx.Choice(self.panel, id=wx.ID_ANY,  pos=(int(screenWidth / 2) + 422, 59),size=(240,40), choices=predefined_motions_name, style=0, name="predefinedmotion")
+        self.predefined_motion_choice.Bind(wx.EVT_CHOICE, self.OnMotionChoice)
+        self.predefined_motion_choice.SetSelection(0)
+        self.predefined_motion_choice.SetToolTip("Here you can choose a pre-defined motion, which then can be triggered by pushing the \"Use predefined motion\"-button. You can also choose to use the same motions below, by clicking the animated GIFs.")
+
+        #USE PRE-DEFINED MOTION BUTTON
+        self.use_predefined_motion_button = wx.Button(self.panel, label="Use predefined motion", pos=(int(screenWidth / 2) + 422, 88))
+        self.use_predefined_motion_button.SetToolTip("This will use the predefined motion specified in the \"Predefined Motions\" drop down box.")
+        self.use_predefined_motion_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.use_predefined_motion_button.SetToolTip("Pushing this button, will apply the predefined motion (if not TotalRecall is being used and is active)")
+
+        #SHOULD USE TOTAL RECALL
+        self.create_gif_animation_checkbox = wx.CheckBox(self.panel, label="Create GIF animation on preview", pos=(int(screenWidth / 2) + 422, 116))
+        self.create_gif_animation_checkbox.SetToolTip("When activated, clicking on the replay-button, will create a GIF animation on the range that you chose, and with the fps you chose. The GIF animation will be created in the folder: " + str(deforumationPredefinedMotionPathSettings))
+        self.create_gif_animation_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
 
         #####################################################
         self.audioSettingsField = wx.StaticBox(self.panel, id=wx.ID_ANY, label='Audio Playback Settings', size=(400, 90), pos=(int(screenWidth / 2) + 14, 38))  # orient=wx.HORIZONTAL)
@@ -908,7 +970,7 @@ class Mywin(wx.Frame):
         bmp = wx.Bitmap("./images/play.bmp", wx.BITMAP_TYPE_BMP)
         bmp = scale_bitmap(bmp, 18, 18)
         self.replay_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX + 1145, tbrY -135), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
-        self.replay_button.SetToolTip("This will replay the range given in the input boxes to the left. Left-clicking this button will replay the range in the Live Render window. Right-clicking this button will use ffmpeg and any audio file to replay the choosen range.")
+        self.replay_button.SetToolTip("This will replay the range given in the input boxes to the left. Left-clicking this button will replay the range in the Live Render window. Right-clicking this button will use ffmpeg and any audio file to replay the choosen range. If you have activated the \"Create GIF animation on preview\"-checkbox, a GIF animation will be created instead, and put into a specified folder.")
         self.replay_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.replay_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.replay_button.SetLabel("REPLAY")
@@ -951,6 +1013,11 @@ class Mywin(wx.Frame):
         self.should_use_total_recall_in_deforumation_checkbox = wx.CheckBox(self.panel, label="View original values in Deforumation", pos=(int(screenWidth / 2) + 20, 200))
         self.should_use_total_recall_in_deforumation_checkbox.SetToolTip("When activated, original values used, will be shown in Deforumation.")
         self.should_use_total_recall_in_deforumation_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+        #Original values -> Manual values
+        self.copy_original_to_manual_button = wx.Button(self.panel, label="Original values -> Manual values", size=(200,17), pos=(int(screenWidth / 2) + 250, 200))
+        self.copy_original_to_manual_button.SetToolTip("Will copy all the original value settings to be used as the current manual settings.")
+        self.copy_original_to_manual_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.copy_original_to_manual_button.Disable()
 
         #BYPASS PROMPTS
         self.should_use_total_recall_prompt_checkbox = wx.CheckBox(self.panel, label="Recall prompts", pos=(int(screenWidth / 2) + 260, 180))
@@ -1003,9 +1070,9 @@ class Mywin(wx.Frame):
         self.restore_all_images.Bind(wx.EVT_BUTTON, self.OnClicked)
         ###############
         #SAVE PROMPTS BUTTON
-        self.update_prompts = wx.Button(self.panel, label="SAVE PROMPTS")
+        self.update_prompts = wx.Button(self.panel, label="SAVE PROMPTS",size=(int(screenWidth/2-6),20))
         self.update_prompts.SetToolTip("When pushing this, the current Positive Prompt, and the current Negative Prompt will be saved on the currently set frame. While generating, the current frame will be increasing, and your prompts will be saved along with it.")
-        sizer.Add(self.update_prompts, 0, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(self.update_prompts, 0, wx.ALL, 5)
         self.update_prompts.Bind(wx.EVT_BUTTON, self.OnClicked)
 
         #ARM PAN VALUE BUTTON
@@ -1349,12 +1416,12 @@ class Mywin(wx.Frame):
 
         #PAUSE VIDEO RENDERING
         if is_paused_rendering:
-            self.pause_rendering = wx.Button(self.panel, label="PUSH TO RESUME RENDERING")
+            self.pause_rendering = wx.Button(self.panel, label="PUSH TO RESUME RENDERING", size=(int(screenWidth/2-6),20))
             self.pause_rendering.SetToolTip("Push this button to resume the paused image generation.")
         else:
-            self.pause_rendering = wx.Button(self.panel, label="PUSH TO PAUSE RENDERING")
+            self.pause_rendering = wx.Button(self.panel, label="PUSH TO PAUSE RENDERING", size=(int(screenWidth/2-6),20))
             self.pause_rendering.SetToolTip("Push this button to pause the ongoing image generation.")
-        sizer.Add(self.pause_rendering, 0, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(self.pause_rendering, 0, wx.ALL, 5)
         self.pause_rendering.Bind(wx.EVT_BUTTON, self.OnClicked)
 
         #CADENCE SLIDER
@@ -1592,7 +1659,8 @@ class Mywin(wx.Frame):
         self.Fit()
 
         self.loadAllValues()
-        self.setAllComponentValues()
+        if not should_use_total_recall:
+            self.setAllComponentValues()
         #KEYBOARD INPUT EVNTG HANDLER
         self.off_grid_input_box.Bind(wx.EVT_KEY_DOWN, self.KeyDown)
         self.off_grid_input_box.SetFocus()
@@ -1633,7 +1701,10 @@ class Mywin(wx.Frame):
         elif selectionString == 'ease-in-out':
             self.bezier_points_input_box.SetValue("(.42, 0), (.58, 1)")
 
-
+    def OnMotionChoice(self, event):
+        print("Selection index:" + str(self.predefined_motion_choice.GetSelection()))
+        index = self.predefined_motion_choice.GetSelection()
+        print("Values:" + str(self.predefined_motions_line[index]))
     def OnComponentChoice(self, event):
         print("You choose:"+ self.component_chooser_choice.GetString(self.component_chooser_choice.GetSelection()))
         selectionString = self.component_chooser_choice.GetString(self.component_chooser_choice.GetSelection())
@@ -2102,6 +2173,7 @@ class Mywin(wx.Frame):
                 #self.opticalflow_checkbox
                 #cadence_flow_factor = int(parameter_container.cadence_flow_factor)
                 #generation_flow_factor = int(parameter_container.generation_flow_factor)
+                self.opticalflow_checkbox.SetValue(int(parameter_container.should_use_optical_flow))
                 self.cadence_flow_factor_box.SetValue(str(int(parameter_container.cadence_flow_factor)))
                 self.generation_flow_factor_box.SetValue(str(int(parameter_container.generation_flow_factor)))
 
@@ -2154,7 +2226,19 @@ class Mywin(wx.Frame):
         global should_use_optical_flow
         global cadence_flow_factor
         global generation_flow_factor
-
+        global should_use_total_recall
+        global should_use_total_recall_prompt
+        global should_use_total_recall_movements
+        global should_use_total_recall_others
+        global should_use_deforumation_timestring
+        global current_render_frame
+        global current_frame
+        global Translation_X_ARMED
+        global Translation_Y_ARMED
+        global Translation_Z_ARMED
+        global Rotation_3D_X_ARMED
+        global Rotation_3D_Y_ARMED
+        global Rotation_3D_Z_ARMED
         if os.path.isfile(deforumationSettingsPath_Keys):
             deforumFile = open(deforumationSettingsPath_Keys, 'r')
             lines = deforumFile.readlines()
@@ -2326,48 +2410,87 @@ class Mywin(wx.Frame):
             if sortedDict[3][1] !="":
                 totalPossitivePromptString += "," + sortedDict[3][1]
 
-            self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', ' ') + "\n")
-            self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', ' ') + "\n")
-            self.writeValue("strength", Strength_Scheduler)
-            self.writeValue("cfg", CFG_Scale)
-            self.writeValue("steps", STEP_Schedule)
-            self.writeValue("fov", FOV_Scale)
-            self.writeValue("translation_x", Translation_X)
-            self.writeValue("translation_y", Translation_Y)
-            self.writeValue("translation_z", Translation_Z)
-            self.writeValue("rotation_x", Rotation_3D_X)
-            self.writeValue("rotation_y", Rotation_3D_Y)
-            self.writeValue("rotation_z", Rotation_3D_Z)
-            self.writeValue("should_use_deforumation_prompt_scheduling", int(should_use_deforumation_prompt_scheduling))
-            self.writeValue("should_use_deforumation_strength", int(should_use_deforumation_strength))
-            self.writeValue("should_use_deforumation_cfg", int(should_use_deforumation_cfg))
-            self.writeValue("should_use_deforumation_cadence", int(should_use_deforumation_cadence))
-            self.writeValue("should_use_deforumation_noise", int(should_use_deforumation_noise))
-            self.writeValue("should_use_deforumation_panning", int(should_use_deforumation_panning))
-            self.writeValue("should_use_deforumation_zoomfov", int(should_use_deforumation_zoomfov))
-            self.writeValue("should_use_deforumation_rotation", int(should_use_deforumation_rotation))
-            self.writeValue("should_use_deforumation_tilt", int(should_use_deforumation_tilt))
-            self.writeValue("cadence", int(Cadence_Schedule))
-            for cnIndex in range(5):
-                self.writeValue("cn_weight"+str(cnIndex+1), float(CN_Weight[cnIndex]))
-                self.writeValue("cn_stepstart"+str(cnIndex+1), float(CN_StepStart[cnIndex]))
-                self.writeValue("cn_stepend"+str(cnIndex+1), float(CN_StepEnd[cnIndex]))
-                self.writeValue("cn_lowt"+str(cnIndex+1), float(CN_LowT[cnIndex]))
-                self.writeValue("cn_hight"+str(cnIndex+1), float(CN_HighT[cnIndex]))
-                self.writeValue("cn_udcn" + str(cnIndex + 1), int(CN_UDCn[cnIndex]))
+            should_use_total_recall = int(self.readValue("should_use_total_recall"))
+            if should_use_total_recall == 1:
+                Translation_X_ARMED = 0
+                Translation_Y_ARMED = 0
+                Translation_Z_ARMED = 0
+                Rotation_3D_X_ARMED = 0
+                Rotation_3D_Y_ARMED = 0
+                Rotation_3D_Z_ARMED = 0
 
-            self.writeValue("noise_multiplier", float(noise_multiplier))
-            self.writeValue("perlin_octaves", int(Perlin_Octave_Value))
-            self.writeValue("perlin_persistence", float(Perlin_Persistence_Value))
-            self.writeValue("use_deforumation_cadence_scheduling", 0)
+            if not should_use_total_recall:
+                self.writeValue("positive_prompt", totalPossitivePromptString.strip().replace('\n', ' ') + "\n")
+                self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', ' ') + "\n")
+                self.writeValue("strength", Strength_Scheduler)
+                self.writeValue("cfg", CFG_Scale)
+                self.writeValue("steps", STEP_Schedule)
+                self.writeValue("fov", FOV_Scale)
+                self.writeValue("translation_x", Translation_X)
+                self.writeValue("translation_y", Translation_Y)
+                self.writeValue("translation_z", Translation_Z)
+                self.writeValue("rotation_x", Rotation_3D_X)
+                self.writeValue("rotation_y", Rotation_3D_Y)
+                self.writeValue("rotation_z", Rotation_3D_Z)
+                self.writeValue("should_use_deforumation_prompt_scheduling", int(should_use_deforumation_prompt_scheduling))
+                self.writeValue("should_use_deforumation_strength", int(should_use_deforumation_strength))
+                self.writeValue("should_use_deforumation_cfg", int(should_use_deforumation_cfg))
+                self.writeValue("should_use_deforumation_cadence", int(should_use_deforumation_cadence))
+                self.writeValue("should_use_deforumation_noise", int(should_use_deforumation_noise))
+                self.writeValue("should_use_deforumation_panning", int(should_use_deforumation_panning))
+                self.writeValue("should_use_deforumation_zoomfov", int(should_use_deforumation_zoomfov))
+                self.writeValue("should_use_deforumation_rotation", int(should_use_deforumation_rotation))
+                self.writeValue("should_use_deforumation_tilt", int(should_use_deforumation_tilt))
+                self.writeValue("cadence", int(Cadence_Schedule))
+                for cnIndex in range(5):
+                    self.writeValue("cn_weight"+str(cnIndex+1), float(CN_Weight[cnIndex]))
+                    self.writeValue("cn_stepstart"+str(cnIndex+1), float(CN_StepStart[cnIndex]))
+                    self.writeValue("cn_stepend"+str(cnIndex+1), float(CN_StepEnd[cnIndex]))
+                    self.writeValue("cn_lowt"+str(cnIndex+1), float(CN_LowT[cnIndex]))
+                    self.writeValue("cn_hight"+str(cnIndex+1), float(CN_HighT[cnIndex]))
+                    self.writeValue("cn_udcn" + str(cnIndex + 1), int(CN_UDCn[cnIndex]))
 
-            self.writeValue("should_use_optical_flow", int(should_use_optical_flow))
-            self.writeValue("cadence_flow_factor", int(cadence_flow_factor))
-            self.writeValue("generation_flow_factor", int(generation_flow_factor))
+                self.writeValue("noise_multiplier", float(noise_multiplier))
+                self.writeValue("perlin_octaves", int(Perlin_Octave_Value))
+                self.writeValue("perlin_persistence", float(Perlin_Persistence_Value))
+                self.writeValue("use_deforumation_cadence_scheduling", 0)
+
+                self.writeValue("should_use_optical_flow", int(should_use_optical_flow))
+                self.writeValue("cadence_flow_factor", int(cadence_flow_factor))
+                self.writeValue("generation_flow_factor", int(generation_flow_factor))
+
+            #Total recall values
+
+            self.should_use_total_recall_checkbox.SetValue(should_use_total_recall)
+            should_use_total_recall_movements = int(self.readValue("should_use_total_recall_movements"))
+            self.should_use_total_recall_movement_checkbox.SetValue(should_use_total_recall_movements)
+            should_use_total_recall_others = int(self.readValue("should_use_total_recall_others"))
+            self.should_use_total_recall_others_checkbox.SetValue(should_use_total_recall_others)
+            should_use_total_recall_prompt = int(self.readValue("should_use_total_recall_prompt"))
+            self.should_use_total_recall_prompt_checkbox.SetValue(should_use_total_recall_prompt)
+            tr_fromValue = int(self.readValue("total_recall_from"))
+            tr_toValue = int(self.readValue("total_recall_to"))
+            self.total_recall_from_input_box.SetValue(str(tr_fromValue))
+            self.total_recall_to_input_box.SetValue(str(tr_toValue))
+
+            should_use_deforumation_timestring = int(self.readValue("should_use_deforumation_timestring"))
+            self.should_use_deforumation_start_string_checkbox.SetValue(should_use_deforumation_timestring)
 
             #Get Number of recall points
             number_of_recalled_frames = int(self.readValue("get_number_of_recalled_frames"))
             self.total_current_recall_frames_text.SetLabel("Number of recall points: " + str(number_of_recalled_frames))
+
+            #Fix to current image
+            current_frame = self.readValue("start_frame")
+            self.frame_step_input_box.SetValue(str(current_frame))
+            current_render_frame = int(current_frame)
+            self.loadCurrentPrompt("P", current_frame, 1)
+            self.loadCurrentPrompt("N", current_frame, 1)
+            evt = wx.PyCommandEvent(wx.EVT_BUTTON.typeId)
+            evt.SetEventObject(self.show_current_image)
+            evt.SetId(self.show_current_image.GetId())
+            self.show_current_image.GetEventHandler().ProcessEvent(evt)
+
         else:
             self.writeAllValues()
     def writeValue(self, param, value):
@@ -2517,44 +2640,49 @@ class Mywin(wx.Frame):
             print(e)
 
     def sendAllMotionValues(self):
-        self.writeValue("fov", FOV_Scale)
-        self.writeValue("translation_x", Translation_X)
-        self.writeValue("translation_y", Translation_Y)
-        self.writeValue("translation_z", Translation_Z)
-        self.writeValue("rotation_x", Rotation_3D_X)
-        self.writeValue("rotation_y", Rotation_3D_Y)
-        self.writeValue("rotation_z", Rotation_3D_Z)
-        self.writeValue("should_use_deforumation_panning", int(should_use_deforumation_panning))
-        self.writeValue("should_use_deforumation_zoomfov", int(should_use_deforumation_zoomfov))
-        self.writeValue("should_use_deforumation_rotation", int(should_use_deforumation_rotation))
-        self.writeValue("should_use_deforumation_tilt", int(should_use_deforumation_tilt))
+        SendBlock = []
+        SendBlock.append(pickle.dumps([1, "translation_x", Translation_X]))
+        SendBlock.append(pickle.dumps([1, "translation_y", Translation_Y]))
+        SendBlock.append(pickle.dumps([1, "translation_z", Translation_Z]))
+        SendBlock.append(pickle.dumps([1, "rotation_x", Rotation_3D_X]))
+        SendBlock.append(pickle.dumps([1, "rotation_y", Rotation_3D_Y]))
+        SendBlock.append(pickle.dumps([1, "rotation_z", Rotation_3D_Z]))
+        SendBlock.append(pickle.dumps([1, "fov", FOV_Scale]))
+        SendBlock.append(pickle.dumps([1, "should_use_deforumation_panning", int(should_use_deforumation_panning)]))
+        SendBlock.append(pickle.dumps([1, "should_use_deforumation_zoomfov", int(should_use_deforumation_zoomfov)]))
+        SendBlock.append(pickle.dumps([1, "should_use_deforumation_rotation", int(should_use_deforumation_rotation)]))
+        SendBlock.append(pickle.dumps([1, "should_use_deforumation_tilt", int(should_use_deforumation_tilt)]))
+        self.writeValue("<BLOCK>", SendBlock)
+
 
     def sendAllOtherValues(self):
-        self.writeValue("strength", Strength_Scheduler)
-        self.writeValue("cfg", CFG_Scale)
-        self.writeValue("steps", STEP_Schedule)
-        self.writeValue("fov", FOV_Scale)
-        self.writeValue("should_use_deforumation_strength", int(should_use_deforumation_strength))
-        self.writeValue("should_use_deforumation_cfg", int(should_use_deforumation_cfg))
-        self.writeValue("should_use_deforumation_cadence", int(should_use_deforumation_cadence))
-        self.writeValue("should_use_deforumation_noise", int(should_use_deforumation_noise))
-        self.writeValue("cadence", int(Cadence_Schedule))
+        SendBlock = []
+        SendBlock.append(pickle.dumps([1, "strength", Strength_Scheduler]))
+        SendBlock.append(pickle.dumps([1, "cfg", CFG_Scale]))
+        SendBlock.append(pickle.dumps([1, "steps", STEP_Schedule]))
+        SendBlock.append(pickle.dumps([1, "should_use_deforumation_strength", int(should_use_deforumation_strength)]))
+        SendBlock.append(pickle.dumps([1, "should_use_deforumation_cfg", int(should_use_deforumation_cfg)]))
+        SendBlock.append(pickle.dumps([1, "should_use_deforumation_cadence", int(should_use_deforumation_cadence)]))
+        SendBlock.append(pickle.dumps([1, "should_use_deforumation_noise", int(should_use_deforumation_noise)]))
+        SendBlock.append(pickle.dumps([1, "cadence", int(Cadence_Schedule)]))
         for cnIndex in range(5):
-            self.writeValue("cn_weight" + str(cnIndex + 1), float(CN_Weight[cnIndex]))
-            self.writeValue("cn_stepstart" + str(cnIndex + 1), float(CN_StepStart[cnIndex]))
-            self.writeValue("cn_stepend" + str(cnIndex + 1), float(CN_StepEnd[cnIndex]))
-            self.writeValue("cn_lowt" + str(cnIndex + 1), float(CN_LowT[cnIndex]))
-            self.writeValue("cn_hight" + str(cnIndex + 1), float(CN_HighT[cnIndex]))
-            self.writeValue("cn_udcn" + str(cnIndex + 1), int(CN_UDCn[cnIndex]))
+            SendBlock.append(pickle.dumps([1, "cn_weight" + str(cnIndex + 1), float(CN_Weight[cnIndex])]))
+            SendBlock.append(pickle.dumps([1, "cn_stepstart" + str(cnIndex + 1), float(CN_StepStart[cnIndex])]))
+            SendBlock.append(pickle.dumps([1, "cn_stepend" + str(cnIndex + 1), float(CN_StepEnd[cnIndex])]))
+            SendBlock.append(pickle.dumps([1, "cn_lowt" + str(cnIndex + 1), float(CN_LowT[cnIndex])]))
+            SendBlock.append(pickle.dumps([1, "cn_hight" + str(cnIndex + 1), float(CN_HighT[cnIndex])]))
+            SendBlock.append(pickle.dumps([1, "cn_udcn" + str(cnIndex + 1), int(CN_UDCn[cnIndex])]))
 
-        self.writeValue("noise_multiplier", float(noise_multiplier))
-        self.writeValue("perlin_octaves", int(Perlin_Octave_Value))
-        self.writeValue("perlin_persistence", float(Perlin_Persistence_Value))
-        self.writeValue("use_deforumation_cadence_scheduling", 0)
+        SendBlock.append(pickle.dumps([1, "noise_multiplier", float(noise_multiplier)]))
+        SendBlock.append(pickle.dumps([1, "perlin_octaves", int(Perlin_Octave_Value)]))
+        SendBlock.append(pickle.dumps([1, "perlin_persistence", float(Perlin_Persistence_Value)]))
+        SendBlock.append(pickle.dumps([1, "use_deforumation_cadence_scheduling", 0]))
 
-        self.writeValue("should_use_optical_flow", int(should_use_optical_flow))
-        self.writeValue("cadence_flow_factor", int(cadence_flow_factor))
-        self.writeValue("generation_flow_factor", int(generation_flow_factor))
+        SendBlock.append(pickle.dumps([1, "should_use_optical_flow", int(should_use_optical_flow)]))
+        SendBlock.append(pickle.dumps([1, "cadence_flow_factor", int(cadence_flow_factor)]))
+        SendBlock.append(pickle.dumps([1, "generation_flow_factor", int(generation_flow_factor)]))
+
+        self.writeValue("<BLOCK>", SendBlock)
 
     def sendAllPropmptValues(self):
         positive_prio = {
@@ -2594,43 +2722,184 @@ class Mywin(wx.Frame):
         self.writeValue("should_use_deforumation_prompt_scheduling", int(should_use_deforumation_prompt_scheduling))
 
         #Motion Values
-        self.writeValue("translation_x", Translation_X)
-        self.writeValue("translation_y", Translation_Y)
-        self.writeValue("translation_z", Translation_Z)
-        self.writeValue("rotation_x", Rotation_3D_X)
-        self.writeValue("rotation_y", Rotation_3D_Y)
-        self.writeValue("rotation_z", Rotation_3D_Z)
-        self.writeValue("should_use_deforumation_panning", int(should_use_deforumation_panning))
-        self.writeValue("should_use_deforumation_zoomfov", int(should_use_deforumation_zoomfov))
-        self.writeValue("should_use_deforumation_rotation", int(should_use_deforumation_rotation))
-        self.writeValue("should_use_deforumation_tilt", int(should_use_deforumation_tilt))
+        SendBlock = []
+        SendBlock.append(pickle.dumps([1, "translation_x", Translation_X]))
+        SendBlock.append(pickle.dumps([1, "translation_y", Translation_Y]))
+        SendBlock.append(pickle.dumps([1, "translation_z", Translation_Z]))
+
+        SendBlock.append(pickle.dumps([1, "rotation_x", Rotation_3D_X]))
+        SendBlock.append(pickle.dumps([1, "rotation_y", Rotation_3D_Y]))
+        SendBlock.append(pickle.dumps([1, "rotation_z", Rotation_3D_Z]))
+        SendBlock.append(pickle.dumps([1, "fov", FOV_Scale]))
+        SendBlock.append(pickle.dumps([1, "should_use_deforumation_panning", int(should_use_deforumation_panning)]))
+        SendBlock.append(pickle.dumps([1, "should_use_deforumation_zoomfov", int(should_use_deforumation_zoomfov)]))
+        SendBlock.append(pickle.dumps([1, "should_use_deforumation_rotation", int(should_use_deforumation_rotation)]))
+        SendBlock.append(pickle.dumps([1, "should_use_deforumation_tilt", int(should_use_deforumation_tilt)]))
 
         #Other Values
-        self.writeValue("strength", Strength_Scheduler)
-        self.writeValue("cfg", CFG_Scale)
-        self.writeValue("steps", STEP_Schedule)
-        self.writeValue("fov", FOV_Scale)
-        self.writeValue("should_use_deforumation_strength", int(should_use_deforumation_strength))
-        self.writeValue("should_use_deforumation_cfg", int(should_use_deforumation_cfg))
-        self.writeValue("should_use_deforumation_cadence", int(should_use_deforumation_cadence))
-        self.writeValue("should_use_deforumation_noise", int(should_use_deforumation_noise))
-        self.writeValue("cadence", int(Cadence_Schedule))
+        SendBlock.append(pickle.dumps([1, "strength", Strength_Scheduler]))
+        SendBlock.append(pickle.dumps([1, "cfg", CFG_Scale]))
+        SendBlock.append(pickle.dumps([1, "steps", STEP_Schedule]))
+        SendBlock.append(pickle.dumps([1, "should_use_deforumation_strength", int(should_use_deforumation_strength)]))
+        SendBlock.append(pickle.dumps([1, "should_use_deforumation_cfg", int(should_use_deforumation_cfg)]))
+        SendBlock.append(pickle.dumps([1, "should_use_deforumation_cadence", int(should_use_deforumation_cadence)]))
+        SendBlock.append(pickle.dumps([1, "should_use_deforumation_noise", int(should_use_deforumation_noise)]))
+        SendBlock.append(pickle.dumps([1, "cadence", int(Cadence_Schedule)]))
         for cnIndex in range(5):
-            self.writeValue("cn_weight" + str(cnIndex + 1), float(CN_Weight[cnIndex]))
-            self.writeValue("cn_stepstart" + str(cnIndex + 1), float(CN_StepStart[cnIndex]))
-            self.writeValue("cn_stepend" + str(cnIndex + 1), float(CN_StepEnd[cnIndex]))
-            self.writeValue("cn_lowt" + str(cnIndex + 1), float(CN_LowT[cnIndex]))
-            self.writeValue("cn_hight" + str(cnIndex + 1), float(CN_HighT[cnIndex]))
-            self.writeValue("cn_udcn" + str(cnIndex + 1), int(CN_UDCn[cnIndex]))
+            SendBlock.append(pickle.dumps([1, "cn_weight" + str(cnIndex + 1), float(CN_Weight[cnIndex])]))
+            SendBlock.append(pickle.dumps([1, "cn_stepstart" + str(cnIndex + 1), float(CN_StepStart[cnIndex])]))
+            SendBlock.append(pickle.dumps([1, "cn_stepend" + str(cnIndex + 1), float(CN_StepEnd[cnIndex])]))
+            SendBlock.append(pickle.dumps([1, "cn_lowt" + str(cnIndex + 1), float(CN_LowT[cnIndex])]))
+            SendBlock.append(pickle.dumps([1, "cn_hight" + str(cnIndex + 1), float(CN_HighT[cnIndex])]))
+            SendBlock.append(pickle.dumps([1, "cn_udcn" + str(cnIndex + 1), int(CN_UDCn[cnIndex])]))
 
-        self.writeValue("noise_multiplier", float(noise_multiplier))
-        self.writeValue("perlin_octaves", int(Perlin_Octave_Value))
-        self.writeValue("perlin_persistence", float(Perlin_Persistence_Value))
-        self.writeValue("use_deforumation_cadence_scheduling", 0)
+        SendBlock.append(pickle.dumps([1, "noise_multiplier", float(noise_multiplier)]))
+        SendBlock.append(pickle.dumps([1, "perlin_octaves", int(Perlin_Octave_Value)]))
+        SendBlock.append(pickle.dumps([1, "perlin_persistence", float(Perlin_Persistence_Value)]))
+        SendBlock.append(pickle.dumps([1, "use_deforumation_cadence_scheduling", 0]))
 
-        self.writeValue("should_use_optical_flow", int(should_use_optical_flow))
-        self.writeValue("cadence_flow_factor", int(cadence_flow_factor))
-        self.writeValue("generation_flow_factor", int(generation_flow_factor))
+        SendBlock.append(pickle.dumps([1, "should_use_optical_flow", int(should_use_optical_flow)]))
+        SendBlock.append(pickle.dumps([1, "cadence_flow_factor", int(cadence_flow_factor)]))
+        SendBlock.append(pickle.dumps([1, "generation_flow_factor", int(generation_flow_factor)]))
+
+        self.writeValue("<BLOCK>", SendBlock)
+
+    def copyAllOriginalValuesToManual(self, frameNumber):
+        global Translation_X
+        global Translation_Y
+        global Translation_Z
+        global Rotation_3D_X
+        global Rotation_3D_Y
+        global Rotation_3D_Z
+        global Strength_Scheduler
+        global CFG_Scale
+        global FOV_Scale
+        global is_fov_locked
+        global is_reverse_fov_locked
+        global STEP_Schedule
+        global Cadence_Schedule
+        global noise_multiplier
+        global Perlin_Octave_Value
+        global Perlin_Persistence_Value
+        global is_paused_rendering
+        global should_use_deforumation_strength
+        global pan_left_key,pan_right_key,pan_up_key,pan_down_key,zoom_up_key,zoom_down_key
+        global CN_Weight
+        global CN_StepStart
+        global CN_StepEnd
+        global CN_LowT
+        global CN_HighT
+        global CN_UDCn
+        global should_use_deforumation_prompt_scheduling
+        global should_use_deforumation_cfg
+        global should_use_deforumation_cadence
+        global should_use_deforumation_noise
+        global should_use_deforumation_panning
+        global should_use_deforumation_zoomfov
+        global should_use_deforumation_rotation
+        global should_use_deforumation_tilt
+        global pan_step_input_box_value
+        global rotate_step_input_box_value
+        global tilt_step_input_box_value
+        global zero_pan_step_input_box_value
+        global zero_rotate_step_input_box_value
+        global zero_zoom_step_input_box_value
+        global shouldUseDeforumPromptScheduling
+        global should_use_optical_flow
+        global cadence_flow_factor
+        global generation_flow_factor
+        global parameter_container
+        global seedValue
+        parameter_container = pickle.loads(readValue_special("saved_frame_params", frameNumber))
+        if parameter_container != 0x0:
+            if parameter_container and parameter_container != None:
+                #self.positive_prompt_input_ctrl.SetValue(parameter_container.Prompt_Positive)
+                #self.positive_prompt_input_ctrl_2.SetValue("")
+                #self.positive_prompt_input_ctrl_3.SetValue("")
+                #self.positive_prompt_input_ctrl_4.SetValue("")
+                #self.negative_prompt_input_ctrl.SetValue(parameter_container.Prompt_Negative)
+                Strength_Scheduler = float(parameter_container.strength_value)
+                #self.strength_schedule_slider.SetValue(int(float(parameter_container.strength_value)*100))
+                CFG_Scale = float(parameter_container.cfg_scale)
+                #self.cfg_schedule_slider.SetValue(int(float(parameter_container.cfg_scale)))
+                STEP_Schedule = int(parameter_container.steps)
+                #self.sample_schedule_slider.SetValue(int(parameter_container.steps))
+                FOV_Scale = float(parameter_container.fov)
+                #self.fov_slider.SetValue(int(float(parameter_container.fov)))
+                Translation_X = float(parameter_container.translation_x)
+                Translation_Y = float(parameter_container.translation_y)
+                Translation_Z = float(parameter_container.translation_z)
+                #if not armed_pan:
+                #    self.pan_X_Value_Text.SetLabel(str('%.2f' % float(parameter_container.translation_x)))
+                #    self.pan_Y_Value_Text.SetLabel(str('%.2f' % float(parameter_container.translation_y)))
+                #else:
+                #    self.pan_X_Value_Text.SetLabel(str('%.2f' % float(Translation_X_ARMED)))
+                #    self.pan_Y_Value_Text.SetLabel(str('%.2f' % float(Translation_Y_ARMED)))
+
+                #elif armed_pan:
+                #    self.pan_X_Value_Text.SetLabel(str('%.2f' % float(Translation_X_ARMED)))
+                #    #Translation_Y = float(parameter_container.translation_y)
+                #    self.pan_Y_Value_Text.SetLabel(str('%.2f' % float(Translation_Y_ARMED)))
+                #    #Translation_Z = float(parameter_container.translation_z)
+
+                #self.zoom_slider.SetValue(int(float(parameter_container.translation_z))*100)
+                #self.zoom_value_text.SetLabel('%.2f' % (float(parameter_container.translation_z)))
+                Rotation_3D_X = float(parameter_container.rotation_x)
+                Rotation_3D_Y = float(parameter_container.rotation_y)
+                Rotation_3D_Z = float(parameter_container.rotation_z)
+                #if not armed_rotation:
+                #    self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % float(parameter_container.rotation_y)))
+                #    self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % float(parameter_container.rotation_x)))
+                #else:
+                #    self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Y_ARMED)))
+                #    self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_X_ARMED)))
+
+                #if not armed_zoom:
+                #    self.zoom_value_text.SetLabel(str('%.2f' % float(parameter_container.translation_z)))
+                #    self.zoom_slider.SetValue(int(float(parameter_container.translation_z) * 100))
+                #else:
+                #    self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z_ARMED)))
+                #    self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
+
+                #self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(parameter_container.rotation_z)))
+
+                Cadence_Schedule = int(parameter_container.cadence)
+                #self.cadence_slider.SetValue(int(parameter_container.cadence))
+                ###CN
+                for cnIndex in range(5):
+                    CN_Weight[cnIndex] = float(parameter_container.cn_weight[cnIndex])
+                    #self.control_net_weight_slider[cnIndex].SetValue(int(float(parameter_container.cn_weight[cnIndex])*100))
+                    CN_StepStart[cnIndex] = float(parameter_container.cn_stepstart[cnIndex])
+                    #self.control_net_stepstart_slider[cnIndex].SetValue(int(float(parameter_container.cn_stepstart[cnIndex])*100))
+                    CN_StepEnd[cnIndex] = float(parameter_container.cn_stepend[cnIndex])
+                    #self.control_net_stepend_slider[cnIndex].SetValue(int(float(parameter_container.cn_stepend[cnIndex])*100))
+                    CN_LowT[cnIndex] = int(parameter_container.cn_lowt[cnIndex])
+                    #self.control_net_lowt_slider[cnIndex].SetValue(int(parameter_container.cn_lowt[cnIndex]))
+                    CN_HighT[cnIndex] = int(parameter_container.cn_hight[cnIndex])
+                    #self.control_net_hight_slider[cnIndex].SetValue(int(parameter_container.cn_hight[cnIndex]))
+                    CN_UDCn[cnIndex] = int(parameter_container.cn_udcn[cnIndex])
+                    #self.control_net_active_checkbox[cnIndex].SetValue(int(parameter_container.cn_udcn[cnIndex]))
+                ##CN END
+                noise_multiplier = float(parameter_container.noise_multiplier)
+                #self.noise_slider.SetValue(int(float(parameter_container.noise_multiplier)*100))
+                Perlin_Octave_Value = int(parameter_container.perlin_octaves)
+                #self.perlin_octave_slider.SetValue(int(parameter_container.perlin_octaves))
+                Perlin_Persistence_Value = float(parameter_container.perlin_persistence)
+                #self.perlin_persistence_slider.SetValue(int(float(parameter_container.perlin_persistence)*100))
+
+                #self.opticalflow_checkbox
+                #self.opticalflow_checkbox
+                should_use_optical_flow = int(parameter_container.should_use_optical_flow)
+                cadence_flow_factor = int(parameter_container.cadence_flow_factor)
+                generation_flow_factor = int(parameter_container.generation_flow_factor)
+                #self.cadence_flow_factor_box.SetValue(str(int(parameter_container.cadence_flow_factor)))
+                #self.generation_flow_factor_box.SetValue(str(int(parameter_container.generation_flow_factor)))
+
+                #seed
+                seedValue = int(parameter_container.seed_value)
+                #self.seed_input_box.SetValue(str(int(parameter_container.seed_value)))
+        else:
+            print("Frame " + str(frameNumber)+ " has no stored recall values.")
 
     def writeAllValues(self):
 
@@ -2771,20 +3040,23 @@ class Mywin(wx.Frame):
                 if promptType == "P" and loadedFromFile:
                     aPromptStart = 0
                     aPromptEnd = promptToShow.find("`~")
-                    aPrompt = promptToShow[aPromptStart:aPromptEnd]
-                    self.positive_prompt_input_ctrl.SetValue(str(aPrompt).replace('`^','\n'))
-                    aPromptStart = aPromptEnd + 2
-                    aPromptEnd = promptToShow[aPromptStart:].find("`~")
-                    aPrompt = promptToShow[aPromptStart:aPromptEnd+aPromptStart]
-                    self.positive_prompt_input_ctrl_2.SetValue(str(aPrompt).replace('`^','\n'))
-                    aPromptStart = aPromptStart + aPromptEnd + 2
-                    aPromptEnd = promptToShow[aPromptStart:].find("`~")
-                    aPrompt = promptToShow[aPromptStart:aPromptEnd+aPromptStart]
-                    self.positive_prompt_input_ctrl_3.SetValue(str(aPrompt).replace('`^','\n'))
-                    aPromptStart = aPromptStart + aPromptEnd + 2
-                    aPromptEnd = promptToShow[aPromptStart:].find("`~")
-                    aPrompt = promptToShow[aPromptStart:aPromptEnd+aPromptStart]
-                    self.positive_prompt_input_ctrl_4.SetValue(str(aPrompt).replace('`^','\n'))
+                    if aPromptEnd == -1:
+                        self.positive_prompt_input_ctrl.SetValue(str(promptToShow).replace('`^', '\n'))
+                    else:
+                        aPrompt = promptToShow[aPromptStart:aPromptEnd]
+                        self.positive_prompt_input_ctrl.SetValue(str(aPrompt).replace('`^','\n'))
+                        aPromptStart = aPromptEnd + 2
+                        aPromptEnd = promptToShow[aPromptStart:].find("`~")
+                        aPrompt = promptToShow[aPromptStart:aPromptEnd+aPromptStart]
+                        self.positive_prompt_input_ctrl_2.SetValue(str(aPrompt).replace('`^','\n'))
+                        aPromptStart = aPromptStart + aPromptEnd + 2
+                        aPromptEnd = promptToShow[aPromptStart:].find("`~")
+                        aPrompt = promptToShow[aPromptStart:aPromptEnd+aPromptStart]
+                        self.positive_prompt_input_ctrl_3.SetValue(str(aPrompt).replace('`^','\n'))
+                        aPromptStart = aPromptStart + aPromptEnd + 2
+                        aPromptEnd = promptToShow[aPromptStart:].find("`~")
+                        aPrompt = promptToShow[aPromptStart:aPromptEnd+aPromptStart]
+                        self.positive_prompt_input_ctrl_4.SetValue(str(aPrompt).replace('`^','\n'))
                 elif promptType == "P" and not loadedFromFile:
                     self.positive_prompt_input_ctrl.SetValue(str(promptToShow).replace('`^', '\n'))
                 else:
@@ -2866,6 +3138,9 @@ class Mywin(wx.Frame):
                             new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '`^')
                             if new_lines[1] == "":
                                 new_lines[1] = " "
+                            new_lines[1] += "`~" + self.positive_prompt_input_ctrl_2.GetValue().strip().replace('\n', '`^')
+                            new_lines[1] += "`~" + self.positive_prompt_input_ctrl_3.GetValue().strip().replace('\n', '`^')
+                            new_lines[1] += "`~" + self.positive_prompt_input_ctrl_4.GetValue().strip().replace('\n', '`^') + "`~"
                         else:
                             new_lines[1] = self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '`^')
                             if new_lines[1] == "":
@@ -2889,6 +3164,9 @@ class Mywin(wx.Frame):
                     new_lines[1] = self.positive_prompt_input_ctrl.GetValue().strip().replace('\n', '`^')
                     if new_lines[1] == "":
                         new_lines[1] = " "
+                    new_lines[1] += "`~" + self.positive_prompt_input_ctrl_2.GetValue().strip().replace('\n', '`^')
+                    new_lines[1] += "`~" + self.positive_prompt_input_ctrl_3.GetValue().strip().replace('\n', '`^')
+                    new_lines[1] += "`~" + self.positive_prompt_input_ctrl_4.GetValue().strip().replace('\n','`^') + "`~"
                 else:
                     new_lines[1] = self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '`^')
                     if new_lines[1] == "":
@@ -3230,7 +3508,23 @@ class Mywin(wx.Frame):
         global should_use_total_recall_prompt
         global should_use_total_recall_movements
         global should_use_total_recall_others
+        global create_gif_animation_on_preview
         btn = event.GetEventObject().GetLabel()
+
+        #Initial values
+        #########################
+        total_recall_movements_inside_range_and_active = False
+        total_recall_others_inside_range_and_active = False
+        total_recall_prompt_inside_range_and_active = False
+        if (should_use_total_recall and int(current_render_frame) >= int(self.total_recall_from_input_box.GetValue()) and int(current_render_frame) <= int(self.total_recall_to_input_box.GetValue())):
+            if should_use_total_recall_movements:
+                total_recall_movements_inside_range_and_active = True
+            if should_use_total_recall_others:
+                total_recall_others_inside_range_and_active = True
+            if should_use_total_recall_prompt:
+                total_recall_prompt_inside_range_and_active = True
+        #End of initial values
+
         #print("Label of pressed button = ", str(event.GetId()))
         if btn == "PUSH TO PAUSE RENDERING":
             self.pause_rendering.SetLabel("PUSH TO RESUME RENDERING")
@@ -3426,9 +3720,38 @@ class Mywin(wx.Frame):
             self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '') + "\n")
             self.writeValue("prompts_touched", 1)
             self.SetLabel(windowlabel + " -- Prompts saved to mediator, specifically to frame " + str(self.readValue("start_frame")))
-
+        elif btn == "Use predefined motion":
+            index = self.predefined_motion_choice.GetSelection()
+            print("Using Predefined Values:" + str(self.predefined_motions_line[index]))
+            predefValues = self.predefined_motions_line[index].split(',')
+            if not total_recall_movements_inside_range_and_active:
+                Translation_X = float(predefValues[0])
+                Translation_Y = float(predefValues[1])
+                Translation_Z = float(predefValues[2])
+                Rotation_3D_X = float(predefValues[4])
+                Rotation_3D_Y = float(predefValues[3])
+                Rotation_3D_Z = float(predefValues[5])
+                self.sendAllMotionValues()
+        elif btn == "Create GIF animation on preview":
+            if create_gif_animation_on_preview == 0:
+                create_gif_animation_on_preview = 1
+            else:
+                create_gif_animation_on_preview = 0
+        elif btn.startswith("IMAGE_MOTION"):
+            motionNumber = int(btn[13:])
+            print("Using Predefined Values:" + str(self.predefined_motions_line[motionNumber]))
+            predefValues = self.predefined_motions_line[motionNumber].split(',')
+            if not total_recall_movements_inside_range_and_active:
+                Translation_X = float(predefValues[0])
+                Translation_Y = float(predefValues[1])
+                Translation_Z = float(predefValues[2])
+                Rotation_3D_X = float(predefValues[4])
+                Rotation_3D_Y = float(predefValues[3])
+                Rotation_3D_Z = float(predefValues[5])
+                self.sendAllMotionValues()
         elif btn == "PAN_LEFT":
-            if not armed_pan and not should_use_total_recall:
+            if not armed_pan and not total_recall_movements_inside_range_and_active:
+            #if not armed_pan and (not should_use_total_recall or not should_use_total_recall_movements or (should_use_total_recall and (int(current_render_frame) < int(self.total_recall_from_input_box.GetValue())) or (int(current_render_frame) > int(self.total_recall_to_input_box.GetValue())))):
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Translation_X = 0
                 else:
@@ -3439,10 +3762,12 @@ class Mywin(wx.Frame):
                     Translation_X_ARMED = 0
                 else:
                     Translation_X_ARMED =  round(Translation_X_ARMED - float(self.pan_step_input_box.GetValue()),2)
-                if should_use_total_recall:
+                if total_recall_movements_inside_range_and_active:
+                #if should_use_total_recall:
                     self.writeValue("translation_x", Translation_X_ARMED)
         elif btn == "PAN_RIGHT":
-            if not armed_pan and not should_use_total_recall:
+            if not armed_pan and not total_recall_movements_inside_range_and_active:
+            #if not armed_pan and (not should_use_total_recall or not should_use_total_recall_movements or (should_use_total_recall and (int(current_render_frame) < int(self.total_recall_from_input_box.GetValue())) or (int(current_render_frame) > int(self.total_recall_to_input_box.GetValue())))):
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Translation_X = 0
                 else:
@@ -3453,10 +3778,12 @@ class Mywin(wx.Frame):
                     Translation_X_ARMED = 0
                 else:
                     Translation_X_ARMED = round(Translation_X_ARMED + float(self.pan_step_input_box.GetValue()),2)
-                if should_use_total_recall:
+                if total_recall_movements_inside_range_and_active:
+                #if should_use_total_recall:
                     self.writeValue("translation_x", Translation_X_ARMED)
         elif btn == "PAN_UP":
-            if not armed_pan and not should_use_total_recall:
+            if not armed_pan and not total_recall_movements_inside_range_and_active:
+            #if not armed_pan and (not should_use_total_recall  or not should_use_total_recall_movements or (should_use_total_recall and (int(current_render_frame) < int(self.total_recall_from_input_box.GetValue())) or (int(current_render_frame) > int(self.total_recall_to_input_box.GetValue())))):
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Translation_Y = 0
                 else:
@@ -3467,10 +3794,12 @@ class Mywin(wx.Frame):
                     Translation_Y_ARMED = 0
                 else:
                     Translation_Y_ARMED =  round(Translation_Y_ARMED + float(self.pan_step_input_box.GetValue()),2)
-                if should_use_total_recall:
+                if total_recall_movements_inside_range_and_active:
+                #if should_use_total_recall:
                     self.writeValue("translation_y", Translation_Y_ARMED)
         elif btn == "PAN_DOWN":
-            if not armed_pan and not should_use_total_recall:
+            if not armed_pan and not total_recall_movements_inside_range_and_active:
+            #if not armed_pan and (not should_use_total_recall  or not should_use_total_recall_movements or (should_use_total_recall and (int(current_render_frame) < int(self.total_recall_from_input_box.GetValue())) or (int(current_render_frame) > int(self.total_recall_to_input_box.GetValue())))):
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Translation_Y = 0
                 else:
@@ -3481,7 +3810,8 @@ class Mywin(wx.Frame):
                     Translation_Y_ARMED = 0
                 else:
                     Translation_Y_ARMED =  round(Translation_Y_ARMED - float(self.pan_step_input_box.GetValue()),2)
-                if should_use_total_recall:
+                if total_recall_movements_inside_range_and_active:
+                #if should_use_total_recall:
                     self.writeValue("translation_y", Translation_Y_ARMED)
         elif btn == "ZERO PAN":
             if not zero_pan_active:
@@ -3510,7 +3840,7 @@ class Mywin(wx.Frame):
 
         elif btn == "ZOOM":
             currentEventTypeID = event.GetEventType()
-            if not armed_zoom and not should_use_total_recall:
+            if not armed_zoom and not total_recall_movements_inside_range_and_active:
                 if self.eventDict[currentEventTypeID] == "EVT_RIGHT_UP":
                     self.zoom_slider.SetValue(0)
                     self.zoom_value_text.SetLabel("0.00")
@@ -3547,7 +3877,8 @@ class Mywin(wx.Frame):
                         else:
                             FOV_Scale = 70 + (Translation_Z_ARMED * 5)
                         self.fov_slider.SetValue(int(FOV_Scale))
-                    if should_use_total_recall:
+                    if total_recall_movements_inside_range_and_active:
+                    #if should_use_total_recall:
                         self.writeValue("translation_z", 0)
                 else:
                     Translation_Z_ARMED = self.zoom_slider.GetValue() / 100
@@ -3559,7 +3890,8 @@ class Mywin(wx.Frame):
                         else:
                             FOV_Scale = 70 + (Translation_Z_ARMED * 5)
                         self.fov_slider.SetValue(int(FOV_Scale))
-                    if should_use_total_recall:
+                    if total_recall_movements_inside_range_and_active:
+                    #if should_use_total_recall:
                         self.writeValue("translation_z", Translation_Z_ARMED)
         elif event.GetId() == 1241:
             cadence_flow_factor = int(self.cadence_flow_factor_box.GetValue())
@@ -3595,14 +3927,16 @@ class Mywin(wx.Frame):
                 zero_zoom_active = False
 
         elif btn == "STRENGTH SCHEDULE":
-            Strength_Scheduler = float(self.strength_schedule_slider.GetValue())*0.01
-            self.writeValue("strength", Strength_Scheduler)
+            if not total_recall_others_inside_range_and_active:
+                Strength_Scheduler = float(self.strength_schedule_slider.GetValue())*0.01
+                self.writeValue("strength", Strength_Scheduler)
         elif event.GetId() == 3: #Seed Input Box
-            seedValue = int(self.seed_input_box.GetValue())
-            self.writeValue("seed", seedValue)
-            self.writeValue("seed_changed", 1)
+            if not total_recall_others_inside_range_and_active:
+                seedValue = int(self.seed_input_box.GetValue())
+                self.writeValue("seed", seedValue)
+                self.writeValue("seed_changed", 1)
         elif btn == "LOOK_LEFT":
-            if not armed_rotation and not should_use_total_recall:
+            if not armed_rotation and not total_recall_movements_inside_range_and_active:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_Y = 0
                 else:
@@ -3617,7 +3951,7 @@ class Mywin(wx.Frame):
                     self.writeValue("rotation_y", Rotation_3D_Y_ARMED)
 
         elif btn == "LOOK_RIGHT":
-            if not armed_rotation and (not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements)):
+            if not armed_rotation and not total_recall_movements_inside_range_and_active:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_Y = 0
                 else:
@@ -3631,7 +3965,7 @@ class Mywin(wx.Frame):
                 if should_use_total_recall:
                     self.writeValue("rotation_y", Rotation_3D_Y_ARMED)
         elif btn == "LOOK_UP":
-            if not armed_rotation and (not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements)):
+            if not armed_rotation and not total_recall_movements_inside_range_and_active:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_X = 0
                 else:
@@ -3645,7 +3979,7 @@ class Mywin(wx.Frame):
                 if should_use_total_recall:
                     self.writeValue("rotation_x", Rotation_3D_X_ARMED)
         elif btn == "LOOK_DOWN":
-            if not armed_rotation and (not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements)):
+            if not armed_rotation and not total_recall_movements_inside_range_and_active:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_X = 0
                 else:
@@ -3684,14 +4018,16 @@ class Mywin(wx.Frame):
                 zero_rotate_active = False
 
         elif btn == "ROTATE_LEFT":
-            if (not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements)):
+            if not total_recall_movements_inside_range_and_active:
+            #if (not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements)):
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_Z = 0
                 else:
                     Rotation_3D_Z = Rotation_3D_Z + float(self.tilt_step_input_box.GetValue())
                 self.writeValue("rotation_z", Rotation_3D_Z)
         elif btn == "ROTATE_RIGHT":
-            if (not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements)):
+            if not total_recall_movements_inside_range_and_active:
+            #if (not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements)):
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_Z = 0
                 else:
@@ -3701,8 +4037,9 @@ class Mywin(wx.Frame):
             Rotation_3D_Z = 0
             self.writeValue("rotation_z", Rotation_3D_Z)
         elif btn == "CFG SCALE":
-            CFG_Scale = float(self.cfg_schedule_slider.GetValue())
-            self.writeValue("cfg", CFG_Scale)
+            if not total_recall_others_inside_range_and_active:
+                CFG_Scale = float(self.cfg_schedule_slider.GetValue())
+                self.writeValue("cfg", CFG_Scale)
         elif btn == "ARM_ROTATION":
             if armed_rotation:
                 armed_rotation = False
@@ -3780,45 +4117,65 @@ class Mywin(wx.Frame):
                     self.fov_slider.SetValue(int(FOV_Scale))
                     self.writeValue("fov", FOV_Scale)
         elif btn == "STEPS":
-            STEP_Schedule = int(self.sample_schedule_slider.GetValue())
-            self.writeValue("steps", STEP_Schedule)
+            if not total_recall_others_inside_range_and_active:
+                STEP_Schedule = int(self.sample_schedule_slider.GetValue())
+                self.writeValue("steps", STEP_Schedule)
         elif btn == "CADENCE":
-            Cadence_Schedule = int(self.cadence_slider.GetValue())
-            self.writeValue("cadence", Cadence_Schedule)
-            cadenceArray[int(self.readValue("start_frame"))] = Cadence_Schedule
+            if not total_recall_others_inside_range_and_active:
+                Cadence_Schedule = int(self.cadence_slider.GetValue())
+                self.writeValue("cadence", Cadence_Schedule)
+                cadenceArray[int(self.readValue("start_frame"))] = Cadence_Schedule
         elif btn == "Noise":
-            noise_multiplier = float(self.noise_slider.GetValue())/100
-            self.writeValue("noise_multiplier", noise_multiplier)
+            if not total_recall_others_inside_range_and_active:
+                noise_multiplier = float(self.noise_slider.GetValue())/100
+                self.writeValue("noise_multiplier", noise_multiplier)
         elif btn == "Perlin Octaves":
-            Perlin_Octave_Value = int(self.perlin_octave_slider.GetValue())
-            self.writeValue("perlin_octaves", Perlin_Octave_Value)
+            if not total_recall_others_inside_range_and_active:
+                Perlin_Octave_Value = int(self.perlin_octave_slider.GetValue())
+                self.writeValue("perlin_octaves", Perlin_Octave_Value)
         elif btn == "Perlin Persistence":
-            Perlin_Persistence_Value = float(self.perlin_persistence_slider.GetValue())/100
-            self.writeValue("perlin_persistence", Perlin_Persistence_Value)
+            if not total_recall_others_inside_range_and_active:
+                Perlin_Persistence_Value = float(self.perlin_persistence_slider.GetValue())/100
+                self.writeValue("perlin_persistence", Perlin_Persistence_Value)
         #########START OF CN STUFF#############################
         elif btn.startswith("CN WEIGHT"):
-            CN_Weight[current_active_cn_index-1] = float(self.control_net_weight_slider[current_active_cn_index-1].GetValue())*0.01
-            self.writeValue("cn_weight"+str(current_active_cn_index), CN_Weight[current_active_cn_index-1])
+            if not total_recall_others_inside_range_and_active:
+                CN_Weight[current_active_cn_index-1] = float(self.control_net_weight_slider[current_active_cn_index-1].GetValue())*0.01
+                self.writeValue("cn_weight"+str(current_active_cn_index), CN_Weight[current_active_cn_index-1])
         elif btn.startswith("CN STEPSTART"):
-            CN_StepStart[current_active_cn_index-1] = float(self.control_net_stepstart_slider[current_active_cn_index-1].GetValue()) * 0.01
-            self.writeValue("cn_stepstart"+str(current_active_cn_index), CN_StepStart[current_active_cn_index-1])
+            if not total_recall_others_inside_range_and_active:
+                CN_StepStart[current_active_cn_index-1] = float(self.control_net_stepstart_slider[current_active_cn_index-1].GetValue()) * 0.01
+                self.writeValue("cn_stepstart"+str(current_active_cn_index), CN_StepStart[current_active_cn_index-1])
         elif btn.startswith("CN STEPEND"):
-            CN_StepEnd[current_active_cn_index-1] = float(self.control_net_stepend_slider[current_active_cn_index-1].GetValue()) * 0.01
-            self.writeValue("cn_stepend"+str(current_active_cn_index), CN_StepEnd[current_active_cn_index-1])
+            if not total_recall_others_inside_range_and_active:
+                CN_StepEnd[current_active_cn_index-1] = float(self.control_net_stepend_slider[current_active_cn_index-1].GetValue()) * 0.01
+                self.writeValue("cn_stepend"+str(current_active_cn_index), CN_StepEnd[current_active_cn_index-1])
         elif btn.startswith("CN LOWT"):
-            CN_LowT[current_active_cn_index-1] = int(self.control_net_lowt_slider[current_active_cn_index-1].GetValue())
-            self.writeValue("cn_lowt"+str(current_active_cn_index), CN_LowT[current_active_cn_index-1])
+            if not total_recall_others_inside_range_and_active:
+                CN_LowT[current_active_cn_index-1] = int(self.control_net_lowt_slider[current_active_cn_index-1].GetValue())
+                self.writeValue("cn_lowt"+str(current_active_cn_index), CN_LowT[current_active_cn_index-1])
         elif btn.startswith("CN HIGHT"):
-            CN_HighT[current_active_cn_index-1] = int(self.control_net_hight_slider[current_active_cn_index-1].GetValue())
-            self.writeValue("cn_hight"+str(current_active_cn_index), CN_HighT[current_active_cn_index-1])
+            if not total_recall_others_inside_range_and_active:
+                CN_HighT[current_active_cn_index-1] = int(self.control_net_hight_slider[current_active_cn_index-1].GetValue())
+                self.writeValue("cn_hight"+str(current_active_cn_index), CN_HighT[current_active_cn_index-1])
         elif btn.startswith("U.D.Cn"):
-            CN_UDCn[current_active_cn_index-1] = int(self.control_net_active_checkbox[current_active_cn_index-1].GetValue())
-            self.writeValue("cn_udcn"+str(current_active_cn_index), CN_UDCn[current_active_cn_index-1])
-            self.writeValue("cn_weight"+str(current_active_cn_index), CN_Weight[current_active_cn_index-1])
-            self.writeValue("cn_stepstart"+str(current_active_cn_index), CN_StepStart[current_active_cn_index-1])
-            self.writeValue("cn_stepend"+str(current_active_cn_index), CN_StepEnd[current_active_cn_index-1])
-            self.writeValue("cn_lowt"+str(current_active_cn_index), CN_LowT[current_active_cn_index-1])
-            self.writeValue("cn_hight"+str(current_active_cn_index), CN_HighT[current_active_cn_index-1])
+            if not total_recall_others_inside_range_and_active:
+                CN_UDCn[current_active_cn_index-1] = int(self.control_net_active_checkbox[current_active_cn_index-1].GetValue())
+                #self.writeValue("cn_udcn"+str(current_active_cn_index), CN_UDCn[current_active_cn_index-1])
+                #self.writeValue("cn_weight"+str(current_active_cn_index), CN_Weight[current_active_cn_index-1])
+                #self.writeValue("cn_stepstart"+str(current_active_cn_index), CN_StepStart[current_active_cn_index-1])
+                #self.writeValue("cn_stepend"+str(current_active_cn_index), CN_StepEnd[current_active_cn_index-1])
+                #self.writeValue("cn_lowt"+str(current_active_cn_index), CN_LowT[current_active_cn_index-1])
+                #self.writeValue("cn_hight"+str(current_active_cn_index), CN_HighT[current_active_cn_index-1])
+                SendBlock = []
+                SendBlock.append(pickle.dumps([1, "cn_udcn"+str(current_active_cn_index), CN_UDCn[current_active_cn_index-1]]))
+                SendBlock.append(pickle.dumps([1, "cn_weight"+str(current_active_cn_index), CN_Weight[current_active_cn_index-1]]))
+                SendBlock.append(pickle.dumps([1, "cn_stepstart"+str(current_active_cn_index), CN_StepStart[current_active_cn_index-1]]))
+                SendBlock.append(pickle.dumps([1, "cn_stepend"+str(current_active_cn_index), CN_StepEnd[current_active_cn_index-1]]))
+                SendBlock.append(pickle.dumps([1, "cn_lowt"+str(current_active_cn_index), CN_LowT[current_active_cn_index-1]]))
+                SendBlock.append(pickle.dumps([1, "cn_hight"+str(current_active_cn_index), CN_HighT[current_active_cn_index-1]]))
+                self.writeValue("<BLOCK>", SendBlock)
+
         elif btn == "Backup All Images":
             if not os.path.isdir(deforumation_image_backup_folder):
                 os.mkdir(deforumation_image_backup_folder)
@@ -3830,7 +4187,7 @@ class Mywin(wx.Frame):
                     os.remove(deforumation_image_backup_folder + item)
                 numFiles = 0
                 for item in os.listdir(outdir):
-                    if ".txt" in item or ".mp4" in item:
+                    if not ".png" in item:
                         continue
                     else:
                         srcPath = outdir + "/" + item
@@ -4003,7 +4360,8 @@ class Mywin(wx.Frame):
         elif btn == "USE DEFORUMATION STRENGTH":
             if should_use_deforumation_strength == 0:
                 self.writeValue("should_use_deforumation_strength", 1)
-                self.writeValue("strength", Strength_Scheduler)
+                if not total_recall_others_inside_range_and_active:
+                    self.writeValue("strength", Strength_Scheduler)
                 should_use_deforumation_strength = 1
                 #print("NOW IT IS:"+str(should_use_deforumation_strength))
             else:
@@ -4013,7 +4371,8 @@ class Mywin(wx.Frame):
         elif btn == "USE DEFORUMATION CFG":
             if should_use_deforumation_cfg == 0:
                 self.writeValue("should_use_deforumation_cfg", 1)
-                self.writeValue("cfg", CFG_Scale)
+                if not total_recall_others_inside_range_and_active:
+                    self.writeValue("cfg", CFG_Scale)
                 should_use_deforumation_cfg = 1
             else:
                 self.writeValue("should_use_deforumation_cfg", 0)
@@ -4021,7 +4380,8 @@ class Mywin(wx.Frame):
         elif btn == "U.D.Ca":
             if should_use_deforumation_cadence == 0:
                 self.writeValue("should_use_deforumation_cadence", 1)
-                self.writeValue("cadence", Cadence_Schedule)
+                if not total_recall_others_inside_range_and_active:
+                    self.writeValue("cadence", Cadence_Schedule)
                 should_use_deforumation_cadence = 1
             else:
                 self.writeValue("should_use_deforumation_cadence", 0)
@@ -4029,18 +4389,21 @@ class Mywin(wx.Frame):
         elif btn == "U.D.No":
             if should_use_deforumation_noise == 0:
                 self.writeValue("should_use_deforumation_noise", 1)
-                self.writeValue("noise_multiplier", float(noise_multiplier))
+                if not total_recall_others_inside_range_and_active:
+                    self.writeValue("noise_multiplier", float(noise_multiplier))
                 should_use_deforumation_noise = 1
-                self.writeValue("perlin_octaves", int(Perlin_Octave_Value))
-                self.writeValue("perlin_persistence", float(Perlin_Persistence_Value))
+                if not total_recall_others_inside_range_and_active:
+                    self.writeValue("perlin_octaves", int(Perlin_Octave_Value))
+                    self.writeValue("perlin_persistence", float(Perlin_Persistence_Value))
             else:
                 self.writeValue("should_use_deforumation_noise", 0)
                 should_use_deforumation_noise = 0
         elif btn == "U.D.Pa":
             if should_use_deforumation_panning == 0:
                 self.writeValue("should_use_deforumation_panning", 1)
-                self.writeValue("translation_x", Translation_X)
-                self.writeValue("translation_y", Translation_Y)
+                if not total_recall_others_inside_range_and_active:
+                    self.writeValue("translation_x", Translation_X)
+                    self.writeValue("translation_y", Translation_Y)
                 should_use_deforumation_panning = 1
             else:
                 self.writeValue("should_use_deforumation_panning", 0)
@@ -4048,8 +4411,9 @@ class Mywin(wx.Frame):
         elif btn == "U.D.Zo":
             if should_use_deforumation_zoomfov == 0:
                 self.writeValue("should_use_deforumation_zoomfov", 1)
-                self.writeValue("translation_z", Translation_Z)
-                self.writeValue("fov", FOV_Scale)
+                if not total_recall_others_inside_range_and_active:
+                    self.writeValue("translation_z", Translation_Z)
+                    self.writeValue("fov", FOV_Scale)
                 should_use_deforumation_zoomfov = 1
             else:
                 self.writeValue("should_use_deforumation_zoomfov", 0)
@@ -4057,8 +4421,9 @@ class Mywin(wx.Frame):
         elif btn == "U.D.Ro":
             if should_use_deforumation_rotation == 0:
                 self.writeValue("should_use_deforumation_rotation", 1)
-                self.writeValue("rotation_x", Rotation_3D_X)
-                self.writeValue("rotation_y", Rotation_3D_Y)
+                if not total_recall_others_inside_range_and_active:
+                    self.writeValue("rotation_x", Rotation_3D_X)
+                    self.writeValue("rotation_y", Rotation_3D_Y)
                 should_use_deforumation_rotation = 1
             else:
                 self.writeValue("should_use_deforumation_rotation", 0)
@@ -4066,7 +4431,8 @@ class Mywin(wx.Frame):
         elif btn == "U.D.Ti":
             if should_use_deforumation_tilt == 0:
                 self.writeValue("should_use_deforumation_tilt", 1)
-                self.writeValue("rotation_z", Rotation_3D_Z)
+                if not total_recall_others_inside_range_and_active:
+                    self.writeValue("rotation_z", Rotation_3D_Z)
                 should_use_deforumation_tilt = 1
             else:
                 self.writeValue("should_use_deforumation_tilt", 0)
@@ -4080,7 +4446,35 @@ class Mywin(wx.Frame):
                 if (replayFrom >= 0) and (replayFrom < replayTo):
                     imagePath = get_current_image_path_f(replayFrom)
 
-                    if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    if create_gif_animation_on_preview:
+                        ffmpeg_image_path = create_ffmpeg_image_string()
+                        ffmpegPath = self.ffmpeg_path_input_box.GetValue()
+                        if ffmpegPath == "":
+                            ffmpegPath = "ffmpeg"
+                        crf = 20
+                        cmd = [
+                            ffmpegPath,
+                            '-start_number', str(replayFrom),
+                            '-framerate', str(float(replayFPS)),
+                            # '-thread_queue_size 4096',
+                            #'-r', str(float(replayFPS)),
+                            #'-fps', '30',
+                            '-y',
+                            '-i', ffmpeg_image_path,
+                            '-frames:v', str(int((replayTo - replayFrom)/(replayFPS/12))),
+                            '-filter_complex', "fps=12,scale=128:-1:flags=lanczos",
+                            '-pix_fmt', 'yuv420p',
+                            '-crf', str(crf),
+                            '-pattern_type', 'sequence'
+                        ]
+                        cmd.append(gif_animation_output_path)
+                        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,universal_newlines=True)
+                        #subprocess.run(cmd)
+                        #stdout, stderr = process.communicate()
+                        print("Done creating GIF-animation")
+
+
+                    elif self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                         ffmpeg_image_path = create_ffmpeg_image_string()
                         ffmpegPath = self.ffmpeg_path_input_box.GetValue()
                         if ffmpegPath == "":
@@ -4166,20 +4560,26 @@ class Mywin(wx.Frame):
                 self.sendAllValues()
 
         elif btn == "Optical flow on/off":
-            if should_use_optical_flow == 0:
-                should_use_optical_flow = 1
-                self.writeValue("should_use_optical_flow", 1)
-            else:
-                self.writeValue("should_use_optical_flow", 0)
-                should_use_optical_flow = 0
+            if not total_recall_others_inside_range_and_active:
+                if should_use_optical_flow == 0:
+                    should_use_optical_flow = 1
+                    self.writeValue("should_use_optical_flow", 1)
+                else:
+                    self.writeValue("should_use_optical_flow", 0)
+                    should_use_optical_flow = 0
         elif btn == "View original values in Deforumation":
             if should_use_total_recall_in_deforumation == 0:
                 should_use_total_recall_in_deforumation = 1
                 self.SetLabel(windowlabel + " -- Now showing original values as recalled from original render.")
+                self.copy_original_to_manual_button.Enable()
             else:
                 should_use_total_recall_in_deforumation = 0
                 self.setAllComponentValues()
                 self.SetLabel(windowlabel + " -- Now showing manually set deforumation values.")
+                self.copy_original_to_manual_button.Disable()
+        elif btn == "Original values -> Manual values":
+            self.copyAllOriginalValuesToManual(current_render_frame)
+            #self.setAllComponentValues()
         elif btn == "Recall prompts":
             if should_use_total_recall_prompt == 0:
                 should_use_total_recall_prompt = 1
@@ -4576,29 +4976,45 @@ class Mywin(wx.Frame):
 
             time.sleep(0.25)
 
-        if armed_pan:
-            self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
-            self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
-        else:
-            self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
-            self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
-        if armed_rotation:
-            self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
-            self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X_ARMED))
-        else:
-            self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
-            self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
+        total_recall_movements_inside_range_and_active = False
+        total_recall_others_inside_range_and_active = False
+        total_recall_prompt_inside_range_and_active = False
+        if (should_use_total_recall and int(current_render_frame) >= int(self.total_recall_from_input_box.GetValue()) and int(current_render_frame) <= int(self.total_recall_to_input_box.GetValue())):
+            if should_use_total_recall_movements:
+                total_recall_movements_inside_range_and_active = True
+            if should_use_total_recall_others:
+                total_recall_others_inside_range_and_active = True
+            if should_use_total_recall_prompt:
+                total_recall_prompt_inside_range_and_active = True
 
-        self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Z)))
-        self.fov_slider.SetValue(int(FOV_Scale))
-        if armed_zoom:
-            self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
+        if not should_use_total_recall:
+            self.setAllComponentValues()
         else:
-            self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
-        self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
-        self.cfg_schedule_slider.SetValue(int(CFG_Scale))
-        self.strength_schedule_slider.SetValue(int(float(Strength_Scheduler)*100))
-        self.cadence_slider.SetValue(int(Cadence_Schedule))
+            if should_use_total_recall and not total_recall_movements_inside_range_and_active:
+                if armed_pan:
+                    self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
+                    self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
+                else:
+                    self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+                    self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+                if armed_rotation:
+                    self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
+                    self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X_ARMED))
+                else:
+                    self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
+                    self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
+
+                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Z)))
+                self.fov_slider.SetValue(int(FOV_Scale))
+                if armed_zoom:
+                    self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
+                else:
+                    self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
+                self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
+            if should_use_total_recall and not total_recall_others_inside_range_and_active:
+                self.cfg_schedule_slider.SetValue(int(CFG_Scale))
+                self.strength_schedule_slider.SetValue(int(float(Strength_Scheduler)*100))
+                self.cadence_slider.SetValue(int(Cadence_Schedule))
 
         print("Ending Live Values Thread....")
     def OnExit(self, event):
@@ -4930,9 +5346,9 @@ if __name__ == '__main__':
 
 
     if len(sys.argv) < 2:
-        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.4 using WebSockets)'
+        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.7.0 using WebSockets)'
         Mywin(None, windowlabel)
     else:
-        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.6.4 using named pipes)'
+        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.7.0 using named pipes)'
         Mywin(None, windowlabel)
     app.MainLoop()

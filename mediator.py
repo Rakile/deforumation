@@ -578,688 +578,732 @@ async def main_websocket(websocket):
             shouldWrite = arr[0]
             parameter = arr[1]
             value = arr[2]
-            # Prompts Params
-            ###########################################################################
 
-            if str(parameter) == "is_paused_rendering":
-                if shouldWrite:
-                    shouldPause = int(value)
-                else:
-                    if doVerbose:
-                        print("is_paused_rendering:" + str(shouldPause))
-                    await websocket.send(str(shouldPause))
-            elif str(parameter) == "total_recall_relive":
-                frame_idx = int(value)
-                if should_use_total_recall:
-                    if (frame_idx >= total_recall_from and frame_idx <= total_recall_to):
-                        #print("total_recall_relive (frame number):" + str(frame_idx))
-                        RecallValues(frame_idx)
-            elif str(parameter) == "should_erase_total_recall_memory":
-                if shouldWrite:
-                    parameter_container.clear()
-                    number_of_recalled_frames = 0
-                    print("The total recall memory has been cleared.")
-            elif str(parameter) ==  "should_use_total_recall":
-                if shouldWrite:
-                    should_use_total_recall = int(value)
-                    Prompt_Positive_touched = 0
-                    if should_use_total_recall == 1:
-                        translation_x_under_recall = 0
-                        translation_y_under_recall = 0
-                        translation_z_under_recall = 0
-                        rotation_x_under_recall = 0
-                        rotation_y_under_recall = 0
-                        rotation_z_under_recall = 0
-                else:
-                    if doVerbose:
-                        print("should_use_total_recall:" + str(should_use_total_recall))
-                    await websocket.send(str(should_use_total_recall))
-            elif str(parameter) == "total_recall_from":
-                if shouldWrite:
-                    total_recall_from = int(value)
-                else:
-                    if doVerbose:
-                        print("total_recall_from:" + str(total_recall_from))
-                await websocket.send(str(total_recall_from))
-            elif str(parameter) == "total_recall_to":
-                if shouldWrite:
-                    total_recall_to = int(value)
-                else:
-                    if doVerbose:
-                        print("total_recall_to:" + str(total_recall_to))
-                    await websocket.send(str(total_recall_to))
-            elif str(parameter) == "should_use_deforumation_timestring":
-                if shouldWrite:
-                    should_use_deforumation_timestring = int(value)
-                else:
-                    if doVerbose:
-                        print("should_use_deforumation_timestring:" + str(should_use_deforumation_timestring))
-                    await websocket.send(str(should_use_deforumation_timestring))
-            elif str(parameter) == "should_use_total_recall_prompt":
-                if shouldWrite:
-                    should_use_total_recall_prompt = int(value)
-                    if not should_use_total_recall_prompt:
-                        print("Manual Prompt has been Allowed!")
-                    else:
-                        print("Manual Prompt has been Dis-Allowed!")
-                else:
-                    if doVerbose:
-                        print("should_use_total_recall_prompt:" + str(should_use_total_recall_prompt))
-                    await websocket.send(str(should_use_total_recall_prompt))
-            elif str(parameter) == "should_use_total_recall_movements":
-                if shouldWrite:
-                    should_use_total_recall_movements = int(value)
-                    if not should_use_total_recall_movements:
-                        print("Manual Movements has been Allowed!")
-                    else:
-                        print("Manual Movements has been Dis-Allowed!")
-                else:
-                    if doVerbose:
-                        print("should_use_total_recall_movements:" + str(should_use_total_recall_movements))
-                    await websocket.send(str(should_use_total_recall_movements))
-            elif str(parameter) == "should_use_total_recall_others":
-                if shouldWrite:
-                    should_use_total_recall_others = int(value)
-                    if not should_use_total_recall_others:
-                        print("Manual Others has been Allowed!")
-                    else:
-                        print("Manual Others has been Dis-Allowed!")
-                else:
-                    if doVerbose:
-                        print("should_use_total_recall_others:" + str(should_use_total_recall_others))
-                    await websocket.send(str(should_use_total_recall_others))
-
-            elif str(parameter) == "should_use_deforumation_prompt_scheduling":
-                if shouldWrite:
-                    should_use_deforumation_prompt_scheduling = value
-                else:
-                    if doVerbose:
-                        print("should_use_deforumation_prompt_scheduling:" + str(
-                            should_use_deforumation_prompt_scheduling))
-                    await websocket.send(str(should_use_deforumation_prompt_scheduling))
-            elif str(parameter) == "use_deforumation_cadence_scheduling":
-                if shouldWrite:
-                    use_deforumation_cadence_scheduling = value
-                else:
-                    if doVerbose:
-                        print("use_deforumation_cadence_scheduling:" + str(use_deforumation_cadence_scheduling))
-                    await websocket.send(str(use_deforumation_cadence_scheduling))
-            elif str(parameter) == "deforumation_cadence_scheduling_manifest":
-                if shouldWrite:
-                    deforumation_cadence_scheduling_manifest = value
-                else:
-                    if doVerbose:
-                        print(
-                            "deforumation_cadence_scheduling_manifest:" + str(deforumation_cadence_scheduling_manifest))
-                    await websocket.send(str(deforumation_cadence_scheduling_manifest))
-            elif str(parameter) == "positive_prompt":
-                if shouldWrite:
-                    Prompt_Positive = value
-                else:
-                    if doVerbose:
-                        print("positive_prompt:" + str(Prompt_Positive))
-                    await websocket.send(str(Prompt_Positive))
-            elif str(parameter) == "negative_prompt":
-                if shouldWrite:
-                    Prompt_Negative = value
-                else:
-                    if doVerbose:
-                        print("negative_prompt:" + str(Prompt_Negative))
-                    await websocket.send(str(Prompt_Negative))
-            elif str(parameter) == "prompts_touched":
-                #if should_use_total_recall == 1:
-                #    Prompt_Positive_touched = 1
-                #    print("Changing prompt for ever for total recall")
-                empty = 0
-            # Translation Params
-            ###########################################################################
-            elif str(parameter) == "translation_x":
-                if shouldWrite:
-                    if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
-                        translation_x = float(value)
-                    else:
-                        translation_x_under_recall = float(value)
-
-                else:
-                    if doVerbose:
-                        print("sending translation_x:" + str(translation_x))
-                    await websocket.send(str(translation_x))
-
-            elif str(parameter) == "translation_y":
-                if shouldWrite:
-                    if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
-                        translation_y = float(value)
-                    else:
-                        translation_y_under_recall = float(value)
-                else:
-                    if doVerbose:
-                        print("sending translation_y:" + str(translation_y))
-                    await websocket.send(str(translation_y))
-
-            elif str(parameter) == "translation_z":
-                if shouldWrite:
-                    if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
-                        translation_z = float(value)
-                    else:
-                        translation_z_under_recall = float(value)
-                else:
-                    if doVerbose:
-                        print("sending translation_z:" + str(translation_z))
-                    await websocket.send(str(translation_z))
-            # What Deforum thinks it has for Translation
-            elif str(parameter) == "deforum_translation_x":
-                if shouldWrite:
-                    deforum_translation_x = float(value)
-                else:
-                    if doVerbose:
-                        print("sending deforum_translation_x:" + str(deforum_translation_x))
-                    await websocket.send(str(deforum_translation_x))
-            elif str(parameter) == "deforum_translation_y":
-                if shouldWrite:
-                    deforum_translation_y = float(value)
-                else:
-                    if doVerbose:
-                        print("sending deforum_translation_y:" + str(deforum_translation_y))
-                    await websocket.send(str(deforum_translation_y))
-            elif str(parameter) == "deforum_translation_z":
-                if shouldWrite:
-                    deforum_translation_z = float(value)
-                else:
-                    if doVerbose:
-                        print("sending deforum_translation_z:" + str(deforum_translation_z))
-                    await websocket.send(str(deforum_translation_z))
-            # What Deforum thinks it has for Rotation
-            elif str(parameter) == "deforum_rotation_x":
-                if shouldWrite:
-                    deforum_rotation_x = float(value)
-                else:
-                    if doVerbose:
-                        print("sending deforum_rotation_x:" + str(deforum_rotation_x))
-                    await websocket.send(str(deforum_rotation_x))
-            elif str(parameter) == "deforum_rotation_y":
-                if shouldWrite:
-                    deforum_rotation_y = float(value)
-                else:
-                    if doVerbose:
-                        print("sending deforum_translation_y:" + str(deforum_rotation_y))
-                    await websocket.send(str(deforum_rotation_y))
-            elif str(parameter) == "deforum_rotation_z":
-                if shouldWrite:
-                    deforum_rotation_z = float(value)
-                else:
-                    if doVerbose:
-                        print("sending deforum_rotation_z:" + str(deforum_rotation_z))
-                    await websocket.send(str(deforum_rotation_z))
-            # Rotation Params
-            ###########################################################################
-            elif str(parameter) == "rotation_x":
-                if shouldWrite:
-                    if not should_use_total_recall or (
-                            should_use_total_recall and not should_use_total_recall_movements):
-                        rotation_x = float(value)
-                    else:
-                        rotation_x_under_recall = float(value)
-                    # print("writing rotation_x:" + str(rotation_x))
-                    # time.sleep(20)
-                else:
-                    if doVerbose:
-                        print("sending rotation_x:" + str(rotation_x))
-                    await websocket.send(str(rotation_x))
-            elif str(parameter) == "rotation_y":
-                if shouldWrite:
-                    if not should_use_total_recall or (
-                            should_use_total_recall and not should_use_total_recall_movements):
-                        rotation_y = float(value)
-                    else:
-                        rotation_y_under_recall = float(value)
-                else:
-                    if doVerbose:
-                        print("sending rotation_y:" + str(rotation_y))
-                    await websocket.send(str(rotation_y))
-            elif str(parameter) == "rotation_z":
-                if shouldWrite:
-                    if not should_use_total_recall or (
-                            should_use_total_recall and not should_use_total_recall_movements):
-                        rotation_z = float(value)
-                    else:
-                        rotation_z_under_recall = float(value)
-                else:
-                    if doVerbose:
-                        print("sending rotation_z:" + str(rotation_z))
-                    await websocket.send(str(rotation_z))
-
-            # FOV Params
-            ###########################################################################
-            elif str(parameter) == "fov":
-                if shouldWrite:
-                    fov = float(value)
-                else:
-                    if doVerbose:
-                        print("sending fov:" + str(fov))
-                    await websocket.send(str(fov))
-            # what Deforum think it has
-            ###########################################################################
-            elif str(parameter) == "deforum_fov":
-                if shouldWrite:
-                    deforum_fov = float(value)
-                else:
-                    if doVerbose:
-                        print("sending deforum_fov:" + str(deforum_fov))
-                    await websocket.send(str(deforum_fov))
-            # CFG Params
-            ###########################################################################
-            elif str(parameter) == "cfg":
-                if shouldWrite:
-                    cfg_scale = int(value)
-                else:
-                    if doVerbose:
-                        print("sending CFG:" + str(cfg_scale))
-                    await websocket.send(str(cfg_scale))
-            # What Deforum think the CFG Value is
-            ###########################################################################
-            elif str(parameter) == "deforum_cfg":
-                if shouldWrite:
-                    deforum_cfg = int(value)
-                else:
-                    if doVerbose:
-                        print("sending deforum_cfg:" + str(deforum_cfg))
-                    await websocket.send(str(deforum_cfg))
-            # Strength Params
-            ###########################################################################
-            elif str(parameter) == "strength":
-                if shouldWrite:
-                    strength_value = float(value)
-                else:
-                    if doVerbose:
-                        print("sending STRENGTH:" + str(strength_value))
-                    await websocket.send(str(strength_value))
-            # What Deforum think the Strength Value is
-            ###########################################################################
-            elif str(parameter) == "deforum_strength":
-                if shouldWrite:
-                    deforum_strength = float(value)
-                else:
-                    if doVerbose:
-                        print("sending deforum_strength:" + str(deforum_strength))
-                    await websocket.send(str(deforum_strength))
-            # ControlNet Weight Params
-            ###########################################################################
-            elif str(parameter).startswith("cn_weight"):
-                cnIndex = int(parameter[len(parameter) - 1])
-                if shouldWrite:
-                    cn_weight[cnIndex - 1] = float(value)
-                else:
-                    if doVerbose:
-                        print("sending cn_weight:" + str(cn_weight[cnIndex - 1]))
-                    await websocket.send(str(cn_weight[cnIndex - 1]))
-            # ControlNet step start Params
-            ###########################################################################
-            elif str(parameter).startswith("cn_stepstart"):
-                cnIndex = int(parameter[len(parameter) - 1])
-                if shouldWrite:
-                    cn_stepstart[cnIndex - 1] = float(value)
-                else:
-                    if doVerbose:
-                        print("sending cn_stepstart:" + str(cn_stepstart[cnIndex - 1]))
-                    await websocket.send(str(cn_stepstart[cnIndex - 1]))
-            # ControlNet step end Params
-            ###########################################################################
-            elif str(parameter).startswith("cn_stepend"):
-                cnIndex = int(parameter[len(parameter) - 1])
-                if shouldWrite:
-                    cn_stepend[cnIndex - 1] = float(value)
-                else:
-                    if doVerbose:
-                        print("sending cn_stepend:" + str(cn_stepend[cnIndex - 1]))
-                    await websocket.send(str(cn_stepend[cnIndex - 1]))
-            # ControlNet low threshold Params
-            ###########################################################################
-            elif str(parameter).startswith("cn_lowt"):
-                cnIndex = int(parameter[len(parameter) - 1])
-                if shouldWrite:
-                    cn_lowt[cnIndex - 1] = int(value)
-                else:
-                    if doVerbose:
-                        print("sending cn_lowt:" + str(cn_lowt[cnIndex - 1]))
-                    await websocket.send(str(cn_lowt[cnIndex - 1]))
-            # ControlNet high threshold Params
-            ###########################################################################
-            elif str(parameter).startswith("cn_hight"):
-                cnIndex = int(parameter[len(parameter) - 1])
-                if shouldWrite:
-                    cn_hight[cnIndex - 1] = int(value)
-                else:
-                    if doVerbose:
-                        print("sending cn_hight:" + str(cn_hight[cnIndex - 1]))
-                    await websocket.send(str(cn_hight[cnIndex - 1]))
-            # ControlNet active or not
-            ###########################################################################
-            elif str(parameter).startswith("cn_udcn"):
-                cnIndex = int(parameter[len(parameter) - 1])
-                if shouldWrite:
-                    cn_udcn[cnIndex - 1] = int(value)
-                else:
-                    if doVerbose:
-                        print("sending cn_udcn:" + str(cn_udcn[cnIndex - 1]))
-                    await websocket.send(str(cn_udcn[cnIndex - 1]))
-            # Seed Params
-            ###########################################################################
-            elif str(parameter) == "seed":
-                if shouldWrite:
-                    seed_value = int(value)
-                else:
-                    if doVerbose:
-                        print("sending SEED:" + str(seed_value))
-                    await websocket.send(str(seed_value))
-            elif str(parameter) == "seed_changed":
-                if shouldWrite:
-                    did_seed_change = int(value)
-                else:  # don't support write (it's not nessecary)
-                    await websocket.send(str(did_seed_change))
-            # Perlin persistence Param
-            ###########################################################################
-            elif str(parameter) == "perlin_persistence":
-                if shouldWrite:
-                    perlin_persistence = float(value)
-                else:
-                    if doVerbose:
-                        print("sending perlin_persistence:" + str(perlin_persistence))
-                    await websocket.send(str(perlin_persistence))
-            # Perlin octaves Param
-            ###########################################################################
-            elif str(parameter) == "perlin_octaves":
-                if shouldWrite:
-                    perlin_octaves = int(value)
-                else:
-                    if doVerbose:
-                        print("sending perlin_octaves:" + str(perlin_octaves))
-                    await websocket.send(str(perlin_octaves))
-
-            # Should use Pan params
-            ###########################################################################
-            elif str(parameter) == "should_use_deforumation_panning":
-                if shouldWrite:
-                    should_use_deforumation_panning = int(value)
-                else:
-                    if doVerbose:
-                        print("sending should_use_deforumation_panning:" + str(should_use_deforumation_panning))
-                    await websocket.send(str(should_use_deforumation_panning))
-
-            # Should use Tilt params
-            ###########################################################################
-            elif str(parameter) == "should_use_deforumation_tilt":
-                if shouldWrite:
-                    should_use_deforumation_tilt = int(value)
-                else:
-                    if doVerbose:
-                        print("sending should_use_deforumation_tilt:" + str(should_use_deforumation_tilt))
-                    await websocket.send(str(should_use_deforumation_tilt))
-            # Should use Rotation params
-            ###########################################################################
-            elif str(parameter) == "should_use_deforumation_rotation":
-                if shouldWrite:
-                    should_use_deforumation_rotation = int(value)
-                else:
-                    if doVerbose:
-                        print("sending should_use_deforumation_rotation:" + str(should_use_deforumation_rotation))
-                    await websocket.send(str(should_use_deforumation_rotation))
-            # Should use ZOOM/FOV params
-            ###########################################################################
-            elif str(parameter) == "should_use_deforumation_zoomfov":
-                if shouldWrite:
-                    should_use_deforumation_zoomfov = int(value)
-                else:
-                    if doVerbose:
-                        print("sending should_use_deforumation_zoomfov:" + str(should_use_deforumation_zoomfov))
-                    await websocket.send(str(should_use_deforumation_zoomfov))
-            # Should use Noise Params
-            ###########################################################################
-            elif str(parameter) == "should_use_deforumation_noise":
-                if shouldWrite:
-                    should_use_deforumation_noise = int(value)
-                else:
-                    if doVerbose:
-                        print("sending should_use_deforumation_noise:" + str(should_use_deforumation_noise))
-                    await websocket.send(str(should_use_deforumation_noise))
-            # Noise Multiplier Param
-            ###########################################################################
-            elif str(parameter) == "noise_multiplier":
-                if shouldWrite:
-                    noise_multiplier = float(value)
-                else:
-                    if doVerbose:
-                        print("sending noise_multiplier:" + str(noise_multiplier))
-                    await websocket.send(str(noise_multiplier))
-            # What Deforum thinks the noise multiplier Value is
-            ###########################################################################
-            elif str(parameter) == "deforum_noise_multiplier":
-                if shouldWrite:
-                    deforum_noise_multiplier = int(value)
-                else:
-                    if doVerbose:
-                        print("sending deforum_noise_multiplier:" + str(deforum_noise_multiplier))
-                    await websocket.send(str(deforum_noise_multiplier))
-            # What Deforum thinks the perlin octaves Value is
-            ###########################################################################
-            elif str(parameter) == "deforum_perlin_octaves":
-                if shouldWrite:
-                    deforum_perlin_octaves = int(value)
-                else:
-                    if doVerbose:
-                        print("sending deforum_perlin_octaves:" + str(deforum_perlin_octaves))
-                    await websocket.send(str(deforum_perlin_octaves))
-            # What Deforum thinks the perlin octaves Value is
-            ###########################################################################
-            elif str(parameter) == "deforum_perlin_persistence":
-                if shouldWrite:
-                    deforum_perlin_persistence = int(value)
-                else:
-                    if doVerbose:
-                        print("sending deforum_perlin_persistence:" + str(deforum_perlin_persistence))
-                    await websocket.send(str(deforum_perlin_persistence))
-            # Steps Params
-            ###########################################################################
-            elif str(parameter) == "steps":
-                if shouldWrite:
-                    steps = int(value)
-                else:
-                    if doVerbose:
-                        print("sending STEPS:" + str(steps))
-                    await websocket.send(str(steps))
-            # What Deforum thinks the Steps Value is
-            ###########################################################################
-            elif str(parameter) == "deforum_steps":
-                if shouldWrite:
-                    deforum_steps = int(value)
-                else:
-                    if doVerbose:
-                        print("sending deforum_steps:" + str(deforum_steps))
-                    await websocket.send(str(deforum_steps))
-            # Resume and rewind
-            ##########################################################################
-            elif str(parameter) == "should_resume":
-                if shouldWrite:
-                    # print("The value is:"+str(value))
-                    should_resume = int(value)
-                    if doVerbose2:
-                        print("writing should_resume:" + str(should_resume))
-                else:
-                    await websocket.send(str(should_resume))
-            elif str(parameter) == "upload_recall_file":
-                if shouldWrite:
-                    parameter_container.clear()
-                    parameter_container = pickle.loads(value)
-                    number_of_recalled_frames = len(parameter_container)
-            elif str(parameter) == "start_frame":
-                if shouldWrite:
-                    start_frame = int(value)
-                else:
-                    if doVerbose2:
-                        print("sending start frame:" + str(start_frame))
-                    await websocket.send(str(start_frame))
-
-            elif str(parameter) == "get_number_of_recalled_frames":
-                await websocket.send(str(number_of_recalled_frames))
-
-            elif str(parameter) == "saved_frame_params":
-                if shouldWrite:
-                    if not should_use_total_recall:
-                        if not int(value) in parameter_container:
-                            parameter_container[int(value)] = ParameterContainer()
-                        parameter_container[int(value)].SetValues()
-                    #The snippet beneath allows for saving values if outside total recall (But don't allow it, for now)
-                    #elif (int(value) < total_recall_from) or (int(value) > total_recall_to):
-                    #    if not int(value) in parameter_container:
-                    #        parameter_container[int(value)] = ParameterContainer()
-                    #    parameter_container[int(value)].SetValues()
-                    number_of_recalled_frames = len(parameter_container)
-                else:
-                    if doVerbose2:
-                        print("sending parameter_container")
-                    if int(value) == -1:
-                        bytesToSend = pickle.dumps(parameter_container)
-                    elif int(value) in parameter_container:
-                        if not should_use_total_recall:
-                            bytesToSend = pickle.dumps(parameter_container[int(value)])
-                            #print("Sending ALL original parameters.")
-                        else:
-                            #print("Sending some or all original parameters:")
-                            copyof_parameter_container = copy.deepcopy(parameter_container[int(value)])
-                            copyof_parameter_container = RecallValuesTemp(copyof_parameter_container)
-                            bytesToSend = pickle.dumps(copyof_parameter_container)
-                        #if not should_use_total_recall_prompt:
-                        #    copyof_parameter_container.Prompt_Positive = Prompt_Positive
-                        #if not should_use_total_recall_movements:
-                        #    copyof_parameter_container.rotation_x = rotation_x
-                        #    copyof_parameter_container.rotation_y = rotation_y
-                        #    copyof_parameter_container.rotation_z = rotation_z
-                        #    copyof_parameter_container.translation_x = translation_x
-                        #    copyof_parameter_container.translation_y = translation_y
-                        #    copyof_parameter_container.translation_z = translation_z
-                        #if not should_use_total_recall_others:
-                    else:
-                        bytesToSend = pickle.dumps(0x0)
-                    await websocket.send(bytesToSend)
-            elif str(parameter) == "frame_outdir":
-                if shouldWrite:
-                    frame_outdir = str(value)
-                else:
-                    if doVerbose2:
-                        print("sending frame_outdir:" + str(frame_outdir))
-                    await websocket.send(str(frame_outdir))
-            elif str(parameter) == "resume_timestring":
-                if shouldWrite:
-                    resume_timestring = str(value)
-                else:
-                    if doVerbose2:
-                        print("sending resume_timestring:" + str(resume_timestring))
-                    await websocket.send(str(resume_timestring))
-            elif str(parameter) == "should_use_deforumation_strength":
-                if shouldWrite:
-                    # print("Setting should use deforumation strength to:"+str(int(value)))
-                    should_use_deforumation_strength = int(value)
-                else:
-                    if doVerbose2:
-                        print("sending should_use_deforumation_strength:" + str(should_use_deforumation_strength))
-                    await websocket.send(str(should_use_deforumation_strength))
-            elif str(parameter) == "should_use_deforumation_cfg":
-                if shouldWrite:
-                    # print("Setting should use deforumation strength to:"+str(int(value)))
-                    should_use_deforumation_cfg = int(value)
-                else:
-                    if doVerbose2:
-                        print("sending should_use_deforumation_cfg:" + str(should_use_deforumation_cfg))
-                    await websocket.send(str(should_use_deforumation_cfg))
-            elif str(parameter) == "cadence":
-                if shouldWrite:
-                    cadence = str(value)
-                else:
-                    if doVerbose2:
-                        print("sending cadence:" + str(cadence))
-                    await websocket.send(str(cadence))
-            elif str(parameter) == "should_use_deforumation_cadence":
-                if shouldWrite:
-                    should_use_deforumation_cadence = str(value)
-                else:
-                    if doVerbose2:
-                        print("sending should_use_deforumation_cadence:" + str(should_use_deforumation_cadence))
-                    await websocket.send(str(should_use_deforumation_cadence))
-
-            # What Deforum thinks the cadence Value is
-            ###########################################################################
-            elif str(parameter) == "deforum_cadence":
-                if shouldWrite:
-                    deforum_cadence = int(value)
-                else:
-                    if doVerbose:
-                        print("sending deforum_cadence:" + str(deforum_cadence))
-                    await websocket.send(str(deforum_cadence))
-            elif str(parameter) == "parseq_keys":
-                if shouldWrite:
-                    parseq_keys = value
-                else:
-                    if doVerbose2:
-                        print("sending parseq_keys:")
-                    await websocket.send(pickle.dumps(parseq_keys))
-            elif str(parameter) == "use_parseq":
-                if shouldWrite:
-                    use_parseq = value
-                else:
-                    if doVerbose2:
-                        print("sending use_parseq:")
-                    await websocket.send(str(use_parseq))
-            elif str(parameter) == "parseq_manifest":
-                if shouldWrite:
-                    parseq_manifest = value
-                    print("Got parseq_manifest:" + str(value))
-                else:
-                    if doVerbose2:
-                        print("sending parseq_manifest:")
-                    await websocket.send(str(parseq_manifest))
-            elif str(parameter) == "should_use_optical_flow":
-                if shouldWrite:
-                    should_use_optical_flow = value
-                else:
-                    if doVerbose2:
-                        print("sending should_use_optical_flow:")
-                    await websocket.send(str(should_use_optical_flow))
-            elif str(parameter) == "parseq_strength":
-                if shouldWrite:
-                    parseq_strength = value
-                else:
-                    if doVerbose2:
-                        print("sending parseq_strength:")
-                    await websocket.send(str(parseq_strength))
-            elif str(parameter) == "parseq_movements":
-                if shouldWrite:
-                    print("parseq_movements:" + str(parseq_movements))
-                    parseq_movements = value
-                else:
-                    if doVerbose2:
-                        print("sending parseq_movements:" + str(parseq_movements))
-                    await websocket.send(str(parseq_movements))
-            elif str(parameter) == "cadence_flow_factor":
-                if shouldWrite:
-                    cadence_flow_factor = value
-                else:
-                    if doVerbose2:
-                        print("sending cadence_flow_factor:" + str(cadence_flow_factor))
-                    await websocket.send(str(cadence_flow_factor))
-            elif str(parameter) == "generation_flow_factor":
-                if shouldWrite:
-                    generation_flow_factor = value
-                else:
-                    if doVerbose2:
-                        print("sending generation_flow_factor:" + str(generation_flow_factor))
-                    await websocket.send(str(generation_flow_factor))
-
-            elif str(parameter) == "shutdown":
-                serverShutDown = True
+            # Is it an incomming block?
+            if str(parameter) == "<BLOCK>":
+                #print("Number of blocks in block:" + str(len(value)))
+                number_of_blocks = len(value)
+                should_unpack_block = True
+                original_value = value
             else:
-                print(
-                    "NO SUCH COMMAND:" + parameter + "\nPlease make sure Mediator, Deforumation and the Deforum (render.py, animation.py) are in sync.")
-                if not shouldWrite:
-                    await websocket.send(str("NO SUCH COMMAND:" + parameter))
+                number_of_blocks = 1
+                should_unpack_block = False
+            for block_index in range(0, number_of_blocks):
+                if should_unpack_block:
+                    arr = pickle.loads(original_value[block_index])
+                    if len(arr) == 3:
+                        shouldWrite = arr[0]
+                        parameter = arr[1]
+                        value = arr[2]
+                        # print("Writing param: " + parameter)
+                    else:
+                        if doVerbose:
+                            await websocket.send("ERROR")
+                        break
+                # Prompts Params
+                ###########################################################################
+                if str(parameter) == "is_paused_rendering":
+                    if shouldWrite:
+                        shouldPause = int(value)
+                    else:
+                        if doVerbose:
+                            print("is_paused_rendering:" + str(shouldPause))
+                        await websocket.send((str(shouldPause)))
+                elif str(parameter) == "total_recall_relive":
+                    frame_idx = int(value)
+                    if should_use_total_recall:
+                        # if (frame_idx >= total_recall_from) and (frame_idx <= total_recall_to):
+                        if (frame_idx >= total_recall_from and frame_idx <= total_recall_to):
+                            # print("total_recall_relive (frame number):" + str(frame_idx))
+                            RecallValues(frame_idx)
+                elif str(parameter) == "should_erase_total_recall_memory":
+                    if shouldWrite:
+                        parameter_container.clear()
+                        number_of_recalled_frames = 0
+                        print("The total recall memory has been cleared.")
+                elif str(parameter) == "should_use_deforumation_timestring":
+                    if shouldWrite:
+                        should_use_deforumation_timestring = int(value)
+                    else:
+                        if doVerbose:
+                            print("should_use_deforumation_timestring:" + str(should_use_deforumation_timestring))
+                        await websocket.send((str(should_use_deforumation_timestring)))
+                elif str(parameter) == "should_use_total_recall_prompt":
+                    if shouldWrite:
+                        should_use_total_recall_prompt = int(value)
+                        if should_use_total_recall_prompt:
+                            print("Manual Prompt has been Allowed!")
+                        else:
+                            print("Manual Prompt has been Dis-Allowed!")
+                    else:
+                        if doVerbose:
+                            print("should_use_total_recall_prompt:" + str(should_use_total_recall_prompt))
+                        await websocket.send((str(should_use_total_recall_prompt)))
+                elif str(parameter) == "should_use_total_recall_movements":
+                    if shouldWrite:
+                        should_use_total_recall_movements = int(value)
+                        if not should_use_total_recall_movements:
+                            print("Manual Movements has been Allowed!")
+                        else:
+                            print("Manual Movements has been Dis-Allowed!")
+                    else:
+                        if doVerbose:
+                            print("should_use_total_recall_movements:" + str(should_use_total_recall_movements))
+                        await websocket.send((str(should_use_total_recall_movements)))
+                elif str(parameter) == "should_use_total_recall_others":
+                    if shouldWrite:
+                        should_use_total_recall_others = int(value)
+                        if not should_use_total_recall_others:
+                            print("Manual Others has been Allowed!")
+                        else:
+                            print("Manual Others has been Dis-Allowed!")
+                    else:
+                        if doVerbose:
+                            print("should_use_total_recall_others:" + str(should_use_total_recall_others))
+                        await websocket.send((str(should_use_total_recall_others)))
+
+                elif str(parameter) == "should_use_total_recall":
+                    if shouldWrite:
+                        should_use_total_recall = int(value)
+                        Prompt_Positive_touched = 0
+                        if should_use_total_recall == 1:
+                            translation_x_under_recall = 0
+                            translation_y_under_recall = 0
+                            translation_z_under_recall = 0
+                            rotation_x_under_recall = 0
+                            rotation_y_under_recall = 0
+                            rotation_z_under_recall = 0
+                    else:
+                        if doVerbose:
+                            print("should_use_total_recall:" + str(should_use_total_recall))
+                        await websocket.send((str(should_use_total_recall)))
+                elif str(parameter) == "total_recall_from":
+                    if shouldWrite:
+                        total_recall_from = int(value)
+                    else:
+                        if doVerbose:
+                            print("total_recall_from:" + str(total_recall_from))
+                        await websocket.send((str(total_recall_from)))
+                elif str(parameter) == "total_recall_to":
+                    if shouldWrite:
+                        total_recall_to = int(value)
+                    else:
+                        if doVerbose:
+                            print("total_recall_to:" + str(total_recall_to))
+                        await websocket.send((str(total_recall_to)))
+                elif str(parameter) == "should_use_deforumation_prompt_scheduling":
+                    if shouldWrite:
+                        should_use_deforumation_prompt_scheduling = value
+                    else:
+                        if doVerbose:
+                            print("should_use_deforumation_prompt_scheduling:" + str(
+                                should_use_deforumation_prompt_scheduling))
+                        await websocket.send((str(should_use_deforumation_prompt_scheduling)))
+                elif str(parameter) == "use_deforumation_cadence_scheduling":
+                    if shouldWrite:
+                        use_deforumation_cadence_scheduling = value
+                    else:
+                        if doVerbose:
+                            print("use_deforumation_cadence_scheduling:" + str(use_deforumation_cadence_scheduling))
+                        await websocket.send((str(use_deforumation_cadence_scheduling)))
+                elif str(parameter) == "deforumation_cadence_scheduling_manifest":
+                    if shouldWrite:
+                        deforumation_cadence_scheduling_manifest = value
+                    else:
+                        if doVerbose:
+                            print("deforumation_cadence_scheduling_manifest:" + str(
+                                deforumation_cadence_scheduling_manifest))
+                        await websocket.send((str(deforumation_cadence_scheduling_manifest)))
+                elif str(parameter) == "positive_prompt":
+                    if shouldWrite:
+                        Prompt_Positive = value
+                    else:
+                        if doVerbose:
+                            print("positive_prompt:" + str(Prompt_Positive))
+                        await websocket.send((str(Prompt_Positive)))
+                elif str(parameter) == "negative_prompt":
+                    if shouldWrite:
+                        Prompt_Negative = value
+                    else:
+                        if doVerbose:
+                            print("negative_prompt:" + str(Prompt_Negative))
+                        await websocket.send((str(Prompt_Negative)))
+                elif str(parameter) == "prompts_touched":
+                    # if should_use_total_recall == 1:
+                    #    Prompt_Positive_touched = 1
+                    #    print("Changing prompt for ever for total recall")
+                    empty = 0
+                # Translation Params
+                ###########################################################################
+                elif str(parameter) == "translation_x":
+                    if shouldWrite:
+                        if not should_use_total_recall or (
+                                should_use_total_recall and not should_use_total_recall_movements):
+                            translation_x = float(value)
+                        else:
+                            if (start_frame >= total_recall_from and start_frame <= total_recall_to):
+                                translation_x_under_recall = float(value)
+                                print("Received translation_x_under_recall: " + str(translation_x_under_recall))
+                            else:
+                                translation_x = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending translation_x:" + str(translation_x))
+                        await websocket.send((str(translation_x)))
+
+                elif str(parameter) == "translation_y":
+                    if shouldWrite:
+                        if not should_use_total_recall or (
+                                should_use_total_recall and not should_use_total_recall_movements):
+                            translation_y = float(value)
+                        else:
+                            if (start_frame >= total_recall_from and start_frame <= total_recall_to):
+                                translation_y_under_recall = float(value)
+                            else:
+                                translation_y = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending translation_y:" + str(translation_y))
+                        await websocket.send((str(translation_y)))
+
+                elif str(parameter) == "translation_z":
+                    if shouldWrite:
+                        if not should_use_total_recall or (
+                                should_use_total_recall and not should_use_total_recall_movements):
+                            translation_z = float(value)
+                        else:
+                            if (start_frame >= total_recall_from and start_frame <= total_recall_to):
+                                translation_z_under_recall = float(value)
+                            else:
+                                translation_z = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending translation_z:" + str(translation_z))
+                        await websocket.send((str(translation_z)))
+                # What Deforum thinks it has for Translation
+                elif str(parameter) == "deforum_translation_x":
+                    if shouldWrite:
+                        deforum_translation_x = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending deforum_translation_x:" + str(deforum_translation_x))
+                        await websocket.send((str(deforum_translation_x)))
+                elif str(parameter) == "deforum_translation_y":
+                    if shouldWrite:
+                        deforum_translation_y = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending deforum_translation_y:" + str(deforum_translation_y))
+                        await websocket.send((str(deforum_translation_y)))
+                elif str(parameter) == "deforum_translation_z":
+                    if shouldWrite:
+                        deforum_translation_z = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending deforum_translation_z:" + str(deforum_translation_z))
+                        await websocket.send((str(deforum_translation_z)))
+                # What Deforum thinks it has for Rotation
+                elif str(parameter) == "deforum_rotation_x":
+                    if shouldWrite:
+                        deforum_rotation_x = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending deforum_rotation_x:" + str(deforum_rotation_x))
+                        await websocket.send((str(deforum_rotation_x)))
+                elif str(parameter) == "deforum_rotation_y":
+                    if shouldWrite:
+                        deforum_rotation_y = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending deforum_translation_y:" + str(deforum_rotation_y))
+                        await websocket.send((str(deforum_rotation_y)))
+                elif str(parameter) == "deforum_rotation_z":
+                    if shouldWrite:
+                        deforum_rotation_z = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending deforum_rotation_z:" + str(deforum_rotation_z))
+                        await websocket.send((str(deforum_rotation_z)))
+                # Rotation Params
+                ###########################################################################
+                elif str(parameter) == "rotation_x":
+                    if shouldWrite:
+                        if not should_use_total_recall or (
+                                should_use_total_recall and not should_use_total_recall_movements):
+                            rotation_x = float(value)
+                        else:
+                            if (start_frame >= total_recall_from and start_frame <= total_recall_to):
+                                rotation_x_under_recall = float(value)
+                            else:
+                                rotation_x = float(value)
+                        # print("writing rotation_x:" + str(rotation_x))
+                        # time.sleep(20)
+                    else:
+                        if doVerbose:
+                            print("sending rotation_x:" + str(rotation_x))
+                        await websocket.send((str(rotation_x)))
+                elif str(parameter) == "rotation_y":
+                    if shouldWrite:
+                        if not should_use_total_recall or (
+                                should_use_total_recall and not should_use_total_recall_movements):
+                            rotation_y = float(value)
+                        else:
+                            if (start_frame >= total_recall_from and start_frame <= total_recall_to):
+                                rotation_y_under_recall = float(value)
+                            else:
+                                rotation_y = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending rotation_y:" + str(rotation_y))
+                        await websocket.send((str(rotation_y)))
+                elif str(parameter) == "rotation_z":
+                    if shouldWrite:
+                        if not should_use_total_recall or (
+                                should_use_total_recall and not should_use_total_recall_movements):
+                            rotation_z = float(value)
+                        else:
+                            if (start_frame >= total_recall_from and start_frame <= total_recall_to):
+                                rotation_z_under_recall = float(value)
+                            else:
+                                rotation_z = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending rotation_z:" + str(rotation_z))
+                        await websocket.send((str(rotation_z)))
+                # FOV Params
+                ###########################################################################
+                elif str(parameter) == "fov":
+                    if shouldWrite:
+                        fov = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending fov:" + str(fov))
+                        await websocket.send((str(fov)))
+                # what Deforum think it has
+                ###########################################################################
+                elif str(parameter) == "deforum_fov":
+                    if shouldWrite:
+                        deforum_fov = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending deforum_fov:" + str(deforum_fov))
+                        await websocket.send((str(deforum_fov)))
+                # CFG Params
+                ###########################################################################
+                elif str(parameter) == "cfg":
+                    if shouldWrite:
+                        cfg_scale = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending CFG:" + str(cfg_scale))
+                        await websocket.send((str(cfg_scale)))
+                # What Deforum think the CFG Value is
+                ###########################################################################
+                elif str(parameter) == "deforum_cfg":
+                    if shouldWrite:
+                        deforum_cfg = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending deforum_cfg:" + str(deforum_cfg))
+                        await websocket.send((str(deforum_cfg)))
+                # Strength Params
+                ###########################################################################
+                elif str(parameter) == "strength":
+                    if shouldWrite:
+                        strength_value = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending STRENGTH:" + str(strength_value))
+                        await websocket.send((str(strength_value)))
+                # What Deforum think the Strength Value is
+                ###########################################################################
+                elif str(parameter) == "deforum_strength":
+                    if shouldWrite:
+                        deforum_strength = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending deforum_strength:" + str(deforum_strength))
+                        await websocket.send((str(deforum_strength)))
+                # ControlNet Weight Params
+                ###########################################################################
+                elif str(parameter).startswith("cn_weight"):
+                    cnIndex = int(parameter[len(parameter) - 1])
+                    if shouldWrite:
+                        cn_weight[cnIndex - 1] = float(value)
+                        # print("Writing weight:" + str(value) + " to Controlnet:" + str(cnIndex))
+                    else:
+                        if doVerbose:
+                            print("sending cn_weight:" + str(cn_weight[cnIndex - 1]))
+                        # print("Sending weight:" + str(cn_weight[cnIndex - 1]) + " to Controlnet:" + str(cnIndex))
+                        await websocket.send((str(cn_weight[cnIndex - 1])))
+                # ControlNet step start Params
+                ###########################################################################
+                elif str(parameter).startswith("cn_stepstart"):
+                    cnIndex = int(parameter[len(parameter) - 1])
+                    if shouldWrite:
+                        cn_stepstart[cnIndex - 1] = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending cn_stepstart:" + str(cn_stepstart[cnIndex - 1]))
+                        await websocket.send((str(cn_stepstart[cnIndex - 1])))
+                # ControlNet step end Params
+                ###########################################################################
+                elif str(parameter).startswith("cn_stepend"):
+                    cnIndex = int(parameter[len(parameter) - 1])
+                    if shouldWrite:
+                        cn_stepend[cnIndex - 1] = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending cn_stepend:" + str(cn_stepend[cnIndex - 1]))
+                        await websocket.send((str(cn_stepend[cnIndex - 1])))
+                # ControlNet low threshold Params
+                ###########################################################################
+                elif str(parameter).startswith("cn_lowt"):
+                    cnIndex = int(parameter[len(parameter) - 1])
+                    if shouldWrite:
+                        cn_lowt[cnIndex - 1] = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending cn_lowt:" + str(cn_lowt[cnIndex - 1]))
+                        await websocket.send((str(cn_lowt[cnIndex - 1])))
+                # ControlNet high threshold Params
+                ###########################################################################
+                elif str(parameter).startswith("cn_hight"):
+                    cnIndex = int(parameter[len(parameter) - 1])
+                    if shouldWrite:
+                        cn_hight[cnIndex - 1] = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending cn_hight:" + str(cn_hight[cnIndex - 1]))
+                        await websocket.send((str(cn_hight[cnIndex - 1])))
+                # ControlNet active or not
+                ###########################################################################
+                elif str(parameter).startswith("cn_udcn"):
+                    cnIndex = int(parameter[len(parameter) - 1])
+                    if shouldWrite:
+                        cn_udcn[cnIndex - 1] = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending cn_udcn:" + str(cn_udcn[cnIndex - 1]))
+                        await websocket.send((str(cn_udcn[cnIndex - 1])))
+                # Seed Params
+                ###########################################################################
+                elif str(parameter) == "seed":
+                    if shouldWrite:
+                        seed_value = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending SEED:" + str(seed_value))
+                        await websocket.send((str(seed_value)))
+                elif str(parameter) == "seed_changed":
+                    if shouldWrite:
+                        did_seed_change = int(value)
+                    else:
+                        await websocket.send((str(did_seed_change)))
+
+                # Perlin persistence Param
+                ###########################################################################
+                elif str(parameter) == "perlin_persistence":
+                    if shouldWrite:
+                        perlin_persistence = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending perlin_persistence:" + str(perlin_persistence))
+                        await websocket.send((str(perlin_persistence)))
+                # Perlin octaves Param
+                ###########################################################################
+                elif str(parameter) == "perlin_octaves":
+                    if shouldWrite:
+                        perlin_octaves = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending perlin_octaves:" + str(perlin_octaves))
+                        await websocket.send((str(perlin_octaves)))
+
+                # Should use Pan params
+                ###########################################################################
+                elif str(parameter) == "should_use_deforumation_panning":
+                    if shouldWrite:
+                        should_use_deforumation_panning = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending should_use_deforumation_panning:" + str(should_use_deforumation_panning))
+                        await websocket.send((str(should_use_deforumation_panning)))
+
+                # Should use Tilt params
+                ###########################################################################
+                elif str(parameter) == "should_use_deforumation_tilt":
+                    if shouldWrite:
+                        should_use_deforumation_tilt = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending should_use_deforumation_tilt:" + str(should_use_deforumation_tilt))
+                        await websocket.send((str(should_use_deforumation_tilt)))
+                # Should use Rotation params
+                ###########################################################################
+                elif str(parameter) == "should_use_deforumation_rotation":
+                    if shouldWrite:
+                        should_use_deforumation_rotation = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending should_use_deforumation_rotation:" + str(should_use_deforumation_rotation))
+                        await websocket.send((str(should_use_deforumation_rotation)))
+                # Should use ZOOM/FOV params
+                ###########################################################################
+                elif str(parameter) == "should_use_deforumation_zoomfov":
+                    if shouldWrite:
+                        should_use_deforumation_zoomfov = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending should_use_deforumation_zoomfov:" + str(should_use_deforumation_zoomfov))
+                        await websocket.send((str(should_use_deforumation_zoomfov)))
+                # Should use Noise Params
+                ###########################################################################
+                elif str(parameter) == "should_use_deforumation_noise":
+                    if shouldWrite:
+                        should_use_deforumation_noise = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending should_use_deforumation_noise:" + str(should_use_deforumation_noise))
+                        await websocket.send((str(should_use_deforumation_noise)))
+                # Noise Multiplier Param
+                ###########################################################################
+                elif str(parameter) == "noise_multiplier":
+                    if shouldWrite:
+                        noise_multiplier = float(value)
+                    else:
+                        if doVerbose:
+                            print("sending noise_multiplier:" + str(noise_multiplier))
+                        await websocket.send((str(noise_multiplier)))
+                # What Deforum thinks the noise multiplier Value is
+                ###########################################################################
+                elif str(parameter) == "deforum_noise_multiplier":
+                    if shouldWrite:
+                        deforum_noise_multiplier = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending deforum_noise_multiplier:" + str(deforum_noise_multiplier))
+                        await websocket.send((str(deforum_noise_multiplier)))
+                # What Deforum thinks the perlin octaves Value is
+                ###########################################################################
+                elif str(parameter) == "deforum_perlin_octaves":
+                    if shouldWrite:
+                        deforum_perlin_octaves = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending deforum_perlin_octaves:" + str(deforum_perlin_octaves))
+                        await websocket.send((str(deforum_perlin_octaves)))
+                # What Deforum thinks the perlin octaves Value is
+                ###########################################################################
+                elif str(parameter) == "deforum_perlin_persistence":
+                    if shouldWrite:
+                        deforum_perlin_persistence = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending deforum_perlin_persistence:" + str(deforum_perlin_persistence))
+                        await websocket.send((str(deforum_perlin_persistence)))
+                # Steps Params
+                ###########################################################################
+                elif str(parameter) == "steps":
+                    if shouldWrite:
+                        steps = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending STEPS:" + str(steps))
+                        await websocket.send((str(steps)))
+                # What Deforum thinks the Steps Value is
+                ###########################################################################
+                elif str(parameter) == "deforum_steps":
+                    if shouldWrite:
+                        deforum_steps = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending deforum_steps:" + str(deforum_steps))
+                        await websocket.send((str(deforum_steps)))
+                # Resume and rewind
+                ##########################################################################
+                elif str(parameter) == "should_resume":
+                    if shouldWrite:
+                        # print("The value is:"+str(value))
+                        should_resume = int(value)
+                        if doVerbose2:
+                            print("writing should_resume:" + str(should_resume))
+                    else:
+                        await websocket.send((str(should_resume)))
+
+                elif str(parameter) == "get_number_of_recalled_frames":
+                    await websocket.send((str(number_of_recalled_frames)))
+
+                elif str(parameter) == "saved_frame_params":
+                    if shouldWrite:
+                        if not should_use_total_recall:
+                            if not int(value) in parameter_container:
+                                # print("Setting values for frame:"+str(value))
+                                parameter_container[int(value)] = ParameterContainer()
+                            parameter_container[int(value)].SetValues()
+                        elif (int(value) < total_recall_from) or (int(value) > total_recall_to):
+                            if not int(value) in parameter_container:
+                                parameter_container[int(value)] = ParameterContainer()
+                            parameter_container[int(value)].SetValues()
+                    else:
+                        if doVerbose2:
+                            print("sending parameter_container")
+                        if int(value) == -1:
+                            bytesToSend = pickle.dumps(parameter_container)
+                        elif int(value) in parameter_container:
+                            if not should_use_total_recall:
+                                bytesToSend = pickle.dumps(parameter_container[int(value)])
+                                # print("Sending ALL original parameters.")
+                            else:
+                                # print("Sending some or all original parameters:")
+                                copyof_parameter_container = copy.deepcopy(parameter_container[int(value)])
+                                copyof_parameter_container = RecallValuesTemp(copyof_parameter_container)
+                                bytesToSend = pickle.dumps(copyof_parameter_container)
+                            # if should_use_total_recall_prompt:
+                            #    copyof_parameter_container = copy.deepcopy(parameter_container)
+                            #    copyof_parameter_container[int(value)].Prompt_Positive = Prompt_Positive
+                            #    bytesToSend = pickle.dumps(copyof_parameter_container[int(value)])
+                            # else:
+                            #    bytesToSend = pickle.dumps(parameter_container[int(value)], HIGHEST_PROTOCOL)
+                            #    arne = 1
+                        else:
+                            bytesToSend = pickle.dumps(0x0)
+
+                        await websocket.send(bytesToSend)
+                    number_of_recalled_frames = len(parameter_container)
+                elif str(parameter) == "upload_recall_file":
+                    if shouldWrite:
+                        parameter_container.clear()
+                        parameter_container = pickle.loads(value)
+                        number_of_recalled_frames = len(parameter_container)
+
+                elif str(parameter) == "start_frame":
+                    if shouldWrite:
+                        start_frame = int(value)
+                    else:
+                        if doVerbose2:
+                            print("sending start frame:" + str(start_frame))
+                        await websocket.send((str(start_frame)))
+                elif str(parameter) == "frame_outdir":
+                    if shouldWrite:
+                        frame_outdir = str(value)
+                    else:
+                        if doVerbose2:
+                            print("sending frame_outdir:" + str(frame_outdir))
+                        await websocket.send((str(frame_outdir)))
+                elif str(parameter) == "resume_timestring":
+                    if shouldWrite:
+                        resume_timestring = str(value)
+                    else:
+                        if doVerbose2:
+                            print("sending resume_timestring:" + str(resume_timestring))
+                        await websocket.send((str(resume_timestring)))
+                elif str(parameter) == "should_use_deforumation_strength":
+                    if shouldWrite:
+                        # print("Setting should use deforumation strength to:"+str(int(value)))
+                        should_use_deforumation_strength = int(value)
+                    else:
+                        if doVerbose2:
+                            print("sending should_use_deforumation_strength:" + str(should_use_deforumation_strength))
+                        await websocket.send((str(should_use_deforumation_strength)))
+                elif str(parameter) == "should_use_deforumation_cfg":
+                    if shouldWrite:
+                        # print("Setting should use deforumation strength to:"+str(int(value)))
+                        should_use_deforumation_cfg = int(value)
+                    else:
+                        if doVerbose2:
+                            print("sending should_use_deforumation_cfg:" + str(should_use_deforumation_cfg))
+                        await websocket.send((str(should_use_deforumation_cfg)))
+                elif str(parameter) == "cadence":
+                    if shouldWrite:
+                        cadence = str(value)
+                    else:
+                        if doVerbose2:
+                            print("sending cadence:" + str(cadence))
+                        await websocket.send((str(cadence)))
+                elif str(parameter) == "should_use_deforumation_cadence":
+                    if shouldWrite:
+                        should_use_deforumation_cadence = str(value)
+                    else:
+                        if doVerbose2:
+                            print("sending should_use_deforumation_cadence:" + str(should_use_deforumation_cadence))
+                        await websocket.send((str(should_use_deforumation_cadence)))
+
+                # What Deforum thinks the cadence Value is
+                ###########################################################################
+                elif str(parameter) == "deforum_cadence":
+                    if shouldWrite:
+                        deforum_cadence = int(value)
+                    else:
+                        if doVerbose:
+                            print("sending deforum_cadence:" + str(deforum_cadence))
+                        await websocket.send((str(deforum_cadence)))
+                elif str(parameter) == "parseq_keys":
+                    if shouldWrite:
+                        parseq_keys = value
+                    else:
+                        if doVerbose2:
+                            print("sending parseq_keys:")
+                        await websocket.send(pickle.dumps(parseq_keys))
+                elif str(parameter) == "use_parseq":
+                    if shouldWrite:
+                        use_parseq = value
+                    else:
+                        if doVerbose2:
+                            print("sending use_parseq:")
+                        await websocket.send((str(use_parseq)))
+                elif str(parameter) == "parseq_manifest":
+                    if shouldWrite:
+                        parseq_manifest = value
+                        print("Got parseq_manifest:" + str(value))
+                    else:
+                        if doVerbose2:
+                            print("sending parseq_manifest:")
+                        await websocket.send((str(parseq_manifest)))
+                elif str(parameter) == "should_use_optical_flow":
+                    if shouldWrite:
+                        should_use_optical_flow = value
+                    else:
+                        if doVerbose2:
+                            print("sending should_use_optical_flow:")
+                        await websocket.send((str(should_use_optical_flow)))
+                elif str(parameter) == "parseq_strength":
+                    if shouldWrite:
+                        parseq_strength = value
+                    else:
+                        if doVerbose2:
+                            print("sending parseq_strength:")
+                        await websocket.send((str(parseq_strength)))
+                elif str(parameter) == "parseq_movements":
+                    if shouldWrite:
+                        print("parseq_movements:" + str(parseq_movements))
+                        parseq_movements = value
+                    else:
+                        if doVerbose2:
+                            print("sending parseq_movements:" + str(parseq_movements))
+                        await websocket.send((str(parseq_movements)))
+                elif str(parameter) == "cadence_flow_factor":
+                    if shouldWrite:
+                        cadence_flow_factor = value
+                    else:
+                        if doVerbose2:
+                            print("sending cadence_flow_factor:" + str(cadence_flow_factor))
+                        await websocket.send((str(cadence_flow_factor)))
+                elif str(parameter) == "generation_flow_factor":
+                    if shouldWrite:
+                        generation_flow_factor = value
+                    else:
+                        if doVerbose2:
+                            print("sending generation_flow_factor:" + str(generation_flow_factor))
+                        await websocket.send((str(generation_flow_factor)))
+
+                elif str(parameter) == "shutdown":
+                    serverShutDown = True
+                else:
+                    print(
+                        "NO SUCH COMMAND:" + parameter + "\nPlease make sure Mediator, Deforumation and the Deforum (render.py, animation.py) are in sync.")
+                    if not shouldWrite:
+                        await websocket.send(str("NO SUCH COMMAND:" + parameter))
             if shouldWrite:  # Return an "OK" if the writes went OK
                 await websocket.send("OK")
 
@@ -1384,688 +1428,726 @@ def main_named_pipe(pipeName):
                 shouldWrite = arr[0]
                 parameter = arr[1]
                 value = arr[2]
-                # Prompts Params
-                ###########################################################################
 
-                if str(parameter) == "is_paused_rendering":
-                    if shouldWrite:
-                        shouldPause = int(value)
-                    else:
-                        if doVerbose:
-                            print("is_paused_rendering:" + str(shouldPause))
-                        win32file.WriteFile(pipe, str.encode(str(shouldPause)))
-                elif str(parameter) == "total_recall_relive":
-                    frame_idx = int(value)
-                    if should_use_total_recall:
-                        # if (frame_idx >= total_recall_from) and (frame_idx <= total_recall_to):
-                        if (frame_idx >= total_recall_from and frame_idx <= total_recall_to):
-                            #print("total_recall_relive (frame number):" + str(frame_idx))
-                            RecallValues(frame_idx)
-                elif str(parameter) == "should_erase_total_recall_memory":
-                    if shouldWrite:
-                        parameter_container.clear()
-                        number_of_recalled_frames = 0
-                        print("The total recall memory has been cleared.")
-                elif str(parameter) == "should_use_deforumation_timestring":
-                    if shouldWrite:
-                        should_use_deforumation_timestring = int(value)
-                    else:
-                        if doVerbose:
-                            print("should_use_deforumation_timestring:" + str(should_use_deforumation_timestring))
-                        win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_timestring)))
-                elif str(parameter) == "should_use_total_recall_prompt":
-                    if shouldWrite:
-                        should_use_total_recall_prompt = int(value)
-                        if should_use_total_recall_prompt:
-                            print("Manual Prompt has been Allowed!")
-                        else:
-                            print("Manual Prompt has been Dis-Allowed!")
-                    else:
-                        if doVerbose:
-                            print("should_use_total_recall_prompt:" + str(should_use_total_recall_prompt))
-                        win32file.WriteFile(pipe, str.encode(str(should_use_total_recall_prompt)))
-                elif str(parameter) == "should_use_total_recall_movements":
-                    if shouldWrite:
-                        should_use_total_recall_movements = int(value)
-                        if not should_use_total_recall_movements:
-                            print("Manual Movements has been Allowed!")
-                        else:
-                            print("Manual Movements has been Dis-Allowed!")
-                    else:
-                        if doVerbose:
-                            print("should_use_total_recall_movements:" + str(should_use_total_recall_movements))
-                        win32file.WriteFile(pipe, str.encode(str(should_use_total_recall_movements)))
-                elif str(parameter) == "should_use_total_recall_others":
-                    if shouldWrite:
-                        should_use_total_recall_others = int(value)
-                        if not should_use_total_recall_others:
-                            print("Manual Others has been Allowed!")
-                        else:
-                            print("Manual Others has been Dis-Allowed!")
-                    else:
-                        if doVerbose:
-                            print("should_use_total_recall_others:" + str(should_use_total_recall_others))
-                        win32file.WriteFile(pipe, str.encode(str(should_use_total_recall_others)))
-
-                elif str(parameter) == "should_use_total_recall":
-                    if shouldWrite:
-                        should_use_total_recall = int(value)
-                        Prompt_Positive_touched = 0
-                        if should_use_total_recall == 1:
-                            translation_x_under_recall = 0
-                            translation_y_under_recall = 0
-                            translation_z_under_recall = 0
-                            rotation_x_under_recall = 0
-                            rotation_y_under_recall = 0
-                            rotation_z_under_recall = 0
-                    else:
-                        if doVerbose:
-                            print("should_use_total_recall:" + str(should_use_total_recall))
-                        win32file.WriteFile(pipe, str.encode(str(should_use_total_recall)))
-                elif str(parameter) == "total_recall_from":
-                    if shouldWrite:
-                        total_recall_from = int(value)
-                    else:
-                        if doVerbose:
-                            print("total_recall_from:" + str(total_recall_from))
-                        win32file.WriteFile(pipe, str.encode(str(total_recall_from)))
-                elif str(parameter) == "total_recall_to":
-                    if shouldWrite:
-                        total_recall_to = int(value)
-                    else:
-                        if doVerbose:
-                            print("total_recall_to:" + str(total_recall_to))
-                        win32file.WriteFile(pipe, str.encode(str(total_recall_to)))
-                elif str(parameter) == "should_use_deforumation_prompt_scheduling":
-                    if shouldWrite:
-                        should_use_deforumation_prompt_scheduling = value
-                    else:
-                        if doVerbose:
-                            print("should_use_deforumation_prompt_scheduling:" + str(
-                                should_use_deforumation_prompt_scheduling))
-                        win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_prompt_scheduling)))
-                elif str(parameter) == "use_deforumation_cadence_scheduling":
-                    if shouldWrite:
-                        use_deforumation_cadence_scheduling = value
-                    else:
-                        if doVerbose:
-                            print("use_deforumation_cadence_scheduling:" + str(use_deforumation_cadence_scheduling))
-                        win32file.WriteFile(pipe, str.encode(str(use_deforumation_cadence_scheduling)))
-                elif str(parameter) == "deforumation_cadence_scheduling_manifest":
-                    if shouldWrite:
-                        deforumation_cadence_scheduling_manifest = value
-                    else:
-                        if doVerbose:
-                            print("deforumation_cadence_scheduling_manifest:" + str(
-                                deforumation_cadence_scheduling_manifest))
-                        win32file.WriteFile(pipe, str.encode(str(deforumation_cadence_scheduling_manifest)))
-                elif str(parameter) == "positive_prompt":
-                    if shouldWrite:
-                        Prompt_Positive = value
-                    else:
-                        if doVerbose:
-                            print("positive_prompt:" + str(Prompt_Positive))
-                        win32file.WriteFile(pipe, str.encode(str(Prompt_Positive)))
-                elif str(parameter) == "negative_prompt":
-                    if shouldWrite:
-                        Prompt_Negative = value
-                    else:
-                        if doVerbose:
-                            print("negative_prompt:" + str(Prompt_Negative))
-                        win32file.WriteFile(pipe, str.encode(str(Prompt_Negative)))
-                elif str(parameter) == "prompts_touched":
-                    #if should_use_total_recall == 1:
-                    #    Prompt_Positive_touched = 1
-                    #    print("Changing prompt for ever for total recall")
-                    empty = 0
-                # Translation Params
-                ###########################################################################
-                elif str(parameter) == "translation_x":
-                    if shouldWrite:
-                        if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
-                            translation_x = float(value)
-                        else:
-                            translation_x_under_recall = float(value)
-                            print("Received translation_x_under_recall: " + str(translation_x_under_recall))
-
-                    else:
-                        if doVerbose:
-                            print("sending translation_x:" + str(translation_x))
-                        win32file.WriteFile(pipe, str.encode(str(translation_x)))
-
-                elif str(parameter) == "translation_y":
-                    if shouldWrite:
-                        if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
-                            translation_y = float(value)
-                        else:
-                            translation_y_under_recall = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending translation_y:" + str(translation_y))
-                        win32file.WriteFile(pipe, str.encode(str(translation_y)))
-
-                elif str(parameter) == "translation_z":
-                    if shouldWrite:
-                        if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
-                            translation_z = float(value)
-                        else:
-                            translation_z_under_recall = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending translation_z:" + str(translation_z))
-                        win32file.WriteFile(pipe, str.encode(str(translation_z)))
-                # What Deforum thinks it has for Translation
-                elif str(parameter) == "deforum_translation_x":
-                    if shouldWrite:
-                        deforum_translation_x = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending deforum_translation_x:" + str(deforum_translation_x))
-                        win32file.WriteFile(pipe, str.encode(str(deforum_translation_x)))
-                elif str(parameter) == "deforum_translation_y":
-                    if shouldWrite:
-                        deforum_translation_y = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending deforum_translation_y:" + str(deforum_translation_y))
-                        win32file.WriteFile(pipe, str.encode(str(deforum_translation_y)))
-                elif str(parameter) == "deforum_translation_z":
-                    if shouldWrite:
-                        deforum_translation_z = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending deforum_translation_z:" + str(deforum_translation_z))
-                        win32file.WriteFile(pipe, str.encode(str(deforum_translation_z)))
-                # What Deforum thinks it has for Rotation
-                elif str(parameter) == "deforum_rotation_x":
-                    if shouldWrite:
-                        deforum_rotation_x = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending deforum_rotation_x:" + str(deforum_rotation_x))
-                        win32file.WriteFile(pipe, str.encode(str(deforum_rotation_x)))
-                elif str(parameter) == "deforum_rotation_y":
-                    if shouldWrite:
-                        deforum_rotation_y = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending deforum_translation_y:" + str(deforum_rotation_y))
-                        win32file.WriteFile(pipe, str.encode(str(deforum_rotation_y)))
-                elif str(parameter) == "deforum_rotation_z":
-                    if shouldWrite:
-                        deforum_rotation_z = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending deforum_rotation_z:" + str(deforum_rotation_z))
-                        win32file.WriteFile(pipe, str.encode(str(deforum_rotation_z)))
-                # Rotation Params
-                ###########################################################################
-                elif str(parameter) == "rotation_x":
-                    if shouldWrite:
-                        if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
-                            rotation_x = float(value)
-                        else:
-                            rotation_x_under_recall = float(value)
-                        # print("writing rotation_x:" + str(rotation_x))
-                        # time.sleep(20)
-                    else:
-                        if doVerbose:
-                            print("sending rotation_x:" + str(rotation_x))
-                        win32file.WriteFile(pipe, str.encode(str(rotation_x)))
-                elif str(parameter) == "rotation_y":
-                    if shouldWrite:
-                        if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
-                            rotation_y = float(value)
-                        else:
-                            rotation_y_under_recall = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending rotation_y:" + str(rotation_y))
-                        win32file.WriteFile(pipe, str.encode(str(rotation_y)))
-                elif str(parameter) == "rotation_z":
-                    if shouldWrite:
-                        if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
-                            rotation_z = float(value)
-                        else:
-                            rotation_z_under_recall = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending rotation_z:" + str(rotation_z))
-                        win32file.WriteFile(pipe, str.encode(str(rotation_z)))
-                # FOV Params
-                ###########################################################################
-                elif str(parameter) == "fov":
-                    if shouldWrite:
-                        fov = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending fov:" + str(fov))
-                        win32file.WriteFile(pipe, str.encode(str(fov)))
-                # what Deforum think it has
-                ###########################################################################
-                elif str(parameter) == "deforum_fov":
-                    if shouldWrite:
-                        deforum_fov = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending deforum_fov:" + str(deforum_fov))
-                        win32file.WriteFile(pipe, str.encode(str(deforum_fov)))
-                # CFG Params
-                ###########################################################################
-                elif str(parameter) == "cfg":
-                    if shouldWrite:
-                        cfg_scale = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending CFG:" + str(cfg_scale))
-                        win32file.WriteFile(pipe, str.encode(str(cfg_scale)))
-                # What Deforum think the CFG Value is
-                ###########################################################################
-                elif str(parameter) == "deforum_cfg":
-                    if shouldWrite:
-                        deforum_cfg = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending deforum_cfg:" + str(deforum_cfg))
-                        win32file.WriteFile(pipe, str.encode(str(deforum_cfg)))
-                # Strength Params
-                ###########################################################################
-                elif str(parameter) == "strength":
-                    if shouldWrite:
-                        strength_value = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending STRENGTH:" + str(strength_value))
-                        win32file.WriteFile(pipe, str.encode(str(strength_value)))
-                # What Deforum think the Strength Value is
-                ###########################################################################
-                elif str(parameter) == "deforum_strength":
-                    if shouldWrite:
-                        deforum_strength = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending deforum_strength:" + str(deforum_strength))
-                        win32file.WriteFile(pipe, str.encode(str(deforum_strength)))
-                # ControlNet Weight Params
-                ###########################################################################
-                elif str(parameter).startswith("cn_weight"):
-                    cnIndex = int(parameter[len(parameter) - 1])
-                    if shouldWrite:
-                        cn_weight[cnIndex - 1] = float(value)
-                        #print("Writing weight:" + str(value) + " to Controlnet:" + str(cnIndex))
-                    else:
-                        if doVerbose:
-                            print("sending cn_weight:" + str(cn_weight[cnIndex - 1]))
-                        #print("Sending weight:" + str(cn_weight[cnIndex - 1]) + " to Controlnet:" + str(cnIndex))
-                        win32file.WriteFile(pipe, str.encode(str(cn_weight[cnIndex - 1])))
-                # ControlNet step start Params
-                ###########################################################################
-                elif str(parameter).startswith("cn_stepstart"):
-                    cnIndex = int(parameter[len(parameter) - 1])
-                    if shouldWrite:
-                        cn_stepstart[cnIndex - 1] = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending cn_stepstart:" + str(cn_stepstart[cnIndex - 1]))
-                        win32file.WriteFile(pipe, str.encode(str(cn_stepstart[cnIndex - 1])))
-                # ControlNet step end Params
-                ###########################################################################
-                elif str(parameter).startswith("cn_stepend"):
-                    cnIndex = int(parameter[len(parameter) - 1])
-                    if shouldWrite:
-                        cn_stepend[cnIndex - 1] = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending cn_stepend:" + str(cn_stepend[cnIndex - 1]))
-                        win32file.WriteFile(pipe, str.encode(str(cn_stepend[cnIndex - 1])))
-                # ControlNet low threshold Params
-                ###########################################################################
-                elif str(parameter).startswith("cn_lowt"):
-                    cnIndex = int(parameter[len(parameter) - 1])
-                    if shouldWrite:
-                        cn_lowt[cnIndex - 1] = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending cn_lowt:" + str(cn_lowt[cnIndex - 1]))
-                        win32file.WriteFile(pipe, str.encode(str(cn_lowt[cnIndex - 1])))
-                # ControlNet high threshold Params
-                ###########################################################################
-                elif str(parameter).startswith("cn_hight"):
-                    cnIndex = int(parameter[len(parameter) - 1])
-                    if shouldWrite:
-                        cn_hight[cnIndex - 1] = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending cn_hight:" + str(cn_hight[cnIndex - 1]))
-                        win32file.WriteFile(pipe, str.encode(str(cn_hight[cnIndex - 1])))
-                # ControlNet active or not
-                ###########################################################################
-                elif str(parameter).startswith("cn_udcn"):
-                    cnIndex = int(parameter[len(parameter) - 1])
-                    if shouldWrite:
-                        cn_udcn[cnIndex - 1] = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending cn_udcn:" + str(cn_udcn[cnIndex - 1]))
-                        win32file.WriteFile(pipe, str.encode(str(cn_udcn[cnIndex - 1])))
-                # Seed Params
-                ###########################################################################
-                elif str(parameter) == "seed":
-                    if shouldWrite:
-                        seed_value = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending SEED:" + str(seed_value))
-                        win32file.WriteFile(pipe, str.encode(str(seed_value)))
-                elif str(parameter) == "seed_changed":
-                    if shouldWrite:
-                        did_seed_change = int(value)
-                    else:
-                        win32file.WriteFile(pipe, str.encode(str(did_seed_change)))
-
-                # Perlin persistence Param
-                ###########################################################################
-                elif str(parameter) == "perlin_persistence":
-                    if shouldWrite:
-                        perlin_persistence = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending perlin_persistence:" + str(perlin_persistence))
-                        win32file.WriteFile(pipe, str.encode(str(perlin_persistence)))
-                # Perlin octaves Param
-                ###########################################################################
-                elif str(parameter) == "perlin_octaves":
-                    if shouldWrite:
-                        perlin_octaves = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending perlin_octaves:" + str(perlin_octaves))
-                        win32file.WriteFile(pipe, str.encode(str(perlin_octaves)))
-
-                # Should use Pan params
-                ###########################################################################
-                elif str(parameter) == "should_use_deforumation_panning":
-                    if shouldWrite:
-                        should_use_deforumation_panning = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending should_use_deforumation_panning:" + str(should_use_deforumation_panning))
-                        win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_panning)))
-
-                # Should use Tilt params
-                ###########################################################################
-                elif str(parameter) == "should_use_deforumation_tilt":
-                    if shouldWrite:
-                        should_use_deforumation_tilt = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending should_use_deforumation_tilt:" + str(should_use_deforumation_tilt))
-                        win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_tilt)))
-                # Should use Rotation params
-                ###########################################################################
-                elif str(parameter) == "should_use_deforumation_rotation":
-                    if shouldWrite:
-                        should_use_deforumation_rotation = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending should_use_deforumation_rotation:" + str(should_use_deforumation_rotation))
-                        win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_rotation)))
-                # Should use ZOOM/FOV params
-                ###########################################################################
-                elif str(parameter) == "should_use_deforumation_zoomfov":
-                    if shouldWrite:
-                        should_use_deforumation_zoomfov = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending should_use_deforumation_zoomfov:" + str(should_use_deforumation_zoomfov))
-                        win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_zoomfov)))
-                # Should use Noise Params
-                ###########################################################################
-                elif str(parameter) == "should_use_deforumation_noise":
-                    if shouldWrite:
-                        should_use_deforumation_noise = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending should_use_deforumation_noise:" + str(should_use_deforumation_noise))
-                        win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_noise)))
-                # Noise Multiplier Param
-                ###########################################################################
-                elif str(parameter) == "noise_multiplier":
-                    if shouldWrite:
-                        noise_multiplier = float(value)
-                    else:
-                        if doVerbose:
-                            print("sending noise_multiplier:" + str(noise_multiplier))
-                        win32file.WriteFile(pipe, str.encode(str(noise_multiplier)))
-                # What Deforum thinks the noise multiplier Value is
-                ###########################################################################
-                elif str(parameter) == "deforum_noise_multiplier":
-                    if shouldWrite:
-                        deforum_noise_multiplier = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending deforum_noise_multiplier:" + str(deforum_noise_multiplier))
-                        win32file.WriteFile(pipe, str.encode(str(deforum_noise_multiplier)))
-                # What Deforum thinks the perlin octaves Value is
-                ###########################################################################
-                elif str(parameter) == "deforum_perlin_octaves":
-                    if shouldWrite:
-                        deforum_perlin_octaves = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending deforum_perlin_octaves:" + str(deforum_perlin_octaves))
-                        win32file.WriteFile(pipe, str.encode(str(deforum_perlin_octaves)))
-                # What Deforum thinks the perlin octaves Value is
-                ###########################################################################
-                elif str(parameter) == "deforum_perlin_persistence":
-                    if shouldWrite:
-                        deforum_perlin_persistence = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending deforum_perlin_persistence:" + str(deforum_perlin_persistence))
-                        win32file.WriteFile(pipe, str.encode(str(deforum_perlin_persistence)))
-                # Steps Params
-                ###########################################################################
-                elif str(parameter) == "steps":
-                    if shouldWrite:
-                        steps = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending STEPS:" + str(steps))
-                        win32file.WriteFile(pipe, str.encode(str(steps)))
-                # What Deforum thinks the Steps Value is
-                ###########################################################################
-                elif str(parameter) == "deforum_steps":
-                    if shouldWrite:
-                        deforum_steps = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending deforum_steps:" + str(deforum_steps))
-                        win32file.WriteFile(pipe, str.encode(str(deforum_steps)))
-                # Resume and rewind
-                ##########################################################################
-                elif str(parameter) == "should_resume":
-                    if shouldWrite:
-                        # print("The value is:"+str(value))
-                        should_resume = int(value)
-                        if doVerbose2:
-                            print("writing should_resume:" + str(should_resume))
-                    else:
-                        win32file.WriteFile(pipe, str.encode(str(should_resume)))
-
-                elif str(parameter) == "get_number_of_recalled_frames":
-                    win32file.WriteFile(pipe, str.encode(str(number_of_recalled_frames)))
-
-                elif str(parameter) == "saved_frame_params":
-                    if shouldWrite:
-                        if not should_use_total_recall:
-                            if not int(value) in parameter_container:
-                                #print("Setting values for frame:"+str(value))
-                                parameter_container[int(value)] = ParameterContainer()
-                            parameter_container[int(value)].SetValues()
-                        elif (int(value) < total_recall_from) or (int(value) > total_recall_to):
-                            if not int(value) in parameter_container:
-                                parameter_container[int(value)] = ParameterContainer()
-                            parameter_container[int(value)].SetValues()
-                    else:
-                        if doVerbose2:
-                            print("sending parameter_container")
-                        if int(value) == -1:
-                            bytesToSend = pickle.dumps(parameter_container)
-                        elif int(value) in parameter_container:
-                            if not should_use_total_recall:
-                                bytesToSend = pickle.dumps(parameter_container[int(value)])
-                                #print("Sending ALL original parameters.")
-                            else:
-                                #print("Sending some or all original parameters:")
-                                copyof_parameter_container = copy.deepcopy(parameter_container[int(value)])
-                                copyof_parameter_container = RecallValuesTemp(copyof_parameter_container)
-                                bytesToSend = pickle.dumps(copyof_parameter_container)
-                            #if should_use_total_recall_prompt:
-                            #    copyof_parameter_container = copy.deepcopy(parameter_container)
-                            #    copyof_parameter_container[int(value)].Prompt_Positive = Prompt_Positive
-                            #    bytesToSend = pickle.dumps(copyof_parameter_container[int(value)])
-                            #else:
-                            #    bytesToSend = pickle.dumps(parameter_container[int(value)], HIGHEST_PROTOCOL)
-                            #    arne = 1
-                        else:
-                            bytesToSend = pickle.dumps(0x0)
-
-                        win32file.WriteFile(pipe, bytesToSend)
-                    number_of_recalled_frames = len(parameter_container)
-                elif str(parameter) == "upload_recall_file":
-                    if shouldWrite:
-                        parameter_container.clear()
-                        parameter_container = pickle.loads(value)
-                        number_of_recalled_frames = len(parameter_container)
-
-                elif str(parameter) == "start_frame":
-                    if shouldWrite:
-                        start_frame = int(value)
-                    else:
-                        if doVerbose2:
-                            print("sending start frame:" + str(start_frame))
-                        win32file.WriteFile(pipe, str.encode(str(start_frame)))
-                elif str(parameter) == "frame_outdir":
-                    if shouldWrite:
-                        frame_outdir = str(value)
-                    else:
-                        if doVerbose2:
-                            print("sending frame_outdir:" + str(frame_outdir))
-                        win32file.WriteFile(pipe, str.encode(str(frame_outdir)))
-                elif str(parameter) == "resume_timestring":
-                    if shouldWrite:
-                        resume_timestring = str(value)
-                    else:
-                        if doVerbose2:
-                            print("sending resume_timestring:" + str(resume_timestring))
-                        win32file.WriteFile(pipe, str.encode(str(resume_timestring)))
-                elif str(parameter) == "should_use_deforumation_strength":
-                    if shouldWrite:
-                        # print("Setting should use deforumation strength to:"+str(int(value)))
-                        should_use_deforumation_strength = int(value)
-                    else:
-                        if doVerbose2:
-                            print("sending should_use_deforumation_strength:" + str(should_use_deforumation_strength))
-                        win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_strength)))
-                elif str(parameter) == "should_use_deforumation_cfg":
-                    if shouldWrite:
-                        # print("Setting should use deforumation strength to:"+str(int(value)))
-                        should_use_deforumation_cfg = int(value)
-                    else:
-                        if doVerbose2:
-                            print("sending should_use_deforumation_cfg:" + str(should_use_deforumation_cfg))
-                        win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_cfg)))
-                elif str(parameter) == "cadence":
-                    if shouldWrite:
-                        cadence = str(value)
-                    else:
-                        if doVerbose2:
-                            print("sending cadence:" + str(cadence))
-                        win32file.WriteFile(pipe, str.encode(str(cadence)))
-                elif str(parameter) == "should_use_deforumation_cadence":
-                    if shouldWrite:
-                        should_use_deforumation_cadence = str(value)
-                    else:
-                        if doVerbose2:
-                            print("sending should_use_deforumation_cadence:" + str(should_use_deforumation_cadence))
-                        win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_cadence)))
-
-                # What Deforum thinks the cadence Value is
-                ###########################################################################
-                elif str(parameter) == "deforum_cadence":
-                    if shouldWrite:
-                        deforum_cadence = int(value)
-                    else:
-                        if doVerbose:
-                            print("sending deforum_cadence:" + str(deforum_cadence))
-                        win32file.WriteFile(pipe, str.encode(str(deforum_cadence)))
-                elif str(parameter) == "parseq_keys":
-                    if shouldWrite:
-                        parseq_keys = value
-                    else:
-                        if doVerbose2:
-                            print("sending parseq_keys:")
-                        win32file.WriteFile(pipe, pickle.dumps(parseq_keys))
-                elif str(parameter) == "use_parseq":
-                    if shouldWrite:
-                        use_parseq = value
-                    else:
-                        if doVerbose2:
-                            print("sending use_parseq:")
-                        win32file.WriteFile(pipe, str.encode(str(use_parseq)))
-                elif str(parameter) == "parseq_manifest":
-                    if shouldWrite:
-                        parseq_manifest = value
-                        print("Got parseq_manifest:" + str(value))
-                    else:
-                        if doVerbose2:
-                            print("sending parseq_manifest:")
-                        win32file.WriteFile(pipe, str.encode(str(parseq_manifest)))
-                elif str(parameter) == "should_use_optical_flow":
-                    if shouldWrite:
-                        should_use_optical_flow = value
-                    else:
-                        if doVerbose2:
-                            print("sending should_use_optical_flow:")
-                        win32file.WriteFile(pipe, str.encode(str(should_use_optical_flow)))
-                elif str(parameter) == "parseq_strength":
-                    if shouldWrite:
-                        parseq_strength = value
-                    else:
-                        if doVerbose2:
-                            print("sending parseq_strength:")
-                        win32file.WriteFile(pipe, str.encode(str(parseq_strength)))
-                elif str(parameter) == "parseq_movements":
-                    if shouldWrite:
-                        print("parseq_movements:" + str(parseq_movements))
-                        parseq_movements = value
-                    else:
-                        if doVerbose2:
-                            print("sending parseq_movements:" + str(parseq_movements))
-                        win32file.WriteFile(pipe, str.encode(str(parseq_movements)))
-                elif str(parameter) == "cadence_flow_factor":
-                    if shouldWrite:
-                        cadence_flow_factor = value
-                    else:
-                        if doVerbose2:
-                            print("sending cadence_flow_factor:" + str(cadence_flow_factor))
-                        win32file.WriteFile(pipe, str.encode(str(cadence_flow_factor)))
-                elif str(parameter) == "generation_flow_factor":
-                    if shouldWrite:
-                        generation_flow_factor = value
-                    else:
-                        if doVerbose2:
-                            print("sending generation_flow_factor:" + str(generation_flow_factor))
-                        win32file.WriteFile(pipe, str.encode(str(generation_flow_factor)))
-
-                elif str(parameter) == "shutdown":
-                    serverShutDown = True
+                #Is it an incomming block?
+                if str(parameter) == "<BLOCK>":
+                    #print("Number of blocks in block:"+str(len(value)))
+                    number_of_blocks = len(value)
+                    should_unpack_block = True
+                    original_value = value
                 else:
-                    print(
-                        "NO SUCH COMMAND:" + parameter + "\nPlease make sure Mediator, Deforumation and the Deforum (render.py, animation.py) are in sync.")
-                    if not shouldWrite:
-                        win32file.WriteFile(pipe, str.encode(str("NO SUCH COMMAND:" + parameter)))
+                    number_of_blocks = 1
+                    should_unpack_block = False
+                for block_index in range(0, number_of_blocks):
+                    if should_unpack_block:
+                        arr = pickle.loads(original_value[block_index])
+                        if len(arr) == 3:
+                            shouldWrite = arr[0]
+                            parameter = arr[1]
+                            value = arr[2]
+                            #print("Writing param: " + parameter)
+                        else:
+                            if doVerbose:
+                                win32file.WriteFile(pipe, b"ERROR")
+                            break
+                    # Prompts Params
+                    ###########################################################################
+                    if str(parameter) == "is_paused_rendering":
+                        if shouldWrite:
+                            shouldPause = int(value)
+                        else:
+                            if doVerbose:
+                                print("is_paused_rendering:" + str(shouldPause))
+                            win32file.WriteFile(pipe, str.encode(str(shouldPause)))
+                    elif str(parameter) == "total_recall_relive":
+                        frame_idx = int(value)
+                        if should_use_total_recall:
+                            # if (frame_idx >= total_recall_from) and (frame_idx <= total_recall_to):
+                            if (frame_idx >= total_recall_from and frame_idx <= total_recall_to):
+                                #print("total_recall_relive (frame number):" + str(frame_idx))
+                                RecallValues(frame_idx)
+                    elif str(parameter) == "should_erase_total_recall_memory":
+                        if shouldWrite:
+                            parameter_container.clear()
+                            number_of_recalled_frames = 0
+                            print("The total recall memory has been cleared.")
+                    elif str(parameter) == "should_use_deforumation_timestring":
+                        if shouldWrite:
+                            should_use_deforumation_timestring = int(value)
+                        else:
+                            if doVerbose:
+                                print("should_use_deforumation_timestring:" + str(should_use_deforumation_timestring))
+                            win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_timestring)))
+                    elif str(parameter) == "should_use_total_recall_prompt":
+                        if shouldWrite:
+                            should_use_total_recall_prompt = int(value)
+                            if should_use_total_recall_prompt:
+                                print("Manual Prompt has been Allowed!")
+                            else:
+                                print("Manual Prompt has been Dis-Allowed!")
+                        else:
+                            if doVerbose:
+                                print("should_use_total_recall_prompt:" + str(should_use_total_recall_prompt))
+                            win32file.WriteFile(pipe, str.encode(str(should_use_total_recall_prompt)))
+                    elif str(parameter) == "should_use_total_recall_movements":
+                        if shouldWrite:
+                            should_use_total_recall_movements = int(value)
+                            if not should_use_total_recall_movements:
+                                print("Manual Movements has been Allowed!")
+                            else:
+                                print("Manual Movements has been Dis-Allowed!")
+                        else:
+                            if doVerbose:
+                                print("should_use_total_recall_movements:" + str(should_use_total_recall_movements))
+                            win32file.WriteFile(pipe, str.encode(str(should_use_total_recall_movements)))
+                    elif str(parameter) == "should_use_total_recall_others":
+                        if shouldWrite:
+                            should_use_total_recall_others = int(value)
+                            if not should_use_total_recall_others:
+                                print("Manual Others has been Allowed!")
+                            else:
+                                print("Manual Others has been Dis-Allowed!")
+                        else:
+                            if doVerbose:
+                                print("should_use_total_recall_others:" + str(should_use_total_recall_others))
+                            win32file.WriteFile(pipe, str.encode(str(should_use_total_recall_others)))
+
+                    elif str(parameter) == "should_use_total_recall":
+                        if shouldWrite:
+                            should_use_total_recall = int(value)
+                            Prompt_Positive_touched = 0
+                            if should_use_total_recall == 1:
+                                translation_x_under_recall = 0
+                                translation_y_under_recall = 0
+                                translation_z_under_recall = 0
+                                rotation_x_under_recall = 0
+                                rotation_y_under_recall = 0
+                                rotation_z_under_recall = 0
+                        else:
+                            if doVerbose:
+                                print("should_use_total_recall:" + str(should_use_total_recall))
+                            win32file.WriteFile(pipe, str.encode(str(should_use_total_recall)))
+                    elif str(parameter) == "total_recall_from":
+                        if shouldWrite:
+                            total_recall_from = int(value)
+                        else:
+                            if doVerbose:
+                                print("total_recall_from:" + str(total_recall_from))
+                            win32file.WriteFile(pipe, str.encode(str(total_recall_from)))
+                    elif str(parameter) == "total_recall_to":
+                        if shouldWrite:
+                            total_recall_to = int(value)
+                        else:
+                            if doVerbose:
+                                print("total_recall_to:" + str(total_recall_to))
+                            win32file.WriteFile(pipe, str.encode(str(total_recall_to)))
+                    elif str(parameter) == "should_use_deforumation_prompt_scheduling":
+                        if shouldWrite:
+                            should_use_deforumation_prompt_scheduling = value
+                        else:
+                            if doVerbose:
+                                print("should_use_deforumation_prompt_scheduling:" + str(
+                                    should_use_deforumation_prompt_scheduling))
+                            win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_prompt_scheduling)))
+                    elif str(parameter) == "use_deforumation_cadence_scheduling":
+                        if shouldWrite:
+                            use_deforumation_cadence_scheduling = value
+                        else:
+                            if doVerbose:
+                                print("use_deforumation_cadence_scheduling:" + str(use_deforumation_cadence_scheduling))
+                            win32file.WriteFile(pipe, str.encode(str(use_deforumation_cadence_scheduling)))
+                    elif str(parameter) == "deforumation_cadence_scheduling_manifest":
+                        if shouldWrite:
+                            deforumation_cadence_scheduling_manifest = value
+                        else:
+                            if doVerbose:
+                                print("deforumation_cadence_scheduling_manifest:" + str(
+                                    deforumation_cadence_scheduling_manifest))
+                            win32file.WriteFile(pipe, str.encode(str(deforumation_cadence_scheduling_manifest)))
+                    elif str(parameter) == "positive_prompt":
+                        if shouldWrite:
+                            Prompt_Positive = value
+                        else:
+                            if doVerbose:
+                                print("positive_prompt:" + str(Prompt_Positive))
+                            win32file.WriteFile(pipe, str.encode(str(Prompt_Positive)))
+                    elif str(parameter) == "negative_prompt":
+                        if shouldWrite:
+                            Prompt_Negative = value
+                        else:
+                            if doVerbose:
+                                print("negative_prompt:" + str(Prompt_Negative))
+                            win32file.WriteFile(pipe, str.encode(str(Prompt_Negative)))
+                    elif str(parameter) == "prompts_touched":
+                        #if should_use_total_recall == 1:
+                        #    Prompt_Positive_touched = 1
+                        #    print("Changing prompt for ever for total recall")
+                        empty = 0
+                    # Translation Params
+                    ###########################################################################
+                    elif str(parameter) == "translation_x":
+                        if shouldWrite:
+                            if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
+                                translation_x = float(value)
+                            else:
+                                if (start_frame >= total_recall_from and start_frame <= total_recall_to):
+                                    translation_x_under_recall = float(value)
+                                    print("Received translation_x_under_recall: " + str(translation_x_under_recall))
+                                else:
+                                    translation_x = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending translation_x:" + str(translation_x))
+                            win32file.WriteFile(pipe, str.encode(str(translation_x)))
+
+                    elif str(parameter) == "translation_y":
+                        if shouldWrite:
+                            if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
+                                translation_y = float(value)
+                            else:
+                                if (start_frame >= total_recall_from and start_frame <= total_recall_to):
+                                    translation_y_under_recall = float(value)
+                                else:
+                                    translation_y = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending translation_y:" + str(translation_y))
+                            win32file.WriteFile(pipe, str.encode(str(translation_y)))
+
+                    elif str(parameter) == "translation_z":
+                        if shouldWrite:
+                            if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
+                                translation_z = float(value)
+                            else:
+                                if (start_frame >= total_recall_from and start_frame <= total_recall_to):
+                                    translation_z_under_recall = float(value)
+                                else:
+                                    translation_z = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending translation_z:" + str(translation_z))
+                            win32file.WriteFile(pipe, str.encode(str(translation_z)))
+                    # What Deforum thinks it has for Translation
+                    elif str(parameter) == "deforum_translation_x":
+                        if shouldWrite:
+                            deforum_translation_x = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending deforum_translation_x:" + str(deforum_translation_x))
+                            win32file.WriteFile(pipe, str.encode(str(deforum_translation_x)))
+                    elif str(parameter) == "deforum_translation_y":
+                        if shouldWrite:
+                            deforum_translation_y = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending deforum_translation_y:" + str(deforum_translation_y))
+                            win32file.WriteFile(pipe, str.encode(str(deforum_translation_y)))
+                    elif str(parameter) == "deforum_translation_z":
+                        if shouldWrite:
+                            deforum_translation_z = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending deforum_translation_z:" + str(deforum_translation_z))
+                            win32file.WriteFile(pipe, str.encode(str(deforum_translation_z)))
+                    # What Deforum thinks it has for Rotation
+                    elif str(parameter) == "deforum_rotation_x":
+                        if shouldWrite:
+                            deforum_rotation_x = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending deforum_rotation_x:" + str(deforum_rotation_x))
+                            win32file.WriteFile(pipe, str.encode(str(deforum_rotation_x)))
+                    elif str(parameter) == "deforum_rotation_y":
+                        if shouldWrite:
+                            deforum_rotation_y = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending deforum_translation_y:" + str(deforum_rotation_y))
+                            win32file.WriteFile(pipe, str.encode(str(deforum_rotation_y)))
+                    elif str(parameter) == "deforum_rotation_z":
+                        if shouldWrite:
+                            deforum_rotation_z = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending deforum_rotation_z:" + str(deforum_rotation_z))
+                            win32file.WriteFile(pipe, str.encode(str(deforum_rotation_z)))
+                    # Rotation Params
+                    ###########################################################################
+                    elif str(parameter) == "rotation_x":
+                        if shouldWrite:
+                            if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
+                                rotation_x = float(value)
+                            else:
+                                if (start_frame >= total_recall_from and start_frame <= total_recall_to):
+                                    rotation_x_under_recall = float(value)
+                                else:
+                                    rotation_x = float(value)
+                            # print("writing rotation_x:" + str(rotation_x))
+                            # time.sleep(20)
+                        else:
+                            if doVerbose:
+                                print("sending rotation_x:" + str(rotation_x))
+                            win32file.WriteFile(pipe, str.encode(str(rotation_x)))
+                    elif str(parameter) == "rotation_y":
+                        if shouldWrite:
+                            if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
+                                rotation_y = float(value)
+                            else:
+                                if (start_frame >= total_recall_from and start_frame <= total_recall_to):
+                                    rotation_y_under_recall = float(value)
+                                else:
+                                    rotation_y = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending rotation_y:" + str(rotation_y))
+                            win32file.WriteFile(pipe, str.encode(str(rotation_y)))
+                    elif str(parameter) == "rotation_z":
+                        if shouldWrite:
+                            if not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements):
+                                rotation_z = float(value)
+                            else:
+                                if (start_frame >= total_recall_from and start_frame <= total_recall_to):
+                                    rotation_z_under_recall = float(value)
+                                else:
+                                    rotation_z = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending rotation_z:" + str(rotation_z))
+                            win32file.WriteFile(pipe, str.encode(str(rotation_z)))
+                    # FOV Params
+                    ###########################################################################
+                    elif str(parameter) == "fov":
+                        if shouldWrite:
+                            fov = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending fov:" + str(fov))
+                            win32file.WriteFile(pipe, str.encode(str(fov)))
+                    # what Deforum think it has
+                    ###########################################################################
+                    elif str(parameter) == "deforum_fov":
+                        if shouldWrite:
+                            deforum_fov = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending deforum_fov:" + str(deforum_fov))
+                            win32file.WriteFile(pipe, str.encode(str(deforum_fov)))
+                    # CFG Params
+                    ###########################################################################
+                    elif str(parameter) == "cfg":
+                        if shouldWrite:
+                            cfg_scale = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending CFG:" + str(cfg_scale))
+                            win32file.WriteFile(pipe, str.encode(str(cfg_scale)))
+                    # What Deforum think the CFG Value is
+                    ###########################################################################
+                    elif str(parameter) == "deforum_cfg":
+                        if shouldWrite:
+                            deforum_cfg = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending deforum_cfg:" + str(deforum_cfg))
+                            win32file.WriteFile(pipe, str.encode(str(deforum_cfg)))
+                    # Strength Params
+                    ###########################################################################
+                    elif str(parameter) == "strength":
+                        if shouldWrite:
+                            strength_value = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending STRENGTH:" + str(strength_value))
+                            win32file.WriteFile(pipe, str.encode(str(strength_value)))
+                    # What Deforum think the Strength Value is
+                    ###########################################################################
+                    elif str(parameter) == "deforum_strength":
+                        if shouldWrite:
+                            deforum_strength = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending deforum_strength:" + str(deforum_strength))
+                            win32file.WriteFile(pipe, str.encode(str(deforum_strength)))
+                    # ControlNet Weight Params
+                    ###########################################################################
+                    elif str(parameter).startswith("cn_weight"):
+                        cnIndex = int(parameter[len(parameter) - 1])
+                        if shouldWrite:
+                            cn_weight[cnIndex - 1] = float(value)
+                            #print("Writing weight:" + str(value) + " to Controlnet:" + str(cnIndex))
+                        else:
+                            if doVerbose:
+                                print("sending cn_weight:" + str(cn_weight[cnIndex - 1]))
+                            #print("Sending weight:" + str(cn_weight[cnIndex - 1]) + " to Controlnet:" + str(cnIndex))
+                            win32file.WriteFile(pipe, str.encode(str(cn_weight[cnIndex - 1])))
+                    # ControlNet step start Params
+                    ###########################################################################
+                    elif str(parameter).startswith("cn_stepstart"):
+                        cnIndex = int(parameter[len(parameter) - 1])
+                        if shouldWrite:
+                            cn_stepstart[cnIndex - 1] = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending cn_stepstart:" + str(cn_stepstart[cnIndex - 1]))
+                            win32file.WriteFile(pipe, str.encode(str(cn_stepstart[cnIndex - 1])))
+                    # ControlNet step end Params
+                    ###########################################################################
+                    elif str(parameter).startswith("cn_stepend"):
+                        cnIndex = int(parameter[len(parameter) - 1])
+                        if shouldWrite:
+                            cn_stepend[cnIndex - 1] = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending cn_stepend:" + str(cn_stepend[cnIndex - 1]))
+                            win32file.WriteFile(pipe, str.encode(str(cn_stepend[cnIndex - 1])))
+                    # ControlNet low threshold Params
+                    ###########################################################################
+                    elif str(parameter).startswith("cn_lowt"):
+                        cnIndex = int(parameter[len(parameter) - 1])
+                        if shouldWrite:
+                            cn_lowt[cnIndex - 1] = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending cn_lowt:" + str(cn_lowt[cnIndex - 1]))
+                            win32file.WriteFile(pipe, str.encode(str(cn_lowt[cnIndex - 1])))
+                    # ControlNet high threshold Params
+                    ###########################################################################
+                    elif str(parameter).startswith("cn_hight"):
+                        cnIndex = int(parameter[len(parameter) - 1])
+                        if shouldWrite:
+                            cn_hight[cnIndex - 1] = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending cn_hight:" + str(cn_hight[cnIndex - 1]))
+                            win32file.WriteFile(pipe, str.encode(str(cn_hight[cnIndex - 1])))
+                    # ControlNet active or not
+                    ###########################################################################
+                    elif str(parameter).startswith("cn_udcn"):
+                        cnIndex = int(parameter[len(parameter) - 1])
+                        if shouldWrite:
+                            cn_udcn[cnIndex - 1] = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending cn_udcn:" + str(cn_udcn[cnIndex - 1]))
+                            win32file.WriteFile(pipe, str.encode(str(cn_udcn[cnIndex - 1])))
+                    # Seed Params
+                    ###########################################################################
+                    elif str(parameter) == "seed":
+                        if shouldWrite:
+                            seed_value = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending SEED:" + str(seed_value))
+                            win32file.WriteFile(pipe, str.encode(str(seed_value)))
+                    elif str(parameter) == "seed_changed":
+                        if shouldWrite:
+                            did_seed_change = int(value)
+                        else:
+                            win32file.WriteFile(pipe, str.encode(str(did_seed_change)))
+
+                    # Perlin persistence Param
+                    ###########################################################################
+                    elif str(parameter) == "perlin_persistence":
+                        if shouldWrite:
+                            perlin_persistence = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending perlin_persistence:" + str(perlin_persistence))
+                            win32file.WriteFile(pipe, str.encode(str(perlin_persistence)))
+                    # Perlin octaves Param
+                    ###########################################################################
+                    elif str(parameter) == "perlin_octaves":
+                        if shouldWrite:
+                            perlin_octaves = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending perlin_octaves:" + str(perlin_octaves))
+                            win32file.WriteFile(pipe, str.encode(str(perlin_octaves)))
+
+                    # Should use Pan params
+                    ###########################################################################
+                    elif str(parameter) == "should_use_deforumation_panning":
+                        if shouldWrite:
+                            should_use_deforumation_panning = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending should_use_deforumation_panning:" + str(should_use_deforumation_panning))
+                            win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_panning)))
+
+                    # Should use Tilt params
+                    ###########################################################################
+                    elif str(parameter) == "should_use_deforumation_tilt":
+                        if shouldWrite:
+                            should_use_deforumation_tilt = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending should_use_deforumation_tilt:" + str(should_use_deforumation_tilt))
+                            win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_tilt)))
+                    # Should use Rotation params
+                    ###########################################################################
+                    elif str(parameter) == "should_use_deforumation_rotation":
+                        if shouldWrite:
+                            should_use_deforumation_rotation = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending should_use_deforumation_rotation:" + str(should_use_deforumation_rotation))
+                            win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_rotation)))
+                    # Should use ZOOM/FOV params
+                    ###########################################################################
+                    elif str(parameter) == "should_use_deforumation_zoomfov":
+                        if shouldWrite:
+                            should_use_deforumation_zoomfov = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending should_use_deforumation_zoomfov:" + str(should_use_deforumation_zoomfov))
+                            win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_zoomfov)))
+                    # Should use Noise Params
+                    ###########################################################################
+                    elif str(parameter) == "should_use_deforumation_noise":
+                        if shouldWrite:
+                            should_use_deforumation_noise = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending should_use_deforumation_noise:" + str(should_use_deforumation_noise))
+                            win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_noise)))
+                    # Noise Multiplier Param
+                    ###########################################################################
+                    elif str(parameter) == "noise_multiplier":
+                        if shouldWrite:
+                            noise_multiplier = float(value)
+                        else:
+                            if doVerbose:
+                                print("sending noise_multiplier:" + str(noise_multiplier))
+                            win32file.WriteFile(pipe, str.encode(str(noise_multiplier)))
+                    # What Deforum thinks the noise multiplier Value is
+                    ###########################################################################
+                    elif str(parameter) == "deforum_noise_multiplier":
+                        if shouldWrite:
+                            deforum_noise_multiplier = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending deforum_noise_multiplier:" + str(deforum_noise_multiplier))
+                            win32file.WriteFile(pipe, str.encode(str(deforum_noise_multiplier)))
+                    # What Deforum thinks the perlin octaves Value is
+                    ###########################################################################
+                    elif str(parameter) == "deforum_perlin_octaves":
+                        if shouldWrite:
+                            deforum_perlin_octaves = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending deforum_perlin_octaves:" + str(deforum_perlin_octaves))
+                            win32file.WriteFile(pipe, str.encode(str(deforum_perlin_octaves)))
+                    # What Deforum thinks the perlin octaves Value is
+                    ###########################################################################
+                    elif str(parameter) == "deforum_perlin_persistence":
+                        if shouldWrite:
+                            deforum_perlin_persistence = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending deforum_perlin_persistence:" + str(deforum_perlin_persistence))
+                            win32file.WriteFile(pipe, str.encode(str(deforum_perlin_persistence)))
+                    # Steps Params
+                    ###########################################################################
+                    elif str(parameter) == "steps":
+                        if shouldWrite:
+                            steps = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending STEPS:" + str(steps))
+                            win32file.WriteFile(pipe, str.encode(str(steps)))
+                    # What Deforum thinks the Steps Value is
+                    ###########################################################################
+                    elif str(parameter) == "deforum_steps":
+                        if shouldWrite:
+                            deforum_steps = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending deforum_steps:" + str(deforum_steps))
+                            win32file.WriteFile(pipe, str.encode(str(deforum_steps)))
+                    # Resume and rewind
+                    ##########################################################################
+                    elif str(parameter) == "should_resume":
+                        if shouldWrite:
+                            # print("The value is:"+str(value))
+                            should_resume = int(value)
+                            if doVerbose2:
+                                print("writing should_resume:" + str(should_resume))
+                        else:
+                            win32file.WriteFile(pipe, str.encode(str(should_resume)))
+
+                    elif str(parameter) == "get_number_of_recalled_frames":
+                        win32file.WriteFile(pipe, str.encode(str(number_of_recalled_frames)))
+
+                    elif str(parameter) == "saved_frame_params":
+                        if shouldWrite:
+                            if not should_use_total_recall:
+                                if not int(value) in parameter_container:
+                                    #print("Setting values for frame:"+str(value))
+                                    parameter_container[int(value)] = ParameterContainer()
+                                parameter_container[int(value)].SetValues()
+                            elif (int(value) < total_recall_from) or (int(value) > total_recall_to):
+                                if not int(value) in parameter_container:
+                                    parameter_container[int(value)] = ParameterContainer()
+                                parameter_container[int(value)].SetValues()
+                        else:
+                            if doVerbose2:
+                                print("sending parameter_container")
+                            if int(value) == -1:
+                                bytesToSend = pickle.dumps(parameter_container)
+                            elif int(value) in parameter_container:
+                                if not should_use_total_recall:
+                                    bytesToSend = pickle.dumps(parameter_container[int(value)])
+                                    #print("Sending ALL original parameters.")
+                                else:
+                                    #print("Sending some or all original parameters:")
+                                    copyof_parameter_container = copy.deepcopy(parameter_container[int(value)])
+                                    copyof_parameter_container = RecallValuesTemp(copyof_parameter_container)
+                                    bytesToSend = pickle.dumps(copyof_parameter_container)
+                                #if should_use_total_recall_prompt:
+                                #    copyof_parameter_container = copy.deepcopy(parameter_container)
+                                #    copyof_parameter_container[int(value)].Prompt_Positive = Prompt_Positive
+                                #    bytesToSend = pickle.dumps(copyof_parameter_container[int(value)])
+                                #else:
+                                #    bytesToSend = pickle.dumps(parameter_container[int(value)], HIGHEST_PROTOCOL)
+                                #    arne = 1
+                            else:
+                                bytesToSend = pickle.dumps(0x0)
+
+                            win32file.WriteFile(pipe, bytesToSend)
+                        number_of_recalled_frames = len(parameter_container)
+                    elif str(parameter) == "upload_recall_file":
+                        if shouldWrite:
+                            parameter_container.clear()
+                            parameter_container = pickle.loads(value)
+                            number_of_recalled_frames = len(parameter_container)
+
+                    elif str(parameter) == "start_frame":
+                        if shouldWrite:
+                            start_frame = int(value)
+                        else:
+                            if doVerbose2:
+                                print("sending start frame:" + str(start_frame))
+                            win32file.WriteFile(pipe, str.encode(str(start_frame)))
+                    elif str(parameter) == "frame_outdir":
+                        if shouldWrite:
+                            frame_outdir = str(value)
+                        else:
+                            if doVerbose2:
+                                print("sending frame_outdir:" + str(frame_outdir))
+                            win32file.WriteFile(pipe, str.encode(str(frame_outdir)))
+                    elif str(parameter) == "resume_timestring":
+                        if shouldWrite:
+                            resume_timestring = str(value)
+                        else:
+                            if doVerbose2:
+                                print("sending resume_timestring:" + str(resume_timestring))
+                            win32file.WriteFile(pipe, str.encode(str(resume_timestring)))
+                    elif str(parameter) == "should_use_deforumation_strength":
+                        if shouldWrite:
+                            # print("Setting should use deforumation strength to:"+str(int(value)))
+                            should_use_deforumation_strength = int(value)
+                        else:
+                            if doVerbose2:
+                                print("sending should_use_deforumation_strength:" + str(should_use_deforumation_strength))
+                            win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_strength)))
+                    elif str(parameter) == "should_use_deforumation_cfg":
+                        if shouldWrite:
+                            # print("Setting should use deforumation strength to:"+str(int(value)))
+                            should_use_deforumation_cfg = int(value)
+                        else:
+                            if doVerbose2:
+                                print("sending should_use_deforumation_cfg:" + str(should_use_deforumation_cfg))
+                            win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_cfg)))
+                    elif str(parameter) == "cadence":
+                        if shouldWrite:
+                            cadence = str(value)
+                        else:
+                            if doVerbose2:
+                                print("sending cadence:" + str(cadence))
+                            win32file.WriteFile(pipe, str.encode(str(cadence)))
+                    elif str(parameter) == "should_use_deforumation_cadence":
+                        if shouldWrite:
+                            should_use_deforumation_cadence = str(value)
+                        else:
+                            if doVerbose2:
+                                print("sending should_use_deforumation_cadence:" + str(should_use_deforumation_cadence))
+                            win32file.WriteFile(pipe, str.encode(str(should_use_deforumation_cadence)))
+
+                    # What Deforum thinks the cadence Value is
+                    ###########################################################################
+                    elif str(parameter) == "deforum_cadence":
+                        if shouldWrite:
+                            deforum_cadence = int(value)
+                        else:
+                            if doVerbose:
+                                print("sending deforum_cadence:" + str(deforum_cadence))
+                            win32file.WriteFile(pipe, str.encode(str(deforum_cadence)))
+                    elif str(parameter) == "parseq_keys":
+                        if shouldWrite:
+                            parseq_keys = value
+                        else:
+                            if doVerbose2:
+                                print("sending parseq_keys:")
+                            win32file.WriteFile(pipe, pickle.dumps(parseq_keys))
+                    elif str(parameter) == "use_parseq":
+                        if shouldWrite:
+                            use_parseq = value
+                        else:
+                            if doVerbose2:
+                                print("sending use_parseq:")
+                            win32file.WriteFile(pipe, str.encode(str(use_parseq)))
+                    elif str(parameter) == "parseq_manifest":
+                        if shouldWrite:
+                            parseq_manifest = value
+                            print("Got parseq_manifest:" + str(value))
+                        else:
+                            if doVerbose2:
+                                print("sending parseq_manifest:")
+                            win32file.WriteFile(pipe, str.encode(str(parseq_manifest)))
+                    elif str(parameter) == "should_use_optical_flow":
+                        if shouldWrite:
+                            should_use_optical_flow = value
+                        else:
+                            if doVerbose2:
+                                print("sending should_use_optical_flow:")
+                            win32file.WriteFile(pipe, str.encode(str(should_use_optical_flow)))
+                    elif str(parameter) == "parseq_strength":
+                        if shouldWrite:
+                            parseq_strength = value
+                        else:
+                            if doVerbose2:
+                                print("sending parseq_strength:")
+                            win32file.WriteFile(pipe, str.encode(str(parseq_strength)))
+                    elif str(parameter) == "parseq_movements":
+                        if shouldWrite:
+                            print("parseq_movements:" + str(parseq_movements))
+                            parseq_movements = value
+                        else:
+                            if doVerbose2:
+                                print("sending parseq_movements:" + str(parseq_movements))
+                            win32file.WriteFile(pipe, str.encode(str(parseq_movements)))
+                    elif str(parameter) == "cadence_flow_factor":
+                        if shouldWrite:
+                            cadence_flow_factor = value
+                        else:
+                            if doVerbose2:
+                                print("sending cadence_flow_factor:" + str(cadence_flow_factor))
+                            win32file.WriteFile(pipe, str.encode(str(cadence_flow_factor)))
+                    elif str(parameter) == "generation_flow_factor":
+                        if shouldWrite:
+                            generation_flow_factor = value
+                        else:
+                            if doVerbose2:
+                                print("sending generation_flow_factor:" + str(generation_flow_factor))
+                            win32file.WriteFile(pipe, str.encode(str(generation_flow_factor)))
+
+                    elif str(parameter) == "shutdown":
+                        serverShutDown = True
+                    else:
+                        print(
+                            "NO SUCH COMMAND:" + parameter + "\nPlease make sure Mediator, Deforumation and the Deforum (render.py, animation.py) are in sync.")
+                        if not shouldWrite:
+                            win32file.WriteFile(pipe, str.encode(str("NO SUCH COMMAND:" + parameter)))
                 if shouldWrite:  # Return an "OK" if the writes went OK
                     win32file.WriteFile(pipe, b"OK")
 
@@ -2114,10 +2196,10 @@ async def main_websockets():
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Starting Mediator with WebSocket communication, version 0.6.4")
+        print("Starting Mediator with WebSocket communication, version 0.7.0")
         shouldUseNamedPipes = False
     else:
-        print("Starting Mediator with Named Pipes communication, version 0.6.4")
+        print("Starting Mediator with Named Pipes communication, version 0.7.0")
         shouldUseNamedPipes = True
 
     try:
