@@ -406,6 +406,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     if args.use_init and args.init_image != None and args.init_image != '':
         _, mask_image = load_img(args.init_image,
+                                 args.init_image_box,
                                  shape=(args.W, args.H),
                                  use_alpha_as_mask=args.use_alpha_as_mask)
         mask_vals['video_mask'] = mask_image
