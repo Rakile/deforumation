@@ -404,13 +404,11 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     mask_image = None
 
-    if args.use_init and args.init_image != None and args.init_image != '':
+    if args.use_init and ((args.init_image != None and args.init_image != '') or args.init_image_box != None):
         _, mask_image = load_img(args.init_image,
                                  args.init_image_box,
                                  shape=(args.W, args.H),
                                  use_alpha_as_mask=args.use_alpha_as_mask)
-        mask_vals['video_mask'] = mask_image
-        noise_mask_vals['video_mask'] = mask_image
 
     # Grab the first frame masks since they wont be provided until next frame
     # Video mask overrides the init image mask, also, won't be searching for init_mask if use_mask_video is set
