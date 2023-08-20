@@ -23,6 +23,7 @@ import win32pipe, win32file, pywintypes
 import sys
 import subprocess
 import shutil
+import ast
 
 #import subprocess
 cadenceArray = {}
@@ -32,7 +33,7 @@ deforumationPredefinedMotionPathSettings = "./deforumation_settings_motions.txt"
 deforumationSettingsPath_Keys = "./deforum_settings_keys.txt"
 deforumationPromptsPath = "./prompts/"
 deforumation_image_backup_folder = "./image_backup/"
-gif_animation_output_path = "./motion_images/animated_gif.gif"
+gif_animation_output_path = "./motion_images/"
 screenWidth = 1500
 screenHeight = 1060
 USE_BUFFERED_DC = True
@@ -141,6 +142,13 @@ should_use_total_recall_movements = 0
 should_use_total_recall_others = 0
 windowlabel = ""
 create_gif_animation_on_preview = 0
+frame_has_changed = False
+zero_frame_pan_progress_string = "None"
+zero_frame_zoom_progress_string = "None"
+zero_frame_rotate_progress_string = "None"
+zero_pan_current_settings = "\"0-P: None\""
+zero_zoom_current_settings = "\"0-Z: None\""
+zero_rotation_current_settings = "\"0-R: None\""
 async def sendAsync_special(value):
     if shouldUseNamedPipes:
         bufSize = 64 * 1024
@@ -187,7 +195,13 @@ async def sendAsync(value):
             message += data
 
         win32file.CloseHandle(handle)
-        return message.decode()
+
+        message = message.decode()
+        if message.startswith("[\'") and message.endswith("\']"):
+            message = ast.literal_eval(message)
+            if len(message) == 1:
+                message = str(message[0])
+        return message
     else:
         async with websockets.connect("ws://localhost:8765") as websocket:
             # await websocket.send(pickle.dumps(value))
@@ -196,10 +210,11 @@ async def sendAsync(value):
                 message = await asyncio.wait_for(websocket.recv(), timeout=10.0)
             except TimeoutError:
                 print('timeout!')
-            if message == None:
-                message = "-NO CONNECTION-"
-            # asyncio.ensure_future(message=websocket.recv())
-            # print(str(message))
+            if message.startswith("[\'") and message.endswith("\']"):
+                message = ast.literal_eval(message)
+                if len(message) == 1:
+                    message = str(message[0])
+
             return message
 
 def scale_bitmap(bitmap, width, height):
@@ -282,6 +297,15 @@ def readValue(param):
                 print("Deforumation Mediator Error2:" + str(e))
             #print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)")
             time.sleep(0.05)
+
+def ask(parent=None, message='', default_value='', caption="Important message"):
+    dlg = wx.TextEntryDialog(parent, message, value=default_value, caption=caption)
+    okORcancel = dlg.ShowModal()
+    result = dlg.GetValue()
+    if okORcancel == wx.ID_CANCEL:
+        result = ""
+    dlg.Destroy()
+    return result
 
 def changeBitmapWorker(parent):
     #global current_render_frame
@@ -638,6 +662,52 @@ class render_window(wx.Frame):
 
 
 class Mywin(wx.Frame):
+    def loadPredefinedMotions(self):
+        #ANIMATED MOTION "BUTTONS"
+        if self.p2 != None:
+            self.p2.Destroy()
+        self.p2 = wx.lib.scrolledpanel.ScrolledPanel(self.panel, -1, size=(602, 110), pos=(int(screenWidth / 2) + 13, 280),style=wx.SIMPLE_BORDER)
+        self.p2.SetupScrolling()
+        self.p2.SetBackgroundColour('#FFFFFF')
+        self.bSizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        #PRE DEFINED MOTIONS
+        predefined_motions_name = []
+        predefined_motions_gif = []
+        self.predefined_motions_line = []
+        if os.path.isfile(deforumationPredefinedMotionPathSettings):
+            deforumFile = open(deforumationPredefinedMotionPathSettings, 'r')
+            lines = deforumFile.readlines()
+            deforumFile.close()
+            motion_index = 0
+            for motion in lines:
+                if motion.startswith("#"):
+                    continue
+                motionNameStart = 0
+                motionNameEnd = motion.find(",")
+                motionName = motion[motionNameStart:motionNameEnd]
+                predefined_motions_name.append(motionName)
+
+                motionGifEnd = motion[motionNameEnd+1:].find(",")
+                motionGif = motion[motionNameEnd+1:motionGifEnd+motionNameEnd+1].lstrip().rstrip()
+                predefined_motions_gif.append(motionGif)
+                self.predefined_motions_line.append(motion[motionGifEnd+1+motionNameEnd+1:].strip("\n").strip(" "))
+                if os.path.isfile(motionGif):
+                    self.anim = Animation(motionGif)  # , type=wx.adv.ANIMATION_TYPE_GIF)
+                    self.ctrl = AnimationCtrl(self.p2, -1, self.anim, pos=(motion_index * self.anim.GetSize()[0] + motion_index * 20, 10))
+                    self.ctrl.SetLabel("IMAGE_MOTION_"+str(motion_index))
+                    self.ctrl.Bind(wx.EVT_LEFT_UP, self.OnClicked)
+                    self.ctrl.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
+                    self.ctrl.SetToolTip(motionName)
+                    self.ctrl.Play()
+                    self.bSizer.Add(self.ctrl, 0, wx.ALL, 5)
+                motion_index += 1
+        self.p2.SetSizer(self.bSizer)
+        self.predefined_motion_choice = wx.Choice(self.panel, id=wx.ID_ANY,  pos=(int(screenWidth / 2) + 422, 59),size=(240,40), choices=predefined_motions_name, style=0, name="predefinedmotion")
+        self.predefined_motion_choice.Bind(wx.EVT_CHOICE, self.OnMotionChoice)
+        self.predefined_motion_choice.SetSelection(0)
+        self.predefined_motion_choice.SetToolTip("Here you can choose a pre-defined motion, which then can be triggered by pushing the \"Use predefined motion\"-button. You can also choose to use the same motions below, by clicking the animated GIFs.")
+
     def __init__(self, parent, title):
         #global pmob
         #global pstb
@@ -880,49 +950,10 @@ class Mywin(wx.Frame):
         self.bitmap.Bind(wx.EVT_MOTION, self.on_mouse_motion)
         self.bitmap.Bind(wx.EVT_PAINT, self.on_paint)
 
-        #ANIMATED MOTION "BUTTONS"
-        self.p2 = wx.lib.scrolledpanel.ScrolledPanel(self.panel, -1, size=(602, 110), pos=(int(screenWidth / 2) + 13, 280),style=wx.SIMPLE_BORDER)
-        self.p2.SetupScrolling()
-        self.p2.SetBackgroundColour('#FFFFFF')
-        self.bSizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        #PRE DEFINED MOTIONS
+        #CREATE AND LOAD PRE-DEFINED MOTIONS
+        self.p2 = None
         self.predefinedMotions = wx.StaticBox(self.panel, id=wx.ID_ANY, label='Predefined Motions', size=(300, 103), pos=(int(screenWidth / 2) + 416, 38))  # orient=wx.HORIZONTAL)
-        predefined_motions_name = []
-        predefined_motions_gif = []
-        self.predefined_motions_line = []
-        if os.path.isfile(deforumationPredefinedMotionPathSettings):
-            deforumFile = open(deforumationPredefinedMotionPathSettings, 'r')
-            lines = deforumFile.readlines()
-            motion_index = 0
-            for motion in lines:
-                if motion.startswith("#"):
-                    continue
-                motionNameStart = 0
-                motionNameEnd = motion.find(",")
-                motionName = motion[motionNameStart:motionNameEnd]
-                predefined_motions_name.append(motionName)
-
-                motionGifEnd = motion[motionNameEnd+1:].find(",")
-                motionGif = motion[motionNameEnd+1:motionGifEnd+motionNameEnd+1].lstrip().rstrip()
-                predefined_motions_gif.append(motionGif)
-                self.predefined_motions_line.append(motion[motionGifEnd+1+motionNameEnd+1:].strip("\n").strip(" "))
-                if os.path.isfile(motionGif):
-                    self.anim = Animation(motionGif)  # , type=wx.adv.ANIMATION_TYPE_GIF)
-                    self.ctrl = AnimationCtrl(self.p2, -1, self.anim, pos=(motion_index * self.anim.GetSize()[0] + motion_index * 20, 10))
-                    self.ctrl.SetLabel("IMAGE_MOTION_"+str(motion_index))
-                    self.ctrl.Bind(wx.EVT_LEFT_UP, self.OnClicked)
-                    self.ctrl.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
-                    self.ctrl.SetToolTip(motionName)
-                    self.ctrl.Play()
-                    self.bSizer.Add(self.ctrl, 0, wx.ALL, 5)
-                motion_index += 1
-        self.p2.SetSizer(self.bSizer)
-
-        self.predefined_motion_choice = wx.Choice(self.panel, id=wx.ID_ANY,  pos=(int(screenWidth / 2) + 422, 59),size=(240,40), choices=predefined_motions_name, style=0, name="predefinedmotion")
-        self.predefined_motion_choice.Bind(wx.EVT_CHOICE, self.OnMotionChoice)
-        self.predefined_motion_choice.SetSelection(0)
-        self.predefined_motion_choice.SetToolTip("Here you can choose a pre-defined motion, which then can be triggered by pushing the \"Use predefined motion\"-button. You can also choose to use the same motions below, by clicking the animated GIFs.")
+        self.loadPredefinedMotions()
 
         #USE PRE-DEFINED MOTION BUTTON
         self.use_predefined_motion_button = wx.Button(self.panel, label="Use predefined motion", pos=(int(screenWidth / 2) + 422, 88))
@@ -931,8 +962,8 @@ class Mywin(wx.Frame):
         self.use_predefined_motion_button.SetToolTip("Pushing this button, will apply the predefined motion (if not TotalRecall is being used and is active)")
 
         #SHOULD USE TOTAL RECALL
-        self.create_gif_animation_checkbox = wx.CheckBox(self.panel, label="Create GIF animation on preview", pos=(int(screenWidth / 2) + 422, 116))
-        self.create_gif_animation_checkbox.SetToolTip("When activated, clicking on the replay-button, will create a GIF animation on the range that you chose, and with the fps you chose. The GIF animation will be created in the folder: " + str(deforumationPredefinedMotionPathSettings))
+        self.create_gif_animation_checkbox = wx.CheckBox(self.panel, label="Create pre-defined motion", pos=(int(screenWidth / 2) + 422, 116))
+        self.create_gif_animation_checkbox.SetToolTip("When activated, right-clicking the replay-button create a pre-defined motion using every frame's motion status. If left clicking the replay-button when this checkbox is checked, it will create a pre-defined motion with your currently set motion values. The GIF animation will be created in the folder: " + str(deforumationPredefinedMotionPathSettings))
         self.create_gif_animation_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
 
@@ -970,7 +1001,7 @@ class Mywin(wx.Frame):
         bmp = wx.Bitmap("./images/play.bmp", wx.BITMAP_TYPE_BMP)
         bmp = scale_bitmap(bmp, 18, 18)
         self.replay_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(trbX + 1145, tbrY -135), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
-        self.replay_button.SetToolTip("This will replay the range given in the input boxes to the left. Left-clicking this button will replay the range in the Live Render window. Right-clicking this button will use ffmpeg and any audio file to replay the choosen range. If you have activated the \"Create GIF animation on preview\"-checkbox, a GIF animation will be created instead, and put into a specified folder.")
+        self.replay_button.SetToolTip("This will replay the range given in the input boxes to the left. Left-clicking this button will replay the range in the Live Render window. Right-clicking this button will use ffmpeg and any audio file to replay the choosen range. If you have activated the \"Create pre-defined motion\"-checkbox, right clicking this button will create a pre-defined motion using every frame's motion status. If you have activated the \"Create pre-defined motion\"-checkbox, left clicking this button will create a pre-defined motion with your currently set motion values.")
         self.replay_button.Bind(wx.EVT_BUTTON, self.OnClicked)
         self.replay_button.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
         self.replay_button.SetLabel("REPLAY")
@@ -1274,6 +1305,12 @@ class Mywin(wx.Frame):
         self.should_use_deforumation_tilt_checkbox = wx.CheckBox(self.panel, label="U.D.Ti", pos=(trbX+480, tbrY+12))
         self.should_use_deforumation_tilt_checkbox.SetToolTip("When activated, Deforumations Tilt values will be used.")
         self.should_use_deforumation_tilt_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
+
+        #ZERO MOTION STATUS LABELS
+
+        self.zero_pan_current_settings_Text = wx.StaticText(self.panel, label=zero_pan_current_settings, pos=(trbX - 40 , tbrY - 150))
+        self.zero_zoom_current_settings_Text = wx.StaticText(self.panel, label=zero_zoom_current_settings, pos=(trbX +250 , tbrY - 150))
+        self.zero_rotate_current_settings_Text = wx.StaticText(self.panel, label=zero_rotation_current_settings, pos=(trbX + 440 , tbrY - 150))
 
         #SAMPLE STEP SLIDER
         self.sample_schedule_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=25, minValue=1, maxValue=200, pos = (trbX-25, tbrY-50-70), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
@@ -1582,6 +1619,10 @@ class Mywin(wx.Frame):
         self.deforum_steps_value_info_text = wx.StaticText(self.panel, label="Steps:", pos=(trbX+400, tbrY+310))
         self.deforum_cfg_value_info_text = wx.StaticText(self.panel, label="CFG:", pos=(trbX+460, tbrY+310))
         self.deforum_cadence_value_info_text = wx.StaticText(self.panel, label="Cadence:", pos=(trbX+520, tbrY+310))
+        self.deforum_pdmotion_value_info_text = wx.StaticText(self.panel, label="P-D Motion:", pos=(trbX+600, tbrY+310))
+        self.deforum_zero_pan_value_info_text = wx.StaticText(self.panel, label="0-Pan:", pos=(trbX+720, tbrY+310))
+        self.deforum_zero_zoom_value_info_text = wx.StaticText(self.panel, label="0-Zoom:", pos=(trbX+800, tbrY+310))
+        self.deforum_zero_rotation_value_info_text = wx.StaticText(self.panel, label="0-Rotate:", pos=(trbX+890, tbrY+310))
 
         #CADENCE RE-SCHEDULER
         self.cadence_rescheduler_text = wx.StaticText(self.panel, label="CADENCE RE-SCHEDULER", pos=(trbX-40, tbrY+340))
@@ -1862,6 +1903,10 @@ class Mywin(wx.Frame):
         self.should_use_deforumation_rotation_checkbox.SetPosition((trbX+354, tbrY-8))
         self.should_use_deforumation_tilt_checkbox.SetPosition((trbX+480, tbrY+12))
 
+        self.zero_pan_current_settings_Text.SetPosition((trbX - 40 , tbrY - 150))
+        self.zero_zoom_current_settings_Text.SetPosition((trbX +250 , tbrY - 150))
+        self.zero_rotate_current_settings_Text.SetPosition((trbX + 440 , tbrY - 150))
+
         self.sample_schedule_slider.SetPosition((trbX - 25, tbrY - 50 - 70))
         self.strength_schedule_Text.SetPosition((trbX - 25, tbrY - 70 - 64))
         self.seed_schedule_Text.SetPosition((trbX + 340, tbrY - 50 - 80))
@@ -1924,6 +1969,11 @@ class Mywin(wx.Frame):
         self.deforum_steps_value_info_text.SetPosition((trbX+400, tbrY+310))
         self.deforum_cfg_value_info_text.SetPosition((trbX+460, tbrY+310))
         self.deforum_cadence_value_info_text.SetPosition((trbX+520, tbrY+310))
+        self.deforum_pdmotion_value_info_text.SetPosition((trbX + 600, tbrY + 310))
+        self.deforum_zero_pan_value_info_text.SetPosition((trbX+720, tbrY+310))
+        self.deforum_zero_zoom_value_info_text.SetPosition((trbX+800, tbrY+310))
+        self.deforum_zero_rotation_value_info_text.SetPosition((trbX+890, tbrY+310))
+
         self.component_chooser_choice.SetPosition((trbX+950-150, tbrY+70))
         self.Live_Values_Checkbox.SetPosition((trbX-40, tbrY + 130))
         self.noise_slider.SetPosition((trbX+950-340, tbrY+110))
@@ -2181,7 +2231,8 @@ class Mywin(wx.Frame):
                 #seedValue = int(parameter_container.seed_value)
                 self.seed_input_box.SetValue(str(int(parameter_container.seed_value)))
         else:
-            print("Frame " + str(frameNumber)+ " has no stored recall values.")
+            #print("Frame " + str(frameNumber)+ " has no stored recall values.")
+            empty = 0
     def loadAllValues(self):
         global Translation_X
         global Translation_Y
@@ -2899,7 +2950,8 @@ class Mywin(wx.Frame):
                 seedValue = int(parameter_container.seed_value)
                 #self.seed_input_box.SetValue(str(int(parameter_container.seed_value)))
         else:
-            print("Frame " + str(frameNumber)+ " has no stored recall values.")
+            #print("Frame " + str(frameNumber)+ " has no stored recall values.")
+            temp = 0
 
     def writeAllValues(self):
 
@@ -3188,7 +3240,9 @@ class Mywin(wx.Frame):
         global zero_pan_active
         global zero_rotate_active
         global zero_zoom_active
-
+        global zero_frame_pan_progress_string
+        global zero_frame_zoom_progress_string
+        global zero_frame_rotate_progress_string
         print("Zero stepper thread started for:"+str(parameter_value))
         is_negative = 0
         zero_frame_steps = frame_steps
@@ -3269,6 +3323,7 @@ class Mywin(wx.Frame):
                     Translation_Y = float(bezierArray.values[indexInBezierArray])
                 elif parameter_value == "translation_z":
                     Translation_Z = float(bezierArray.values[indexInBezierArray])
+                    zero_frame_zoom_progress_string = str(indexInBezierArray) + "/" + str(numberOfFramesInBezierArray)
                 elif parameter_value == "rotation_x":
                     Rotation_3D_X = float(bezierArray.values[indexInBezierArray])
                 elif parameter_value == "rotation_y":
@@ -3340,24 +3395,24 @@ class Mywin(wx.Frame):
             #                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
             #                break
 
-            if parameter_value == "translation_x":
+            if parameter_value == "translation_x" and not armed_pan:
                 self.writeValue(parameter_value, Translation_X)
                 self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
                 print("Translation_X:" + str(Translation_X))
-            elif parameter_value == "translation_y":
+            elif parameter_value == "translation_y" and not armed_pan:
                 self.writeValue(parameter_value, Translation_Y)
                 self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
                 print("Translation_Y:" + str(Translation_Y))
-            elif parameter_value == "translation_z":
+            elif parameter_value == "translation_z" and not armed_zoom:
                 self.writeValue(parameter_value, Translation_Z)
                 self.zoom_value_text.SetLabel(str('%.2f' % Translation_Z))
                 self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
                 print("Translation_Z:" + str(Translation_Z))
-            elif parameter_value == "rotation_x":
+            elif parameter_value == "rotation_x" and not armed_rotation:
                 self.writeValue(parameter_value, Rotation_3D_X)
                 self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
                 print("Rotaion_X:" + str(Rotation_3D_X))
-            elif parameter_value == "rotation_y":
+            elif parameter_value == "rotation_y" and not armed_rotation:
                 self.writeValue(parameter_value, Rotation_3D_Y)
                 self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
                 print("Rotaion_Y:" + str(Rotation_3D_Y))
@@ -3371,10 +3426,12 @@ class Mywin(wx.Frame):
             zero_rotate_active = False
         if (parameter_value == "translation_z"):
             zero_zoom_active = False
+            zero_frame_zoom_progress_string = "0/0"
 
         print("Ending stepper thread")
 
     def OnFocus(self, event):
+        global seedValue
         if event.GetId() == 1233:
             self.cadence_schedule_Checkbox.SetValue(False)
             self.writeValue("use_deforumation_cadence_scheduling", 0)
@@ -3388,9 +3445,12 @@ class Mywin(wx.Frame):
                 self.SetLabel(windowlabel + " -- \"From\" or \"To\" has changed... (From = " + str(self.total_recall_from_input_box.GetValue()) + " To = " + self.total_recall_to_input_box.GetValue()+")")
 
         if event.GetId() == 3:
+            oldSeedValue = seedValue
             seedValue = int(self.seed_input_box.GetValue())
-            self.writeValue("seed", seedValue)
-            self.writeValue("seed_changed", 1)
+            if oldSeedValue != seedValue:
+                print("New seed:"+str(seedValue))
+                self.writeValue("seed", seedValue)
+                self.writeValue("seed_changed", 1)
         if event.GetId() == 9999:
             newevent = wx.PyCommandEvent(wx.EVT_BUTTON.typeId)
             newevent.SetEventObject(self.update_prompts)
@@ -3433,6 +3493,7 @@ class Mywin(wx.Frame):
         # obj.SetToolTip(obj_tooltip)
         self.writeAllValues()
         event.Skip()
+
 
     def OnClicked(self, event):
         global Translation_X
@@ -3509,6 +3570,10 @@ class Mywin(wx.Frame):
         global should_use_total_recall_movements
         global should_use_total_recall_others
         global create_gif_animation_on_preview
+        global frame_has_changed
+        global zero_pan_current_settings
+        global zero_zoom_current_settings
+        global zero_rotation_current_settings
         btn = event.GetEventObject().GetLabel()
 
         #Initial values
@@ -3720,43 +3785,56 @@ class Mywin(wx.Frame):
             self.writeValue("negative_prompt", self.negative_prompt_input_ctrl.GetValue().strip().replace('\n', '') + "\n")
             self.writeValue("prompts_touched", 1)
             self.SetLabel(windowlabel + " -- Prompts saved to mediator, specifically to frame " + str(self.readValue("start_frame")))
-        elif btn == "Use predefined motion":
-            index = self.predefined_motion_choice.GetSelection()
-            print("Using Predefined Values:" + str(self.predefined_motions_line[index]))
-            predefValues = self.predefined_motions_line[index].split(',')
-            if not total_recall_movements_inside_range_and_active:
-                Translation_X = float(predefValues[0])
-                Translation_Y = float(predefValues[1])
-                Translation_Z = float(predefValues[2])
-                Rotation_3D_X = float(predefValues[4])
-                Rotation_3D_Y = float(predefValues[3])
-                Rotation_3D_Z = float(predefValues[5])
-                self.sendAllMotionValues()
-        elif btn == "Create GIF animation on preview":
+        elif btn == "Use predefined motion" or btn.startswith("IMAGE_MOTION"):
+            if btn == "Use predefined motion":
+                motionNumber = self.predefined_motion_choice.GetSelection()
+            else:
+                motionNumber = int(btn[13:])
+            print("Using Predefined Values:" + str(self.predefined_motions_line[motionNumber]))
+            FPS_end = self.predefined_motions_line[motionNumber].find(',')
+            FPS = int(self.predefined_motions_line[motionNumber][0:FPS_end].strip(' '))
+            predefValues = self.predefined_motions_line[motionNumber][FPS_end+1:].replace(":",",")
+            predefValues = ast.literal_eval(predefValues)
+            if type(predefValues) is tuple:
+                shouldContinue = True
+                if FPS != int(self.replay_fps_input_box.GetValue()):
+                    dlg = wx.MessageDialog(self,
+                                           "This motion was done for " + str(
+                                               FPS) + " FPS. If you aim to use " + self.replay_fps_input_box.GetValue() + " FPS, this motion will not be correct. Do you want to continue?",
+                                           "Mismatching FPS", wx.YES_NO | wx.ICON_WARNING)
+                    result = dlg.ShowModal()
+                    if result == wx.ID_YES:
+                        shouldContinue = True
+                    else:
+                        shouldContinue = False
+                if shouldContinue:
+                    self.writeValue("prepare_motion", predefValues)
+                    self.writeValue("start_motion", 1)
+                    print("many")
+            else:
+                self.writeValue("start_motion", 0)
+                if not total_recall_movements_inside_range_and_active:
+                    Translation_X = float(predefValues[0])
+                    Translation_Y = float(predefValues[1])
+                    Translation_Z = float(predefValues[2])
+                    Rotation_3D_X = float(predefValues[4])
+                    Rotation_3D_Y = float(predefValues[3])
+                    Rotation_3D_Z = float(predefValues[5])
+                    self.sendAllMotionValues()
+        elif btn == "Create pre-defined motion":
             if create_gif_animation_on_preview == 0:
                 create_gif_animation_on_preview = 1
             else:
                 create_gif_animation_on_preview = 0
-        elif btn.startswith("IMAGE_MOTION"):
-            motionNumber = int(btn[13:])
-            print("Using Predefined Values:" + str(self.predefined_motions_line[motionNumber]))
-            predefValues = self.predefined_motions_line[motionNumber].split(',')
-            if not total_recall_movements_inside_range_and_active:
-                Translation_X = float(predefValues[0])
-                Translation_Y = float(predefValues[1])
-                Translation_Z = float(predefValues[2])
-                Rotation_3D_X = float(predefValues[4])
-                Rotation_3D_Y = float(predefValues[3])
-                Rotation_3D_Z = float(predefValues[5])
-                self.sendAllMotionValues()
+
         elif btn == "PAN_LEFT":
             if not armed_pan and not total_recall_movements_inside_range_and_active:
-            #if not armed_pan and (not should_use_total_recall or not should_use_total_recall_movements or (should_use_total_recall and (int(current_render_frame) < int(self.total_recall_from_input_box.GetValue())) or (int(current_render_frame) > int(self.total_recall_to_input_box.GetValue())))):
-                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
-                    Translation_X = 0
-                else:
-                    Translation_X = Translation_X - float(self.pan_step_input_box.GetValue())
-                self.writeValue("translation_x", Translation_X)
+                if not should_use_total_recall_in_deforumation:
+                    if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                        Translation_X = 0
+                    else:
+                        Translation_X = Translation_X - float(self.pan_step_input_box.GetValue())
+                    self.writeValue("translation_x", Translation_X)
             elif armed_pan:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Translation_X_ARMED = 0
@@ -3767,12 +3845,12 @@ class Mywin(wx.Frame):
                     self.writeValue("translation_x", Translation_X_ARMED)
         elif btn == "PAN_RIGHT":
             if not armed_pan and not total_recall_movements_inside_range_and_active:
-            #if not armed_pan and (not should_use_total_recall or not should_use_total_recall_movements or (should_use_total_recall and (int(current_render_frame) < int(self.total_recall_from_input_box.GetValue())) or (int(current_render_frame) > int(self.total_recall_to_input_box.GetValue())))):
-                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
-                    Translation_X = 0
-                else:
-                    Translation_X = Translation_X + float(self.pan_step_input_box.GetValue())
-                self.writeValue("translation_x", Translation_X)
+                if not should_use_total_recall_in_deforumation:
+                    if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                        Translation_X = 0
+                    else:
+                        Translation_X = Translation_X + float(self.pan_step_input_box.GetValue())
+                    self.writeValue("translation_x", Translation_X)
             elif armed_pan:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Translation_X_ARMED = 0
@@ -3783,12 +3861,12 @@ class Mywin(wx.Frame):
                     self.writeValue("translation_x", Translation_X_ARMED)
         elif btn == "PAN_UP":
             if not armed_pan and not total_recall_movements_inside_range_and_active:
-            #if not armed_pan and (not should_use_total_recall  or not should_use_total_recall_movements or (should_use_total_recall and (int(current_render_frame) < int(self.total_recall_from_input_box.GetValue())) or (int(current_render_frame) > int(self.total_recall_to_input_box.GetValue())))):
-                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
-                    Translation_Y = 0
-                else:
-                    Translation_Y = Translation_Y + float(self.pan_step_input_box.GetValue())
-                self.writeValue("translation_y", Translation_Y)
+                if not should_use_total_recall_in_deforumation:
+                    if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                        Translation_Y = 0
+                    else:
+                        Translation_Y = Translation_Y + float(self.pan_step_input_box.GetValue())
+                    self.writeValue("translation_y", Translation_Y)
             elif armed_pan:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Translation_Y_ARMED = 0
@@ -3799,12 +3877,12 @@ class Mywin(wx.Frame):
                     self.writeValue("translation_y", Translation_Y_ARMED)
         elif btn == "PAN_DOWN":
             if not armed_pan and not total_recall_movements_inside_range_and_active:
-            #if not armed_pan and (not should_use_total_recall  or not should_use_total_recall_movements or (should_use_total_recall and (int(current_render_frame) < int(self.total_recall_from_input_box.GetValue())) or (int(current_render_frame) > int(self.total_recall_to_input_box.GetValue())))):
-                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
-                    Translation_Y = 0
-                else:
-                    Translation_Y = Translation_Y - float(self.pan_step_input_box.GetValue())
-                self.writeValue("translation_y", Translation_Y)
+                if not should_use_total_recall_in_deforumation:
+                    if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                        Translation_Y = 0
+                    else:
+                        Translation_Y = Translation_Y - float(self.pan_step_input_box.GetValue())
+                    self.writeValue("translation_y", Translation_Y)
             elif armed_pan:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Translation_Y_ARMED = 0
@@ -3815,57 +3893,91 @@ class Mywin(wx.Frame):
                     self.writeValue("translation_y", Translation_Y_ARMED)
         elif btn == "ZERO PAN":
             if not zero_pan_active:
-                #Start a ZERO step thread.
-                frame_steps = int(self.zero_pan_step_input_box.GetValue())
-                if frame_steps == 0:
-                    Translation_X = 0
-                    Translation_Y = 0
-                    self.writeValue("translation_x", Translation_X)
-                    self.writeValue("translation_y", Translation_Y)
-                elif (Translation_X == 0 and Translation_Y == 0 and Translation_X_ARMED == 0 and Translation_Y_ARMED == 0) or (Translation_X == Translation_X_ARMED and Translation_Y == Translation_Y_ARMED):
-                    zero_pan_active = False
-                else:
-                    zero_pan_active = True
-                    if Translation_X != Translation_X_ARMED:
-                        self.zero_step_thread_x = threading.Thread(target=self.ZeroStepper, args=("translation_x", frame_steps, Translation_X_ARMED))
-                        self.zero_step_thread_x.daemon = True
-                        self.zero_step_thread_x.start()
-                    if Translation_Y != Translation_Y_ARMED:
-                        self.zero_step_thread_y = threading.Thread(target=self.ZeroStepper, args=("translation_y", frame_steps, Translation_Y_ARMED))
-                        self.zero_step_thread_y.daemon = True
+                if event.GetId() == 2134234: #Never happening
+                    #Start a ZERO step thread.
+                    frame_steps = int(self.zero_pan_step_input_box.GetValue())
+                    if frame_steps == 0:
+                        Translation_X = 0
+                        Translation_Y = 0
+                        self.writeValue("translation_x", Translation_X)
+                        self.writeValue("translation_y", Translation_Y)
+                    elif (Translation_X == 0 and Translation_Y == 0 and Translation_X_ARMED == 0 and Translation_Y_ARMED == 0) or (Translation_X == Translation_X_ARMED and Translation_Y == Translation_Y_ARMED):
+                        zero_pan_active = False
+                    else:
+                        zero_pan_active = True
+                        if Translation_X != Translation_X_ARMED:
+                            self.zero_step_thread_x = threading.Thread(target=self.ZeroStepper, args=("translation_x", frame_steps, Translation_X_ARMED))
+                            self.zero_step_thread_x.daemon = True
+                            self.zero_step_thread_x.start()
+                        if Translation_Y != Translation_Y_ARMED:
+                            self.zero_step_thread_y = threading.Thread(target=self.ZeroStepper, args=("translation_y", frame_steps, Translation_Y_ARMED))
+                            self.zero_step_thread_y.daemon = True
                         self.zero_step_thread_y.start()
+                else:
+                    bmp = wx.Bitmap("./images/zero_active.bmp", wx.BITMAP_TYPE_BMP)
+                    bmp = scale_bitmap(bmp, 22, 22)
+                    self.transform_zero_button.SetBitmap(bmp)
+                    zero_pan_active = True
+                    # Prepare the bezier curve that should be followed:
+                    frame_steps = int(self.zero_pan_step_input_box.GetValue())
+                    bezier_from_input_box_string = self.bezier_points_input_box.GetValue()
+                    bezier_from_input_box_string = "((0, 0)," + bezier_from_input_box_string + ",(1, 1))"
+                    bezier_from_input_box_array = bezier_from_input_box_string.replace('(', '').replace(')','').replace(' ','').split(',')
+                    bezierTupple = list(((0, 0), (0, 0), (0, 0), (0, 0)))
+                    bezierTupple[0] = (float(bezier_from_input_box_array[0]), float(bezier_from_input_box_array[1]))
+                    bezierTupple[1] = (float(bezier_from_input_box_array[2]), float(bezier_from_input_box_array[3]))
+                    bezierTupple[2] = (float(bezier_from_input_box_array[4]), float(bezier_from_input_box_array[5]))
+                    bezierTupple[3] = (float(bezier_from_input_box_array[6]), float(bezier_from_input_box_array[7]))
+
+                    bezierArray1 = pyeaze.Animator(current_value=Translation_X, target_value=Translation_X_ARMED, duration=1, fps=frame_steps, easing=bezierTupple, reverse=False)
+                    bezierArray2 = pyeaze.Animator(current_value=Translation_Y, target_value=Translation_Y_ARMED, duration=1, fps=frame_steps, easing=bezierTupple, reverse=False)
+                    bezierArray = [bezierArray1.values, bezierArray2.values]
+                    self.writeValue("prepare_zero_pan_motion", bezierArray)
+                    self.writeValue("start_zero_pan_motion", 1)
+                    zero_frame_start = int(self.readValue("start_frame"))
+                    print("-- ZERO PAN MOTION SET, FROM (X:" + str('%.2f' % Translation_X) + " -> X:" + str('%.2f' % Translation_X_ARMED) + ") & (Y:" + str('%.2f' % Translation_X) + " -> Y:" + str('%.2f' % Translation_Y_ARMED) + ") , in " + str(frame_steps) + " steps. Starting at frame:" + str(zero_frame_start))
+                    zero_pan_current_settings = "\"0-P: x:" + str('%.2f' % Translation_X) + "->x:" + str('%.2f' % Translation_X_ARMED) + " & y:" + str('%.2f' % Translation_Y) + "->y:" + str('%.2f' % Translation_Y_ARMED) + " (fr:"+str(zero_frame_start)+" to:"+str(zero_frame_start+frame_steps)+")\""
+                    print(zero_pan_current_settings)
+                    self.SetLabel(windowlabel + " -- ZERO PAN MOTION SET, FROM (X:" + str('%.2f' % Translation_X) + " -> X:" + str('%.2f' % Translation_X_ARMED) + ") & (Y:" + str('%.2f' % Translation_X) + " -> Y:" + str('%.2f' % Translation_Y_ARMED) + ") , in " + str(frame_steps) + " steps. Starting at frame:" + str(zero_frame_start))
+                    self.zero_pan_current_settings_Text.SetLabel(zero_pan_current_settings)
             else:
                 stepit_pan = 0
+                bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 22, 22)
+                self.transform_zero_button.SetBitmap(bmp)
                 zero_pan_active = False
+                self.writeValue("start_zero_pan_motion", 0)
+                self.zero_pan_current_settings_Text.SetLabel("\"0-P: None\"")
 
         elif btn == "ZOOM":
             currentEventTypeID = event.GetEventType()
             if not armed_zoom and not total_recall_movements_inside_range_and_active:
-                if self.eventDict[currentEventTypeID] == "EVT_RIGHT_UP":
-                    self.zoom_slider.SetValue(0)
-                    self.zoom_value_text.SetLabel("0.00")
-                    Translation_Z = 0.0
-                    self.writeValue("translation_z", Translation_Z)
-                    if is_fov_locked:
-                        if is_reverse_fov_locked:
-                            FOV_Scale = 70+(Translation_Z * -5)
-                        else:
-                            FOV_Scale = 70 + (Translation_Z * 5)
-                        self.fov_slider.SetValue(int(FOV_Scale))
-                        self.writeValue("fov", FOV_Scale)
-                else:
-                    Translation_Z = self.zoom_slider.GetValue()/100
-                    self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
+                if not should_use_total_recall_in_deforumation:
+                    if self.eventDict[currentEventTypeID] == "EVT_RIGHT_UP":
+                        self.zoom_slider.SetValue(0)
+                        self.zoom_value_text.SetLabel("0.00")
+                        Translation_Z = 0.0
+                        self.writeValue("translation_z", Translation_Z)
+                        if is_fov_locked:
+                            if is_reverse_fov_locked:
+                                FOV_Scale = 70+(Translation_Z * -5)
+                            else:
+                                FOV_Scale = 70 + (Translation_Z * 5)
+                            self.fov_slider.SetValue(int(FOV_Scale))
+                            self.writeValue("fov", FOV_Scale)
+                    else:
+                        Translation_Z = self.zoom_slider.GetValue()/100
+                        self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
 
-                    #print(str(Translation_Z))
-                    self.writeValue("translation_z", Translation_Z)
-                    if is_fov_locked:
-                        if is_reverse_fov_locked:
-                            FOV_Scale = 70+(Translation_Z * -5)
-                        else:
-                            FOV_Scale = 70 + (Translation_Z * 5)
-                        self.fov_slider.SetValue(int(FOV_Scale))
-                        self.writeValue("fov", FOV_Scale)
+                        #print(str(Translation_Z))
+                        self.writeValue("translation_z", Translation_Z)
+                        if is_fov_locked:
+                            if is_reverse_fov_locked:
+                                FOV_Scale = 70+(Translation_Z * -5)
+                            else:
+                                FOV_Scale = 70 + (Translation_Z * 5)
+                            self.fov_slider.SetValue(int(FOV_Scale))
+                            self.writeValue("fov", FOV_Scale)
             elif armed_zoom:
                 if self.eventDict[currentEventTypeID] == "EVT_RIGHT_UP":
                     self.zoom_slider.SetValue(0)
@@ -3910,21 +4022,53 @@ class Mywin(wx.Frame):
             #float(minmaxval)/20
         elif btn == "ZERO ZOOM":
             if not zero_zoom_active:
-                #Start a ZERO step thread.
-                frame_steps = int(self.zero_zoom_step_input_box.GetValue())
-                if frame_steps == 0:
-                    Translation_Z = 0
-                    self.writeValue("translation_z", Translation_Z)
-                elif (Translation_Z == Translation_Z_ARMED):
-                    zero_zoom_active = False
+                if event.GetId() == 2134234: #Never reached
+                    #Start a ZERO step thread.
+                    frame_steps = int(self.zero_zoom_step_input_box.GetValue())
+                    if frame_steps == 0:
+                        Translation_Z = 0
+                        self.writeValue("translation_z", Translation_Z)
+                    elif (Translation_Z == Translation_Z_ARMED):
+                        zero_zoom_active = False
+                    else:
+                        zero_zoom_active = True
+                        self.zero_step_thread_z = threading.Thread(target=self.ZeroStepper, args=("translation_z", frame_steps, Translation_Z_ARMED))
+                        self.zero_step_thread_z.daemon = True
+                        self.zero_step_thread_z.start()
                 else:
+                    bmp = wx.Bitmap("./images/zero_active.bmp", wx.BITMAP_TYPE_BMP)
+                    bmp = scale_bitmap(bmp, 22, 22)
+                    self.zoom_zero_button.SetBitmap(bmp)
                     zero_zoom_active = True
-                    self.zero_step_thread_z = threading.Thread(target=self.ZeroStepper, args=("translation_z", frame_steps, Translation_Z_ARMED))
-                    self.zero_step_thread_z.daemon = True
-                    self.zero_step_thread_z.start()
+                    # Prepare the bezier curve that should be followed:
+                    frame_steps = int(self.zero_zoom_step_input_box.GetValue())
+                    bezier_from_input_box_string = self.bezier_points_input_box.GetValue()
+                    bezier_from_input_box_string = "((0, 0)," + bezier_from_input_box_string + ",(1, 1))"
+                    bezier_from_input_box_array = bezier_from_input_box_string.replace('(', '').replace(')','').replace(' ','').split(',')
+                    bezierTupple = list(((0, 0), (0, 0), (0, 0), (0, 0)))
+                    bezierTupple[0] = (float(bezier_from_input_box_array[0]), float(bezier_from_input_box_array[1]))
+                    bezierTupple[1] = (float(bezier_from_input_box_array[2]), float(bezier_from_input_box_array[3]))
+                    bezierTupple[2] = (float(bezier_from_input_box_array[4]), float(bezier_from_input_box_array[5]))
+                    bezierTupple[3] = (float(bezier_from_input_box_array[6]), float(bezier_from_input_box_array[7]))
+
+                    bezierArray = pyeaze.Animator(current_value=Translation_Z, target_value=Translation_Z_ARMED, duration=1,fps=frame_steps, easing=bezierTupple, reverse=False)
+
+                    self.writeValue("prepare_zero_zoom_motion", bezierArray.values)
+                    self.writeValue("start_zero_zoom_motion", 1)
+                    zero_frame_start = int(self.readValue("start_frame"))
+                    print("-- ZERO ZOOM MOTION SET, FROM (Z:" + str('%.2f' % Translation_Z) + " -> Z:" + str('%.2f' % Translation_Z_ARMED) + "), in " + str(frame_steps) + " steps. Starting at frame:" + str(zero_frame_start))
+                    zero_zoom_current_settings = "\"0-Z: " + str('%.2f' % Translation_Z) + "->" + str('%.2f' % Translation_Z_ARMED) + " (fr:"+str(zero_frame_start)+" to:"+str(zero_frame_start+frame_steps)+")\""
+                    print(zero_zoom_current_settings)
+                    self.SetLabel(windowlabel + " -- ZERO ZOOM MOTION SET, FROM (Z:" + str('%.2f' % Translation_Z) + " -> Z:" + str('%.2f' % Translation_Z_ARMED) + "), in " + str(frame_steps) + " steps. Starting at frame:" + str(zero_frame_start))
+                    self.zero_zoom_current_settings_Text.SetLabel(zero_zoom_current_settings)
             else:
                 stepit_zoom = 0
+                bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 22, 22)
+                self.zoom_zero_button.SetBitmap(bmp)
                 zero_zoom_active = False
+                self.writeValue("start_zero_zoom_motion", 0)
+                self.zero_zoom_current_settings_Text.SetLabel("\"0-Z: None\"")
 
         elif btn == "STRENGTH SCHEDULE":
             if not total_recall_others_inside_range_and_active:
@@ -3937,11 +4081,12 @@ class Mywin(wx.Frame):
                 self.writeValue("seed_changed", 1)
         elif btn == "LOOK_LEFT":
             if not armed_rotation and not total_recall_movements_inside_range_and_active:
-                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
-                    Rotation_3D_Y = 0
-                else:
-                    Rotation_3D_Y = Rotation_3D_Y - float(self.rotate_step_input_box.GetValue())
-                self.writeValue("rotation_y", Rotation_3D_Y)
+                if not should_use_total_recall_in_deforumation:
+                    if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                        Rotation_3D_Y = 0
+                    else:
+                        Rotation_3D_Y = Rotation_3D_Y - float(self.rotate_step_input_box.GetValue())
+                    self.writeValue("rotation_y", Rotation_3D_Y)
             elif armed_rotation:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_Y_ARMED = 0
@@ -3952,11 +4097,12 @@ class Mywin(wx.Frame):
 
         elif btn == "LOOK_RIGHT":
             if not armed_rotation and not total_recall_movements_inside_range_and_active:
-                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
-                    Rotation_3D_Y = 0
-                else:
-                    Rotation_3D_Y = Rotation_3D_Y + float(self.rotate_step_input_box.GetValue())
-                self.writeValue("rotation_y", Rotation_3D_Y)
+                if not should_use_total_recall_in_deforumation:
+                    if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                        Rotation_3D_Y = 0
+                    else:
+                        Rotation_3D_Y = Rotation_3D_Y + float(self.rotate_step_input_box.GetValue())
+                    self.writeValue("rotation_y", Rotation_3D_Y)
             elif armed_rotation:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_Y_ARMED = 0
@@ -3966,11 +4112,12 @@ class Mywin(wx.Frame):
                     self.writeValue("rotation_y", Rotation_3D_Y_ARMED)
         elif btn == "LOOK_UP":
             if not armed_rotation and not total_recall_movements_inside_range_and_active:
-                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
-                    Rotation_3D_X = 0
-                else:
-                    Rotation_3D_X = Rotation_3D_X + float(self.rotate_step_input_box.GetValue())
-                self.writeValue("rotation_x", Rotation_3D_X)
+                if not should_use_total_recall_in_deforumation:
+                    if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                        Rotation_3D_X = 0
+                    else:
+                        Rotation_3D_X = Rotation_3D_X + float(self.rotate_step_input_box.GetValue())
+                    self.writeValue("rotation_x", Rotation_3D_X)
             elif armed_rotation:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_X_ARMED = 0
@@ -3980,11 +4127,12 @@ class Mywin(wx.Frame):
                     self.writeValue("rotation_x", Rotation_3D_X_ARMED)
         elif btn == "LOOK_DOWN":
             if not armed_rotation and not total_recall_movements_inside_range_and_active:
-                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
-                    Rotation_3D_X = 0
-                else:
-                    Rotation_3D_X = Rotation_3D_X - float(self.rotate_step_input_box.GetValue())
-                self.writeValue("rotation_x", Rotation_3D_X)
+                if not should_use_total_recall_in_deforumation:
+                    if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                        Rotation_3D_X = 0
+                    else:
+                        Rotation_3D_X = Rotation_3D_X - float(self.rotate_step_input_box.GetValue())
+                    self.writeValue("rotation_x", Rotation_3D_X)
             elif armed_rotation:
                 if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                     Rotation_3D_X_ARMED = 0
@@ -3994,45 +4142,78 @@ class Mywin(wx.Frame):
                     self.writeValue("rotation_x", Rotation_3D_X_ARMED)
         elif btn == "ZERO ROTATE":
             if not zero_rotate_active:
-                #Start a ZERO step thread.
-                frame_steps = int(self.zero_rotate_step_input_box.GetValue())
-                if frame_steps == 0:
-                    Rotation_3D_X = 0
-                    Rotation_3D_Y = 0
-                    self.writeValue("rotation_x", Rotation_3D_X)
-                    self.writeValue("rotation_y", Rotation_3D_Y)
-                elif (Rotation_3D_X == 0 and Rotation_3D_Y == 0 and Rotation_3D_X_ARMED == 0 and Rotation_3D_Y_ARMED == 0) or (Rotation_3D_X == Rotation_3D_X_ARMED and Rotation_3D_Y == Rotation_3D_Y_ARMED):
-                    zero_rotate_active = False
+                if event.GetId() == 2342342314: #Never going to happen
+                    #Start a ZERO step thread.
+                    frame_steps = int(self.zero_rotate_step_input_box.GetValue())
+                    if frame_steps == 0:
+                        Rotation_3D_X = 0
+                        Rotation_3D_Y = 0
+                        self.writeValue("rotation_x", Rotation_3D_X)
+                        self.writeValue("rotation_y", Rotation_3D_Y)
+                    elif (Rotation_3D_X == 0 and Rotation_3D_Y == 0 and Rotation_3D_X_ARMED == 0 and Rotation_3D_Y_ARMED == 0) or (Rotation_3D_X == Rotation_3D_X_ARMED and Rotation_3D_Y == Rotation_3D_Y_ARMED):
+                        zero_rotate_active = False
+                    else:
+                        zero_rotate_active = True
+                        if Rotation_3D_X != Rotation_3D_X_ARMED:
+                            self.zero_rotate_thread_x = threading.Thread(target=self.ZeroStepper, args=("rotation_x", frame_steps, Rotation_3D_X_ARMED))
+                            self.zero_rotate_thread_x.daemon = True
+                            self.zero_rotate_thread_x.start()
+                        if Rotation_3D_Y != Rotation_3D_Y_ARMED:
+                            self.zero_rotate_thread_y = threading.Thread(target=self.ZeroStepper, args=("rotation_y", frame_steps, Rotation_3D_Y_ARMED))
+                            self.zero_rotate_thread_y.daemon = True
+                            self.zero_rotate_thread_y.start()
                 else:
+                    bmp = wx.Bitmap("./images/zero_active.bmp", wx.BITMAP_TYPE_BMP)
+                    bmp = scale_bitmap(bmp, 22, 22)
+                    self.rotate_zero_button.SetBitmap(bmp)
                     zero_rotate_active = True
-                    if Rotation_3D_X != Rotation_3D_X_ARMED:
-                        self.zero_rotate_thread_x = threading.Thread(target=self.ZeroStepper, args=("rotation_x", frame_steps, Rotation_3D_X_ARMED))
-                        self.zero_rotate_thread_x.daemon = True
-                        self.zero_rotate_thread_x.start()
-                    if Rotation_3D_Y != Rotation_3D_Y_ARMED:
-                        self.zero_rotate_thread_y = threading.Thread(target=self.ZeroStepper, args=("rotation_y", frame_steps, Rotation_3D_Y_ARMED))
-                        self.zero_rotate_thread_y.daemon = True
-                        self.zero_rotate_thread_y.start()
+                    # Prepare the bezier curve that should be followed:
+                    frame_steps = int(self.zero_rotate_step_input_box.GetValue())
+                    bezier_from_input_box_string = self.bezier_points_input_box.GetValue()
+                    bezier_from_input_box_string = "((0, 0)," + bezier_from_input_box_string + ",(1, 1))"
+                    bezier_from_input_box_array = bezier_from_input_box_string.replace('(', '').replace(')','').replace(' ','').split(',')
+                    bezierTupple = list(((0, 0), (0, 0), (0, 0), (0, 0)))
+                    bezierTupple[0] = (float(bezier_from_input_box_array[0]), float(bezier_from_input_box_array[1]))
+                    bezierTupple[1] = (float(bezier_from_input_box_array[2]), float(bezier_from_input_box_array[3]))
+                    bezierTupple[2] = (float(bezier_from_input_box_array[4]), float(bezier_from_input_box_array[5]))
+                    bezierTupple[3] = (float(bezier_from_input_box_array[6]), float(bezier_from_input_box_array[7]))
+
+                    bezierArray1 = pyeaze.Animator(current_value=Rotation_3D_X, target_value=Rotation_3D_X_ARMED, duration=1, fps=frame_steps, easing=bezierTupple, reverse=False)
+                    bezierArray2 = pyeaze.Animator(current_value=Rotation_3D_Y, target_value=Rotation_3D_Y_ARMED, duration=1, fps=frame_steps, easing=bezierTupple, reverse=False)
+                    bezierArray = [bezierArray1.values, bezierArray2.values]
+                    self.writeValue("prepare_zero_rotation_motion", bezierArray)
+                    self.writeValue("start_zero_rotation_motion", 1)
+                    zero_frame_start = int(self.readValue("start_frame"))
+                    print("-- ZERO ROTATION MOTION SET, FROM (RL:" + str('%.2f' % Rotation_3D_Y) + " -> RL:" + str('%.2f' % Rotation_3D_Y_ARMED) + ") & (UD:" + str('%.2f' % Rotation_3D_X) + " -> UD:" + str('%.2f' % Rotation_3D_X_ARMED) + ") , in " + str(frame_steps) + " steps. Starting at frame:" + str(zero_frame_start))
+                    zero_rotation_current_settings = "\"0-R: rl:" + str('%.2f' % Rotation_3D_Y) + "->rl:" + str('%.2f' % Rotation_3D_Y_ARMED) + " & ud:" + str('%.2f' % Rotation_3D_X) + "->ud:" + str('%.2f' % Rotation_3D_X_ARMED) + " (fr:"+str(zero_frame_start)+" to:"+str(zero_frame_start+frame_steps)+")\""
+                    print(zero_rotation_current_settings)
+                    self.SetLabel(windowlabel + " -- ZERO ROTATION MOTION SET, FROM (RL:" + str('%.2f' % Rotation_3D_Y) + " -> RL:" + str('%.2f' % Rotation_3D_Y_ARMED) + ") & (UD:" + str('%.2f' % Rotation_3D_X) + " -> UD:" + str('%.2f' % Rotation_3D_X_ARMED) + ") , in " + str(frame_steps) + " steps. Starting at frame:" + str(zero_frame_start))
+                    self.zero_rotate_current_settings_Text.SetLabel(zero_rotation_current_settings)
             else:
                 stepit_rotate = 0
+                bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 22, 22)
+                self.rotate_zero_button.SetBitmap(bmp)
                 zero_rotate_active = False
+                self.writeValue("start_zero_rotation_motion", 0)
+                self.zero_rotate_current_settings_Text.SetLabel("\"0-R: None\"")
 
         elif btn == "ROTATE_LEFT":
             if not total_recall_movements_inside_range_and_active:
-            #if (not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements)):
-                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
-                    Rotation_3D_Z = 0
-                else:
-                    Rotation_3D_Z = Rotation_3D_Z + float(self.tilt_step_input_box.GetValue())
-                self.writeValue("rotation_z", Rotation_3D_Z)
+                if not should_use_total_recall_in_deforumation:
+                    if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                        Rotation_3D_Z = 0
+                    else:
+                        Rotation_3D_Z = Rotation_3D_Z + float(self.tilt_step_input_box.GetValue())
+                    self.writeValue("rotation_z", Rotation_3D_Z)
         elif btn == "ROTATE_RIGHT":
             if not total_recall_movements_inside_range_and_active:
-            #if (not should_use_total_recall or (should_use_total_recall and not should_use_total_recall_movements)):
-                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
-                    Rotation_3D_Z = 0
-                else:
-                    Rotation_3D_Z = Rotation_3D_Z - float(self.tilt_step_input_box.GetValue())
-                self.writeValue("rotation_z", Rotation_3D_Z)
+                if not should_use_total_recall_in_deforumation:
+                    if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                        Rotation_3D_Z = 0
+                    else:
+                        Rotation_3D_Z = Rotation_3D_Z - float(self.tilt_step_input_box.GetValue())
+                    self.writeValue("rotation_z", Rotation_3D_Z)
         elif btn == "ZERO TILT":
             Rotation_3D_Z = 0
             self.writeValue("rotation_z", Rotation_3D_Z)
@@ -4080,13 +4261,15 @@ class Mywin(wx.Frame):
                 self.arm_zoom_button.SetBitmap(bmp)
                 self.arm_zoom_button.SetSize(bmp.GetWidth()+10, bmp.GetHeight()+10)
         elif btn == "FOV":
-            currentEventTypeID = event.GetEventType()
-            if self.eventDict[currentEventTypeID] == "EVT_RIGHT_UP":
-                FOV_Scale = 70
-                self.fov_slider.SetValue(int(FOV_Scale))
-            else:
-                FOV_Scale = float(self.fov_slider.GetValue())
-            self.writeValue("fov", FOV_Scale)
+            if not total_recall_movements_inside_range_and_active:
+                if not should_use_total_recall_in_deforumation:
+                    currentEventTypeID = event.GetEventType()
+                    if self.eventDict[currentEventTypeID] == "EVT_RIGHT_UP":
+                        FOV_Scale = 70
+                        self.fov_slider.SetValue(int(FOV_Scale))
+                    else:
+                        FOV_Scale = float(self.fov_slider.GetValue())
+                    self.writeValue("fov", FOV_Scale)
         elif btn == "LOCK FOV":
             if is_fov_locked:
                 is_fov_locked = False
@@ -4253,6 +4436,7 @@ class Mywin(wx.Frame):
 
         #########END OF CN STUFF#############################
         elif btn == "Show current image" or btn == "REWIND" or btn == "FORWARD" or event.GetId() == 2 or btn == "REWIND_CLOSEST" or btn == "FORWARD_CLOSEST":
+            frame_has_changed = True
             number_of_recalled_frames = int(self.readValue("get_number_of_recalled_frames"))
             self.total_current_recall_frames_text.SetLabel("Number of recall points: " + str(number_of_recalled_frames))
             current_frame = str(self.readValue("start_frame"))
@@ -4451,28 +4635,101 @@ class Mywin(wx.Frame):
                         ffmpegPath = self.ffmpeg_path_input_box.GetValue()
                         if ffmpegPath == "":
                             ffmpegPath = "ffmpeg"
-                        crf = 20
-                        cmd = [
-                            ffmpegPath,
-                            '-start_number', str(replayFrom),
-                            '-framerate', str(float(replayFPS)),
-                            # '-thread_queue_size 4096',
-                            #'-r', str(float(replayFPS)),
-                            #'-fps', '30',
-                            '-y',
-                            '-i', ffmpeg_image_path,
-                            '-frames:v', str(int((replayTo - replayFrom)/(replayFPS/12))),
-                            '-filter_complex', "fps=12,scale=128:-1:flags=lanczos",
-                            '-pix_fmt', 'yuv420p',
-                            '-crf', str(crf),
-                            '-pattern_type', 'sequence'
-                        ]
-                        cmd.append(gif_animation_output_path)
-                        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,universal_newlines=True)
-                        #subprocess.run(cmd)
-                        #stdout, stderr = process.communicate()
-                        print("Done creating GIF-animation")
+                        is_ffmpegPath_correct = shutil.which(ffmpegPath)
+                        if not is_ffmpegPath_correct is None:
+                            crf = 20
+                            cmd = [
+                                ffmpegPath,
+                                '-start_number', str(replayFrom),
+                                '-framerate', str(float(replayFPS)),
+                                # '-thread_queue_size 4096',
+                                #'-r', str(float(replayFPS)),
+                                #'-fps', '30',
+                                '-y',
+                                '-i', ffmpeg_image_path,
+                                '-frames:v', str(int((replayTo - replayFrom)/(replayFPS/12))),
+                                '-filter_complex', "fps=12,scale=128:-1:flags=lanczos",
+                                '-pix_fmt', 'yuv420p',
+                                '-crf', str(crf),
+                                '-pattern_type', 'sequence'
+                            ]
+                            outPath = ""
+                            motionName = ""
+                            if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                                motionName = ask(message = "What will the motion be called? (push cancel to abort):", caption = "FPS dependent... (this is going to be a " + str(replayFPS) + " FPS motion).")
+                                if motionName != "":
+                                    outPath = gif_animation_output_path + motionName.replace(' ', '_') + "_" + "(" + str(replayFPS) + " FPS).gif"
+                            else:
+                                motionName = ask(message = "What will the motion be called? (push cancel to abort):", caption = "This motion is FPS independent.")
+                                if motionName != "":
+                                    outPath = gif_animation_output_path + motionName.replace(' ', '_') + ".gif"
 
+                            if outPath != "":
+                                cmd.append(outPath)
+                                self.SetLabel(windowlabel + " -- Wait while Deofrumation creates pre-defined motion.")
+                                parameter_container = []
+                                ShouldProcessImages = True
+                                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                                    parameter_container = pickle.loads(readValue_special("saved_frame_params", -1))
+                                    if len(parameter_container) < (replayTo - replayFrom):
+                                        wx.MessageBox('Not enough Total Recall points (check your To and From values)','Not enough data points', wx.OK | wx.ICON_ERROR)
+                                        ShouldProcessImages = False
+                                if ShouldProcessImages:
+                                    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                                    stdout, stderr = process.communicate()
+
+                                    if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                                        if os.path.isfile(deforumationPredefinedMotionPathSettings):
+                                            deforumFile = open(deforumationPredefinedMotionPathSettings, 'a')
+                                        else:
+                                            deforumFile = open(deforumationPredefinedMotionPathSettings, 'w')
+
+                                        motionLine = "\n" + motionName + " (" + str(replayFPS) + " FPS)" + ", "
+                                        motionLine += outPath + " ," + str(replayFPS) + " ,"
+                                        for index in range(replayFrom, replayTo):
+                                            motionLine += "["
+                                            motionLine += str('%.2f' % parameter_container[index].translation_x) + ","
+                                            motionLine += str('%.2f' % parameter_container[index].translation_y) + ","
+                                            motionLine += str('%.2f' % parameter_container[index].translation_z) + ","
+                                            motionLine += str('%.2f' % parameter_container[index].rotation_y) + ","
+                                            motionLine += str('%.2f' % parameter_container[index].rotation_x) + ","
+                                            motionLine += str('%.2f' % parameter_container[index].rotation_z) + "]"
+                                            if (index != replayTo-1):
+                                                motionLine += ":"
+
+                                        deforumFile.write(motionLine)
+                                        deforumFile.close()
+                                        #subprocess.run(cmd)
+                                        #stdout, stderr = process.communicate()
+                                        self.SetLabel(windowlabel + " -- Pre-defined motion created.")
+                                        self.loadPredefinedMotions()
+                                    else:
+                                        if os.path.isfile(deforumationPredefinedMotionPathSettings):
+                                            deforumFile = open(deforumationPredefinedMotionPathSettings, 'a')
+                                        else:
+                                            deforumFile = open(deforumationPredefinedMotionPathSettings, 'w')
+
+                                        motionLine = "\n"+motionName+", "
+                                        motionLine += outPath + " ," + "-1" + " ,"
+                                        motionLine += "["
+                                        motionLine += str('%.2f' % Translation_X) + ","
+                                        motionLine += str('%.2f' % Translation_Y) + ","
+                                        motionLine += str('%.2f' % Translation_Z) + ","
+                                        motionLine += str('%.2f' % Rotation_3D_Y) + ","
+                                        motionLine += str('%.2f' % Rotation_3D_X) + ","
+                                        motionLine += str('%.2f' % Rotation_3D_Z) + "]"
+
+                                        deforumFile.write(motionLine)
+                                        deforumFile.close()
+                                        #subprocess.run(cmd)
+                                        #stdout, stderr = process.communicate()
+                                        print("Done creating GIF-animation (FPS Dependent)")
+                                        self.SetLabel(windowlabel + " -- Pre-defined motion created.")
+                                        self.loadPredefinedMotions()
+                            else:
+                                print("Canceled creating GIF-animation")
+                        else:
+                            wx.MessageBox('FFMPEG could not be found, please specify the path under \"Audio Playback Settings\".', 'FFMPEG error', wx.OK | wx.ICON_ERROR)
 
                     elif self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                         ffmpeg_image_path = create_ffmpeg_image_string()
@@ -4810,9 +5067,13 @@ class Mywin(wx.Frame):
                             property = getattr(child, 'TextCtrl')
                             property.Tip = ""
 
-        if should_use_total_recall_in_deforumation:
+        if should_use_total_recall_in_deforumation and is_paused_rendering:
             if current_render_frame != -1:
                 self.setValuesFromSavedFrame(int(current_render_frame))
+        elif should_use_total_recall_in_deforumation and not is_paused_rendering:
+                a_frame = int(readValue("start_frame"))
+                if a_frame !=-1:
+                    self.setValuesFromSavedFrame(int(readValue("start_frame")))
         elif should_use_total_recall and (int(current_render_frame) >= int(self.total_recall_from_input_box.GetValue())) and (int(current_render_frame) <= int(self.total_recall_to_input_box.GetValue())):
             if current_render_frame != -1:
                 self.setValuesFromSavedFrame(int(current_render_frame))
@@ -4854,26 +5115,77 @@ class Mywin(wx.Frame):
         Frame.Show()
 
     def LiveValues(self):
+        global seedValue
+        global frame_has_changed
+        global zero_pan_active
+        global zero_zoom_active
+        global zero_rotate_active
+        frame_has_changed = True
         recalledFrame = -1
+        current_frame_live = int(readValue("start_frame"))
         while showLiveValues:
-            deforum_translation_x = readValue("deforum_translation_x")
-            deforum_translation_y = readValue("deforum_translation_y")
-            deforum_translation_z = readValue("deforum_translation_z")
-            deforum_rotation_x = readValue("deforum_rotation_x")
-            deforum_rotation_y = readValue("deforum_rotation_y")
-            deforum_rotation_z = readValue("deforum_rotation_z")
-            deforum_strength = readValue("deforum_strength")
-            deforum_cfg = readValue("deforum_cfg")
-            deforum_fov = readValue("deforum_fov")
-            deforum_steps = readValue("deforum_steps")
-            deforum_cadence = readValue("deforum_cadence")
-            deforum_noise_multiplier = readValue("deforum_noise_multiplier")
-            deforum_Perlin_Octave_Value = readValue("deforum_perlin_octaves")
-            deforum_Perlin_Persistence_Value = readValue("deforum_perlin_persistence")
-            number_of_recalled_frames = int(self.readValue("get_number_of_recalled_frames"))
+            manyValues = readValue(["deforum_translation_x", "deforum_translation_y", "deforum_translation_z", "deforum_rotation_x", "deforum_rotation_y", "deforum_rotation_z", "deforum_strength", "deforum_cfg", "deforum_fov", "deforum_steps", "deforum_cadence", "deforum_noise_multiplier", "deforum_perlin_octaves", "deforum_perlin_persistence", "get_number_of_recalled_frames", "deforum_pdmotion_status", "deforum_panmotion_status", "deforum_zoommotion_status", "deforum_rotationmotion_status", "start_motion", "start_zero_pan_motion", "start_zero_zoom_motion", "start_zero_rotation_motion"])
+
+            deforum_translation_x = manyValues[0]
+            deforum_translation_y = manyValues[1]
+            deforum_translation_z = manyValues[2]
+            deforum_rotation_x = manyValues[3]
+            deforum_rotation_y = manyValues[4]
+            deforum_rotation_z = manyValues[5]
+            deforum_strength = manyValues[6]
+            deforum_cfg = manyValues[7]
+            deforum_fov = manyValues[8]
+            deforum_steps = manyValues[9]
+            deforum_cadence = manyValues[10]
+            deforum_noise_multiplier = manyValues[11]
+            deforum_Perlin_Octave_Value = manyValues[12]
+            deforum_Perlin_Persistence_Value = manyValues[13]
+            number_of_recalled_frames = int(manyValues[14])
+            deforum_pdmotion_status = str(manyValues[15])
+            deforum_pan_status = str(manyValues[16])
+            deforum_zoom_status = str(manyValues[17])
+            deforum_rotation_status = str(manyValues[18])
+            is_inside_a_motion = int(manyValues[19])
+            start_zero_pan_motion = int(manyValues[20])
+            start_zero_zoom_motion = int(manyValues[21])
+            start_zero_rotation_motion = int(manyValues[22])
+            if start_zero_pan_motion == -1:
+                bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 22, 22)
+                self.transform_zero_button.SetBitmap(bmp)
+                zero_pan_active = False
+                self.writeValue("start_zero_pan_motion", 0)
+                self.zero_pan_current_settings_Text.SetLabel("\"0-P: None\"")
+            if start_zero_zoom_motion == -1:
+                bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 22, 22)
+                self.zoom_zero_button.SetBitmap(bmp)
+                zero_zoom_active = False
+                self.writeValue("start_zero_zoom_motion", 0)
+                self.zero_zoom_current_settings_Text.SetLabel("\"0-Z: None\"")
+            if start_zero_rotation_motion == -1:
+                bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 22, 22)
+                self.rotate_zero_button.SetBitmap(bmp)
+                zero_rotate_active = False
+                self.writeValue("start_zero_rotation_motion", 0)
+                self.zero_rotate_current_settings_Text.SetLabel("\"0-R: None\"")
+
             self.total_current_recall_frames_text.SetLabel("Number of recall points: " + str(number_of_recalled_frames))
-            if should_use_total_recall_in_deforumation or (should_use_total_recall and (int(current_render_frame) >= int(self.total_recall_from_input_box.GetValue())) and (int(current_render_frame) <= int(self.total_recall_to_input_box.GetValue()))):
-                current_frame_live = int(readValue("start_frame"))
+            if int(readValue("deforum_interrupted")):
+                self.writeValue("deforum_interrupted", 0)
+                seedValue = int(self.seed_input_box.GetValue())
+                self.writeValue("seed", seedValue)
+                print("Deforum was interrupted, restoring seed:"+str(seedValue))
+            if is_inside_a_motion or should_use_total_recall_in_deforumation or (should_use_total_recall and (int(current_render_frame) >= int(self.total_recall_from_input_box.GetValue())) and (int(current_render_frame) <= int(self.total_recall_to_input_box.GetValue()))):
+                if frame_has_changed:
+                    current_frame_live = int(self.frame_step_input_box.GetValue())#int(readValue("start_frame"))
+                    frame_has_changed = False
+                if not is_paused_rendering:
+                    a_frame = int(readValue("start_frame"))
+                    if a_frame != -1:
+                        current_frame_live = int(readValue("start_frame"))
+
                 if int(current_frame_live) != -1:
                     if recalledFrame != current_frame_live:
                         wx.CallAfter(self.setValuesFromSavedFrame, current_frame_live)
@@ -4884,58 +5196,59 @@ class Mywin(wx.Frame):
                 self.deforum_steps_value_info_text.SetLabel("Steps:" + str(deforum_steps))
                 self.deforum_cfg_value_info_text.SetLabel("CFG:" + str(deforum_cfg))
                 self.deforum_cadence_value_info_text.SetLabel("Cadence:" + str(deforum_cadence))
+                self.deforum_pdmotion_value_info_text.SetLabel(str(deforum_pdmotion_status))
                 self.deforum_trx_value_info_text.SetLabel("Tr X:" + str('%.2f' % float(deforum_translation_x)))
                 self.deforum_try_value_info_text.SetLabel("Tr Y:" + str('%.2f' % float(deforum_translation_y)))
                 self.deforum_trz_value_info_text.SetLabel("Tr Z:" + str('%.2f' % float(deforum_translation_z)))
                 self.deforum_rox_value_info_text.SetLabel("Ro X:" + str('%.2f' % float(deforum_rotation_x)))
                 self.deforum_roy_value_info_text.SetLabel("Ro Y:" + str('%.2f' % float(deforum_rotation_y)))
                 self.deforum_roz_value_info_text.SetLabel("Ro Z:" + str('%.2f' % float(deforum_rotation_z)))
+                self.deforum_zero_pan_value_info_text.SetLabel(str(deforum_pan_status))
+                self.deforum_zero_zoom_value_info_text.SetLabel(str(deforum_zoom_status))
+                self.deforum_zero_rotation_value_info_text.SetLabel(str(deforum_rotation_status))
 
                 time.sleep(0.25)
                 continue
 
-            if should_use_deforumation_panning:
-                if armed_pan:
-                    self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
-                    self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
-                else:
-                    self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
-                    self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+            if armed_pan:
+                self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
+                self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
+            elif should_use_deforumation_panning and not is_paused_rendering:
+                self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+                self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
             else:
                 self.pan_X_Value_Text.SetLabel(str('%.2f' % float(deforum_translation_x)))
                 self.pan_Y_Value_Text.SetLabel(str('%.2f' % float(deforum_translation_y)))
 
-            if should_use_deforumation_zoomfov :
-                if armed_zoom:
-                    self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
-                    self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z_ARMED)))
-                    self.fov_slider.SetValue(int(FOV_Scale))
-                else:
-                    self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
-                    self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
-                    self.fov_slider.SetValue(int(FOV_Scale))
+            if armed_zoom:
+                self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
+                self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z_ARMED)))
+                self.fov_slider.SetValue(int(FOV_Scale))
+            elif should_use_deforumation_zoomfov and not is_paused_rendering:
+                self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
+                self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
+                self.fov_slider.SetValue(int(FOV_Scale))
             else:
                 self.zoom_slider.SetValue(int(float(deforum_translation_z)*100))
                 self.zoom_value_text.SetLabel(str('%.2f' % float(deforum_translation_z)))
                 self.fov_slider.SetValue(int(float(deforum_fov)))
 
-            if should_use_deforumation_rotation:
-                if armed_rotation:
-                    self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
-                    self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X_ARMED))
-                else:
-                    self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
-                    self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
+            if armed_rotation:
+                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
+                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X_ARMED))
+            elif should_use_deforumation_rotation and not is_paused_rendering:
+                self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
+                self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
             else:
                 self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_y)))
                 self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_x)))
 
-            if should_use_deforumation_tilt:
+            if should_use_deforumation_tilt and not is_paused_rendering:
                 self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Z)))
             else:
                 self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_z)))
 
-            if should_use_deforumation_noise:
+            if should_use_deforumation_noise and not is_paused_rendering:
                 self.noise_slider.SetValue(int(float(noise_multiplier)*100))
                 self.perlin_octave_slider.SetValue(int(Perlin_Octave_Value))
                 self.perlin_persistence_slider.SetValue(int(float(Perlin_Persistence_Value)*100))
@@ -4947,17 +5260,17 @@ class Mywin(wx.Frame):
 
 
 
-            if should_use_deforumation_strength :
+            if should_use_deforumation_strength and not is_paused_rendering:
                 self.strength_schedule_slider.SetValue(int(float(Strength_Scheduler) * 100))
             else:
                 self.strength_schedule_slider.SetValue(int(float(deforum_strength)*100))
 
-            if should_use_deforumation_cfg:
+            if should_use_deforumation_cfg and not is_paused_rendering:
                     self.cfg_schedule_slider.SetValue(int(CFG_Scale))
             else:
                 self.cfg_schedule_slider.SetValue(int(deforum_cfg))
 
-            if should_use_deforumation_cadence:
+            if should_use_deforumation_cadence and not is_paused_rendering:
                 self.cadence_slider.SetValue(int(Cadence_Schedule))
             else:
                 self.cadence_slider.SetValue(int(deforum_cadence))
@@ -4967,14 +5280,16 @@ class Mywin(wx.Frame):
             self.deforum_steps_value_info_text.SetLabel("Steps:" + str(deforum_steps))
             self.deforum_cfg_value_info_text.SetLabel("CFG:" + str(deforum_cfg))
             self.deforum_cadence_value_info_text.SetLabel("Cadence:" + str(deforum_cadence))
+            self.deforum_pdmotion_value_info_text.SetLabel(str(deforum_pdmotion_status))
             self.deforum_trx_value_info_text.SetLabel("Tr X:" + str('%.2f' % float(deforum_translation_x)))
             self.deforum_try_value_info_text.SetLabel("Tr Y:" + str('%.2f' % float(deforum_translation_y)))
             self.deforum_trz_value_info_text.SetLabel("Tr Z:" + str('%.2f' % float(deforum_translation_z)))
             self.deforum_rox_value_info_text.SetLabel("Ro X:" + str('%.2f' % float(deforum_rotation_x)))
             self.deforum_roy_value_info_text.SetLabel("Ro Y:" + str('%.2f' % float(deforum_rotation_y)))
             self.deforum_roz_value_info_text.SetLabel("Ro Z:" + str('%.2f' % float(deforum_rotation_z)))
-
-            time.sleep(0.25)
+            self.deforum_zero_pan_value_info_text.SetLabel(str(deforum_pan_status))
+            self.deforum_zero_zoom_value_info_text.SetLabel(str(deforum_zoom_status))
+            self.deforum_zero_rotation_value_info_text.SetLabel(str(deforum_rotation_status))
 
         total_recall_movements_inside_range_and_active = False
         total_recall_others_inside_range_and_active = False
@@ -4987,34 +5302,35 @@ class Mywin(wx.Frame):
             if should_use_total_recall_prompt:
                 total_recall_prompt_inside_range_and_active = True
 
-        if not should_use_total_recall:
+        if not should_use_total_recall and not should_use_total_recall_in_deforumation:
             self.setAllComponentValues()
         else:
-            if should_use_total_recall and not total_recall_movements_inside_range_and_active:
-                if armed_pan:
-                    self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
-                    self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
-                else:
-                    self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
-                    self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
-                if armed_rotation:
-                    self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
-                    self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X_ARMED))
-                else:
-                    self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
-                    self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
+            if not should_use_total_recall_in_deforumation:
+                if should_use_total_recall and not total_recall_movements_inside_range_and_active:
+                    if armed_pan:
+                        self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
+                        self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y_ARMED))
+                    else:
+                        self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
+                        self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+                    if armed_rotation:
+                        self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
+                        self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X_ARMED))
+                    else:
+                        self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
+                        self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
 
-                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Z)))
-                self.fov_slider.SetValue(int(FOV_Scale))
-                if armed_zoom:
-                    self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
-                else:
-                    self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
-                self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
-            if should_use_total_recall and not total_recall_others_inside_range_and_active:
-                self.cfg_schedule_slider.SetValue(int(CFG_Scale))
-                self.strength_schedule_slider.SetValue(int(float(Strength_Scheduler)*100))
-                self.cadence_slider.SetValue(int(Cadence_Schedule))
+                    self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Z)))
+                    self.fov_slider.SetValue(int(FOV_Scale))
+                    if armed_zoom:
+                        self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
+                    else:
+                        self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
+                    self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
+                if should_use_total_recall and not total_recall_others_inside_range_and_active:
+                    self.cfg_schedule_slider.SetValue(int(CFG_Scale))
+                    self.strength_schedule_slider.SetValue(int(float(Strength_Scheduler)*100))
+                    self.cadence_slider.SetValue(int(Cadence_Schedule))
 
         print("Ending Live Values Thread....")
     def OnExit(self, event):
@@ -5332,7 +5648,6 @@ class Package:
 
 if __name__ == '__main__':
 
-
     if len(sys.argv) < 2:
         print("Starting Deforumation with WebSocket communication")
         shouldUseNamedPipes = False
@@ -5346,9 +5661,9 @@ if __name__ == '__main__':
 
 
     if len(sys.argv) < 2:
-        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.7.0 using WebSockets)'
+        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.7.1 using WebSockets)'
         Mywin(None, windowlabel)
     else:
-        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.7.0 using named pipes)'
+        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.7.1 using named pipes)'
         Mywin(None, windowlabel)
     app.MainLoop()
