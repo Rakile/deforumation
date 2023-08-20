@@ -1,7 +1,13 @@
+import ast
 import asyncio
+import copy
+import time
 import websockets
 import pickle
-import time
+import threading
+import sys
+from pickle import HIGHEST_PROTOCOL
+
 needToUpdateMediator = False
 anim_args_copy = None
 args_copy = None
@@ -9,21 +15,23 @@ async def sendAsync(value):
     async with websockets.connect("ws://8.tcp.ngrok.io:16089") as websocket:
         try:
             await asyncio.wait_for(websocket.send(pickle.dumps(value)), timeout=10.0)
-            message = 0
-            #yield from asyncio.wait_for(message = await websocket.recv(), timeout=1)
             message = await asyncio.wait_for(websocket.recv(), timeout=10.0)
         except TimeoutError:
             print('timeout!')
-            return -1
-        if message == None:
-            message = 0
+        if message.startswith("[\'") and message.endswith("\']"):
+            message = ast.literal_eval(message)
+            if len(message) == 1:
+                message = str(message[0])
+
         return message
 
-def mediator_set_anim_args(anim_args, args):
+def mediator_set_anim_args(anim_args, args, root):
     global anim_args_copy
     global args_copy
+    global root_copy
     anim_args_copy = anim_args
     args_copy = args
+    root_copy = root
 
 def updateMediator(): #No validation is made that  the websocket server (Mediator.py is actually up and running)
     print("Was ordered to update time_string")
@@ -32,9 +40,9 @@ def updateMediator(): #No validation is made that  the websocket server (Mediato
         return_value = asyncio.run(sendAsync([1, "resume_timestring", anim_args_copy.resume_timestring]))
         #mediator_setValue("resume_timestring", anim_args_copy.resume_timestring)
     else:
-        print("Sending Values:" + str(args_copy.timestring))
-        return_value = asyncio.run(sendAsync([1, "resume_timestring", args_copy.timestring]))
-        #mediator_setValue("resume_timestring", args_copy.timestring) 
+        print("Sending Values:" + str(root_copy.timestring))
+        return_value = asyncio.run(sendAsync([1, "resume_timestring", root_copy.timestring]))
+        #mediator_setValue("resume_timestring", root_copy.timestring) 
     #OUTDIR is the same for either you resume or not.
     mediator_setValue("frame_outdir", args_copy.outdir)
 
