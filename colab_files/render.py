@@ -108,7 +108,7 @@ def get_resume_vars_d(folder, timestring, cadence,startframe=-1):
 
     # calculate next actual frame
     #next_frame = last_frame - 1
-    if (frame_count <= 1) or ((frame_count-cadence-1) <= 0):
+    if (frame_count < 1): # or ((frame_count-cadence-1) <= 0):
         turbo_prev_image, turbo_prev_frame_idx = None, 0
         turbo_next_image, turbo_next_frame_idx = None, 0
         # initialize vars
@@ -179,6 +179,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     if is_controlnet_enabled(controlnet_args):
         unpack_controlnet_vids(args, anim_args, controlnet_args)
     if usingDeforumation:
+        mediator_setValue("deforum_interrupted", 0) #A new genearation, reset interrupt flag
         CnSchKeys = ControlNetKeys(anim_args, controlnet_args)
         for cnIndex in range(5): #Save in order to be able to restore later (Deforumation might destroy them)
             keys = [
@@ -213,7 +214,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
             print("Using Parseq through Deforumation.")
         else:
-            print("should_use_deforumation_timestring:" + str(mediator_getValue("should_use_deforumation_timestring").strip().strip('\n')))
+            #print("should_use_deforumation_timestring:" + str(mediator_getValue("should_use_deforumation_timestring").strip().strip('\n')))
             if int(mediator_getValue("should_use_deforumation_timestring").strip().strip('\n')) == 1:
                 #Deforum is forced to start from the frame specified by deforum
                 frame_idx = int(mediator_getValue("start_frame").strip().strip('\n'))
@@ -406,6 +407,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     if args.use_init and args.init_image != None and args.init_image != '':
         _, mask_image = load_img(args.init_image,
+                                 args.init_image_box,
                                  shape=(args.W, args.H),
                                  use_alpha_as_mask=args.use_alpha_as_mask)
         mask_vals['video_mask'] = mask_image
@@ -783,9 +785,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 #If controlnet is being used, get the values from Deforumation
                 if usingDeforumation:
                     if int(mediator_getValue("should_use_total_recall").strip().strip('\n')):
-                        #mediator_setValue("total_recall_relive", frame_idx)
-                        mediator_setValue("total_recall_relive", tween_frame_idx)
                         print("Total recall (inside tween_creation) at frame " + str(tween_frame_idx))
+                        #mediator_setValue("total_recall_relive", frame_idx)
+                    mediator_setValue("total_recall_relive", tween_frame_idx)
 
                     if is_controlnet_enabled(controlnet_args):
                         for cnIndex in range(5):
@@ -1236,14 +1238,17 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             frame_idx += 1
 
         state.current_image = image
-        if not int(mediator_getValue("seed_changed").strip().strip('\n')):
-            mediator_setValue("seed", args.seed)
+        if usingDeforumation:
+            if not int(mediator_getValue("seed_changed").strip().strip('\n')):
+                mediator_setValue("seed", args.seed)
 
-        if int(mediator_getValue("should_use_total_recall").strip().strip('\n')):
-            mediator_setValue("total_recall_relive", frame_idx)
-            print("Total recall (last to get seed) at frame " + str(frame_idx))
-            args.seed = int(mediator_getValue("seed").strip().strip('\n'))
-            print("Using seed:" + str())
+            if int(mediator_getValue("should_use_total_recall").strip().strip('\n')):
+                mediator_setValue("total_recall_relive", frame_idx)
+                print("Total recall (last to get seed) at frame " + str(frame_idx))
+                args.seed = int(mediator_getValue("seed").strip().strip('\n'))
+                print("Using seed:" + str())
+            else:
+                args.seed = next_seed(args, root)
         else:
             args.seed = next_seed(args, root)
 
@@ -1259,6 +1264,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         setattr(controlnet_args, f'cn_{currCnIndex}_threshold_a', cnu[f'cn_{currCnIndex}_threshold_a'])
         setattr(controlnet_args, f'cn_{currCnIndex}_threshold_b', cnu[f'cn_{currCnIndex}_threshold_b'])
 
+    if usingDeforumation:
+        mediator_setValue("deforum_interrupted", 1)
 
     if predict_depths and not keep_in_vram:
         depth_model.delete_model()  # handles adabins too
