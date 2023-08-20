@@ -2,34 +2,25 @@ import asyncio
 import websockets
 import pickle
 import time
-import win32pipe, win32file, pywintypes
-
+import ast
 needToUpdateMediator = False
 anim_args_copy = None
 args_copy = None
 root_copy = None
 async def sendAsync(value):
-    handle = win32file.CreateFile('\\\\.\\pipe\\Deforum', win32file.GENERIC_READ | win32file.GENERIC_WRITE, 0, None,
-                                  win32file.OPEN_EXISTING, 0, None)
-    res = win32pipe.SetNamedPipeHandleState(handle, win32pipe.PIPE_READMODE_MESSAGE, None, None)
-    bytesToSend = pickle.dumps(value)
-    win32file.WriteFile(handle, bytesToSend)
-    message = win32file.ReadFile(handle, 64 * 1024)
+    async with websockets.connect("ws://localhost:8765") as websocket:
+        # await websocket.send(pickle.dumps(value))
+        try:
+            await asyncio.wait_for(websocket.send(pickle.dumps(value)), timeout=10.0)
+            message = await asyncio.wait_for(websocket.recv(), timeout=10.0)
+        except TimeoutError:
+            print('timeout!')
+        if message.startswith("[\'") and message.endswith("\']"):
+            message = ast.literal_eval(message)
+            if len(message) == 1:
+                message = str(message[0])
 
-    #async with websockets.connect("ws://localhost:8765") as websocket:
-    #    try:
-    #        await asyncio.wait_for(websocket.send(pickle.dumps(value)), timeout=10.0)
-    #        message = 0
-            #yield from asyncio.wait_for(message = await websocket.recv(), timeout=1)
-    #        message = await asyncio.wait_for(websocket.recv(), timeout=10.0)
-    #    except TimeoutError:
-    #        print('timeout!')
-    #        return -1
-    #    if message == None:
-    #        message = 0
-    #    return message
-    win32file.CloseHandle(handle)
-    return message[1].decode()
+        return message
 
 def mediator_set_anim_args(anim_args, args, root):
     global anim_args_copy
@@ -67,8 +58,8 @@ def mediator_getValue(param):
         except Exception as e:
             print("Deforum Mediator Error:" + str(e))
             print("...while trying to get parameter ("+str(param)+")")
-            print("The Deforumation Mediator, is probably not connected (waiting 0.2 seconds, before trying to reconnect...)")
-            time.sleep(0.2)
+            print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)")
+            time.sleep(5)
             needToUpdateMediator = True
 
 def mediator_setValue(param, value):
@@ -85,6 +76,6 @@ def mediator_setValue(param, value):
         except Exception as e:
             print("Deforum Mediator Error:" + str(e))
             print("...while trying to send parameter ("+str(param)+") with value("+str(value)+")")
-            print("The Deforumation Mediator, is probably not connected (waiting 0.2 seconds, before trying to reconnect...)")
-            time.sleep(0.2)
+            print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)")
+            time.sleep(5)
             needToUpdateMediator = True
