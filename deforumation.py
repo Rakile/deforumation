@@ -149,6 +149,8 @@ zero_frame_rotate_progress_string = "None"
 zero_pan_current_settings = "\"0-P: None\""
 zero_zoom_current_settings = "\"0-Z: None\""
 zero_rotation_current_settings = "\"0-R: None\""
+currently_active_motion = -1
+is_static_motion = True
 async def sendAsync_special(value):
     if shouldUseNamedPipes:
         bufSize = 64 * 1024
@@ -675,6 +677,8 @@ class Mywin(wx.Frame):
         predefined_motions_name = []
         predefined_motions_gif = []
         self.predefined_motions_line = []
+        self.ctrl = []
+        self.anim = []
         if os.path.isfile(deforumationPredefinedMotionPathSettings):
             deforumFile = open(deforumationPredefinedMotionPathSettings, 'r')
             lines = deforumFile.readlines()
@@ -693,14 +697,28 @@ class Mywin(wx.Frame):
                 predefined_motions_gif.append(motionGif)
                 self.predefined_motions_line.append(motion[motionGifEnd+1+motionNameEnd+1:].strip("\n").strip(" "))
                 if os.path.isfile(motionGif):
-                    self.anim = Animation(motionGif)  # , type=wx.adv.ANIMATION_TYPE_GIF)
-                    self.ctrl = AnimationCtrl(self.p2, -1, self.anim, pos=(motion_index * self.anim.GetSize()[0] + motion_index * 20, 10))
-                    self.ctrl.SetLabel("IMAGE_MOTION_"+str(motion_index))
-                    self.ctrl.Bind(wx.EVT_LEFT_UP, self.OnClicked)
-                    self.ctrl.Bind(wx.EVT_RIGHT_UP, self.OnClicked)
-                    self.ctrl.SetToolTip(motionName)
-                    self.ctrl.Play()
-                    self.bSizer.Add(self.ctrl, 0, wx.ALL, 5)
+                    self.anim.append(Animation(motionGif))  # , type=wx.adv.ANIMATION_TYPE_GIF)
+                    self.ctrl.append(AnimationCtrl(self.p2, -1, self.anim[motion_index], pos=(motion_index * self.anim[motion_index].GetSize()[0] + motion_index * 20, 10)))
+                    self.ctrl[motion_index].SetLabel("IMAGE_MOTION_"+str(motion_index))
+                    self.ctrl[motion_index].Bind(wx.EVT_LEFT_UP, self.OnClicked)
+                    self.ctrl[motion_index].Bind(wx.EVT_RIGHT_UP, self.OnClicked)
+                    self.ctrl[motion_index].SetToolTip(motionName)
+                    self.ctrl[motion_index].Play()
+                    anImage = self.anim[motion_index].GetFrame(0)
+                    x = int(self.anim[motion_index].GetSize()[0])
+                    y = int(self.anim[motion_index].GetSize()[1])
+                    anImage.SetRGB(wx.Rect(0, 0, x, 5), 255, 0, 0)
+                    anImage.SetRGB(wx.Rect(0, y-5, x, 5), 255, 0, 0)
+                    anImage.SetRGB(wx.Rect(0, 0, 5, y), 255, 0, 0)
+                    anImage.SetRGB(wx.Rect(x-5, 0, 5, y), 255, 0, 0)
+                    self.ctrl[motion_index].SetInactiveBitmap(anImage.ConvertToBitmap())
+                    #wx.Image.ConvertToBitmap()
+                    #anImage = aBitmap.ConvertToImage()
+                    #imgColors = anImage.GetRGB()
+                    #wx.Image.SetRGB(imgColors)
+                    #self.ctrl[motion_index].GetAnimation()
+
+                    self.bSizer.Add(self.ctrl[motion_index], 0, wx.ALL, 5)
                 motion_index += 1
         self.p2.SetSizer(self.bSizer)
         self.predefined_motion_choice = wx.Choice(self.panel, id=wx.ID_ANY,  pos=(int(screenWidth / 2) + 422, 59),size=(240,40), choices=predefined_motions_name, style=0, name="predefinedmotion")
@@ -2098,6 +2116,8 @@ class Mywin(wx.Frame):
             self.zoom_slider.GetEventHandler().ProcessEvent(evt)
 
 
+    def startMotion(self, motionIndex):
+        self.ctrl[motionIndex].Play()
 
     def setValuesFromSavedFrame(self, frameNumber):
         global Translation_X
@@ -3574,6 +3594,8 @@ class Mywin(wx.Frame):
         global zero_pan_current_settings
         global zero_zoom_current_settings
         global zero_rotation_current_settings
+        global currently_active_motion
+        global is_static_motion
         btn = event.GetEventObject().GetLabel()
 
         #Initial values
@@ -3790,37 +3812,50 @@ class Mywin(wx.Frame):
                 motionNumber = self.predefined_motion_choice.GetSelection()
             else:
                 motionNumber = int(btn[13:])
-            print("Using Predefined Values:" + str(self.predefined_motions_line[motionNumber]))
-            FPS_end = self.predefined_motions_line[motionNumber].find(',')
-            FPS = int(self.predefined_motions_line[motionNumber][0:FPS_end].strip(' '))
-            predefValues = self.predefined_motions_line[motionNumber][FPS_end+1:].replace(":",",")
-            predefValues = ast.literal_eval(predefValues)
-            if type(predefValues) is tuple:
-                shouldContinue = True
-                if FPS != int(self.replay_fps_input_box.GetValue()):
-                    dlg = wx.MessageDialog(self,
-                                           "This motion was done for " + str(
-                                               FPS) + " FPS. If you aim to use " + self.replay_fps_input_box.GetValue() + " FPS, this motion will not be correct. Do you want to continue?",
-                                           "Mismatching FPS", wx.YES_NO | wx.ICON_WARNING)
-                    result = dlg.ShowModal()
-                    if result == wx.ID_YES:
-                        shouldContinue = True
-                    else:
-                        shouldContinue = False
-                if shouldContinue:
-                    self.writeValue("prepare_motion", predefValues)
-                    self.writeValue("start_motion", 1)
-                    print("many")
+            if currently_active_motion != motionNumber:
+                if currently_active_motion != -1 and (currently_active_motion <= (len(self.ctrl)-1)):
+                    self.ctrl[currently_active_motion].Play()
+                print("Using Predefined Values:" + str(self.predefined_motions_line[motionNumber]))
+                FPS_end = self.predefined_motions_line[motionNumber].find(',')
+                FPS = int(self.predefined_motions_line[motionNumber][0:FPS_end].strip(' '))
+                predefValues = self.predefined_motions_line[motionNumber][FPS_end+1:].replace(":",",")
+                predefValues = ast.literal_eval(predefValues)
+                if type(predefValues) is tuple:
+                    shouldContinue = True
+                    if FPS != int(self.replay_fps_input_box.GetValue()):
+                        dlg = wx.MessageDialog(self,
+                                               "This motion was done for " + str(
+                                                   FPS) + " FPS. If you aim to use " + self.replay_fps_input_box.GetValue() + " FPS, this motion will not be correct. Do you want to continue?",
+                                               "Mismatching FPS", wx.YES_NO | wx.ICON_WARNING)
+                        result = dlg.ShowModal()
+                        if result == wx.ID_YES:
+                            shouldContinue = True
+                        else:
+                            shouldContinue = False
+                    if shouldContinue:
+                        is_static_motion = False
+                        self.writeValue("prepare_motion", predefValues)
+                        self.writeValue("start_motion", 1)
+                        self.ctrl[motionNumber].Stop()
+                        currently_active_motion = motionNumber
+                else:
+                    is_static_motion = True
+                    self.writeValue("start_motion", 0)
+                    if not total_recall_movements_inside_range_and_active:
+                        Translation_X = float(predefValues[0])
+                        Translation_Y = float(predefValues[1])
+                        Translation_Z = float(predefValues[2])
+                        Rotation_3D_X = float(predefValues[4])
+                        Rotation_3D_Y = float(predefValues[3])
+                        Rotation_3D_Z = float(predefValues[5])
+                        self.sendAllMotionValues()
+                        self.ctrl[motionNumber].Stop()
+                        currently_active_motion = motionNumber
             else:
                 self.writeValue("start_motion", 0)
-                if not total_recall_movements_inside_range_and_active:
-                    Translation_X = float(predefValues[0])
-                    Translation_Y = float(predefValues[1])
-                    Translation_Z = float(predefValues[2])
-                    Rotation_3D_X = float(predefValues[4])
-                    Rotation_3D_Y = float(predefValues[3])
-                    Rotation_3D_Z = float(predefValues[5])
-                    self.sendAllMotionValues()
+                if currently_active_motion != -1 and (currently_active_motion <= (len(self.ctrl)-1)):
+                    self.ctrl[currently_active_motion].Play()
+                currently_active_motion = -1
         elif btn == "Create pre-defined motion":
             if create_gif_animation_on_preview == 0:
                 create_gif_animation_on_preview = 1
@@ -5120,6 +5155,7 @@ class Mywin(wx.Frame):
         global zero_pan_active
         global zero_zoom_active
         global zero_rotate_active
+        global currently_active_motion
         frame_has_changed = True
         recalledFrame = -1
         current_frame_live = int(readValue("start_frame"))
@@ -5209,6 +5245,12 @@ class Mywin(wx.Frame):
 
                 time.sleep(0.25)
                 continue
+
+            if not is_inside_a_motion and not is_static_motion and currently_active_motion != -1:
+                if (currently_active_motion <= (len(self.ctrl)-1)):
+                    wx.CallAfter(self.startMotion, currently_active_motion)
+                currently_active_motion = -1
+
 
             if armed_pan:
                 self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X_ARMED))
