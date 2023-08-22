@@ -200,7 +200,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     #Deforumation has a chance to overwrite the keys values, if it is using parseq
     if usingDeforumation:
-        print("Made for Deforumation version: 0.7.0")
+        print("Made for Deforumation version: 0.7.1")
         print("------------------------------------")
         if int(mediator_getValue("use_parseq").strip().strip('\n')) == 1:
             #parseq_adapter.use_parseq = 1
