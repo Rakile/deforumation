@@ -300,6 +300,20 @@ def readValue(param):
             #print("The Deforumation Mediator, is probably not connected (waiting 5 seconds, before trying to reconnect...)")
             time.sleep(0.05)
 
+def askRange(parent=None, message=''):
+
+    dlg = wx.Dialog(parent, title = message, size = (190,200))
+    panel = wx.Panel(dlg)
+    lblList = ['Not Applicable', 'Far Range', 'Medium Range', 'Close Range', 'Special Range']
+    rbox = wx.RadioBox(panel, label='Motion Range Type', pos=(25, 5), choices=lblList, majorDimension=0, style=wx.RA_SPECIFY_ROWS)
+    #rbox.Bind(wx.EVT_RADIOBOX, OnRadioBoxCN)
+    wx.Button(panel, wx.ID_OK, label="ok", size=(50, 20), pos=(55, 140), style=wx.RA_SPECIFY_COLS)
+
+    okORcancel = dlg.ShowModal()
+    result = rbox.GetString(rbox.GetSelection())
+    dlg.Destroy()
+    return result
+
 def ask(parent=None, message='', default_value='', caption="Important message"):
     dlg = wx.TextEntryDialog(parent, message, value=default_value, caption=caption)
     okORcancel = dlg.ShowModal()
@@ -664,67 +678,131 @@ class render_window(wx.Frame):
 
 
 class Mywin(wx.Frame):
-    def loadPredefinedMotions(self):
+    def loadPredefinedMotions(self, filterFPS = None, filterRange = None):
         #ANIMATED MOTION "BUTTONS"
         if self.p2 != None:
             self.p2.Destroy()
-        self.p2 = wx.lib.scrolledpanel.ScrolledPanel(self.panel, -1, size=(602, 110), pos=(int(screenWidth / 2) + 13, 280),style=wx.SIMPLE_BORDER)
+
+        self.p2 = wx.lib.scrolledpanel.ScrolledPanel(self.panel, -1, size=(602, 110), pos=(int(screenWidth / 2) + 13, 304),style=wx.SIMPLE_BORDER)
         self.p2.SetupScrolling()
         self.p2.SetBackgroundColour('#FFFFFF')
         self.bSizer = wx.BoxSizer(wx.HORIZONTAL)
 
         #PRE DEFINED MOTIONS
-        predefined_motions_name = []
+        self.predefined_motions_name = []
         predefined_motions_gif = []
         self.predefined_motions_line = []
+        self.predefined_motions_fps_line = []
+        #self.predefined_motions_range_line = []
         self.ctrl = []
         self.anim = []
+
+        self.fps_filters = []
+        self.fps_filters.append("ALL AND ANY FPS")
+
+        self.range_filters = []
+        self.range_filters.append("Any Range")
+
+        self.predefined_motions_fps_line.append(-2)
+
         if os.path.isfile(deforumationPredefinedMotionPathSettings):
             deforumFile = open(deforumationPredefinedMotionPathSettings, 'r')
             lines = deforumFile.readlines()
             deforumFile.close()
             motion_index = 0
             for motion in lines:
-                if motion.startswith("#"):
+                if motion.startswith("#") or len(motion) < 5:
                     continue
                 motionNameStart = 0
                 motionNameEnd = motion.find(",")
                 motionName = motion[motionNameStart:motionNameEnd]
-                predefined_motions_name.append(motionName)
+
+                countParantheses = motionName.count('(')
+                motionRangeName = "Not Applicable"
+                if countParantheses == 2:
+                    motionNameRangeIndexStart = motionName.rfind('(')
+                    motionNameRangeIndexEnd = motionName.rfind(')')
+                    motionRangeName = motionName[motionNameRangeIndexStart+1:motionNameRangeIndexEnd]
+                    if not (str(motionRangeName)) in self.range_filters:
+                        self.range_filters.append(motionRangeName)
 
                 motionGifEnd = motion[motionNameEnd+1:].find(",")
                 motionGif = motion[motionNameEnd+1:motionGifEnd+motionNameEnd+1].lstrip().rstrip()
                 predefined_motions_gif.append(motionGif)
-                self.predefined_motions_line.append(motion[motionGifEnd+1+motionNameEnd+1:].strip("\n").strip(" "))
-                if os.path.isfile(motionGif):
-                    self.anim.append(Animation(motionGif))  # , type=wx.adv.ANIMATION_TYPE_GIF)
-                    self.ctrl.append(AnimationCtrl(self.p2, -1, self.anim[motion_index], pos=(motion_index * self.anim[motion_index].GetSize()[0] + motion_index * 20, 10)))
-                    self.ctrl[motion_index].SetLabel("IMAGE_MOTION_"+str(motion_index))
-                    self.ctrl[motion_index].Bind(wx.EVT_LEFT_UP, self.OnClicked)
-                    self.ctrl[motion_index].Bind(wx.EVT_RIGHT_UP, self.OnClicked)
-                    self.ctrl[motion_index].SetToolTip(motionName)
-                    self.ctrl[motion_index].Play()
-                    anImage = self.anim[motion_index].GetFrame(0)
-                    x = int(self.anim[motion_index].GetSize()[0])
-                    y = int(self.anim[motion_index].GetSize()[1])
-                    anImage.SetRGB(wx.Rect(0, 0, x, 5), 255, 0, 0)
-                    anImage.SetRGB(wx.Rect(0, y-5, x, 5), 255, 0, 0)
-                    anImage.SetRGB(wx.Rect(0, 0, 5, y), 255, 0, 0)
-                    anImage.SetRGB(wx.Rect(x-5, 0, 5, y), 255, 0, 0)
-                    self.ctrl[motion_index].SetInactiveBitmap(anImage.ConvertToBitmap())
-                    #wx.Image.ConvertToBitmap()
-                    #anImage = aBitmap.ConvertToImage()
-                    #imgColors = anImage.GetRGB()
-                    #wx.Image.SetRGB(imgColors)
-                    #self.ctrl[motion_index].GetAnimation()
 
-                    self.bSizer.Add(self.ctrl[motion_index], 0, wx.ALL, 5)
-                motion_index += 1
+                FPS_end = motion[motionGifEnd+motionNameEnd+1+1:].find(',')
+                FPS = int(motion[motionGifEnd+motionNameEnd+1+1:motionGifEnd+motionNameEnd+1+1+FPS_end].strip(' '))
+                if FPS == -1:
+                    if countParantheses == 1:
+                        motionNameRangeIndexStart = motionName.rfind('(')
+                        motionNameRangeIndexEnd = motionName.rfind(')')
+                        motionRangeName = motionName[motionNameRangeIndexStart + 1:motionNameRangeIndexEnd]
+                        if not (str(motionRangeName)) in self.range_filters:
+                            self.range_filters.append(motionRangeName)
+                    if not "FPS INDEPENDENT" in self.fps_filters:
+                        self.fps_filters.append("FPS INDEPENDENT")
+                        self.predefined_motions_fps_line.append(-1)
+                else:
+                    if not (str(FPS)+" FPS") in self.fps_filters:
+                        self.fps_filters.append(str(FPS)+" FPS")
+                        self.predefined_motions_fps_line.append(FPS)
+                if ((filterFPS == FPS) or (filterFPS == -2) or (filterFPS == None)) and ((filterRange == "Any Range") or (filterRange == motionRangeName) or (filterFPS == None)):
+                    self.predefined_motions_line.append(motion[motionGifEnd+1+motionNameEnd+1:].strip("\n").strip(" "))
+                    self.predefined_motions_name.append(motionName)
+                    if os.path.isfile(motionGif):
+                        #self.anim.append(Animation(motionGif))  # , type=wx.adv.ANIMATION_TYPE_GIF)
+                        animation = Animation(motionGif)
+                        #self.ctrl.append(AnimationCtrl(self.p2, -1, self.anim[motion_index], pos=(motion_index * self.anim[motion_index].GetSize()[0] + motion_index * 20, 10)))
+                        self.ctrl.append(AnimationCtrl(self.p2, -1, animation, pos=(motion_index * animation.GetSize()[0] + motion_index * 20, 10)))
+                        self.ctrl[motion_index].SetLabel("IMAGE_MOTION_"+str(motion_index))
+                        self.ctrl[motion_index].Bind(wx.EVT_LEFT_UP, self.OnClicked)
+                        self.ctrl[motion_index].Bind(wx.EVT_RIGHT_UP, self.OnClicked)
+                        self.ctrl[motion_index].SetToolTip(motionName)
+                        self.ctrl[motion_index].Play()
+                        #anImage = self.anim[motion_index].GetFrame(0)
+                        #x = int(self.anim[motion_index].GetSize()[0])
+                        #y = int(self.anim[motion_index].GetSize()[1])
+                        anImage = animation.GetFrame(0)
+                        x = int(animation.GetSize()[0])
+                        y = int(animation.GetSize()[1])
+                        anImage.SetRGB(wx.Rect(0, 0, x, 5), 255, 0, 0)
+                        anImage.SetRGB(wx.Rect(0, y-5, x, 5), 255, 0, 0)
+                        anImage.SetRGB(wx.Rect(0, 0, 5, y), 255, 0, 0)
+                        anImage.SetRGB(wx.Rect(x-5, 0, 5, y), 255, 0, 0)
+                        self.ctrl[motion_index].SetInactiveBitmap(anImage.ConvertToBitmap())
+                        #wx.Image.ConvertToBitmap()
+                        #anImage = aBitmap.ConvertToImage()
+                        #imgColors = anImage.GetRGB()
+                        #wx.Image.SetRGB(imgColors)
+                        #self.ctrl[motion_index].GetAnimation()
+                        self.bSizer.Add(self.ctrl[motion_index], 0, wx.ALL, 5)
+                    else:
+                        #self.anim.append(Animation(wx.Animation))
+                        self.ctrl.append(AnimationCtrl(self.p2))
+                    motion_index += 1
         self.p2.SetSizer(self.bSizer)
-        self.predefined_motion_choice = wx.Choice(self.panel, id=wx.ID_ANY,  pos=(int(screenWidth / 2) + 422, 59),size=(240,40), choices=predefined_motions_name, style=0, name="predefinedmotion")
+
+        if self.predefined_motion_choice == None:
+            self.predefined_motion_choice = wx.Choice(self.panel, id=wx.ID_ANY,  pos=(int(screenWidth / 2) + 422, 59),size=(240,40), choices=self.predefined_motions_name, style=0, name="predefinedmotion")
+        else:
+            self.predefined_motion_choice.SetItems(self.predefined_motions_name)
         self.predefined_motion_choice.Bind(wx.EVT_CHOICE, self.OnMotionChoice)
-        self.predefined_motion_choice.SetSelection(0)
         self.predefined_motion_choice.SetToolTip("Here you can choose a pre-defined motion, which then can be triggered by pushing the \"Use predefined motion\"-button. You can also choose to use the same motions below, by clicking the animated GIFs.")
+
+        #Create a dropdown box with different FPS filtering values that was taken from available names
+        if self.predefined_motion_fps_choice == None:
+            self.predefined_motion_fps_choice = wx.Choice(self.panel, id=wx.ID_ANY,  pos=(int(screenWidth / 2) + 13, 280), size=(140,40), choices=self.fps_filters, style=0, name="FPS Filter")
+        else:
+            self.predefined_motion_fps_choice.SetItems(self.fps_filters)
+        self.predefined_motion_fps_choice.Bind(wx.EVT_CHOICE, self.OnFPSChoice)
+
+        #Create a dropdown box with different Range filtering values that was taken from available range names in pre-defined motion file
+        if self.predefined_motion_range_choice == None:
+            self.predefined_motion_range_choice = wx.Choice(self.panel, id=wx.ID_ANY,  pos=(int(screenWidth / 2) + 160, 280), size=(140,40), choices=self.range_filters, style=0, name="FPS Filter")
+        else:
+            self.predefined_motion_range_choice.SetItems(self.range_filters)
+        self.predefined_motion_range_choice.Bind(wx.EVT_CHOICE, self.OnRangeChoice)
+
 
     def __init__(self, parent, title):
         #global pmob
@@ -971,7 +1049,13 @@ class Mywin(wx.Frame):
         #CREATE AND LOAD PRE-DEFINED MOTIONS
         self.p2 = None
         self.predefinedMotions = wx.StaticBox(self.panel, id=wx.ID_ANY, label='Predefined Motions', size=(300, 103), pos=(int(screenWidth / 2) + 416, 38))  # orient=wx.HORIZONTAL)
+        self.predefined_motion_fps_choice = None
+        self.predefined_motion_range_choice = None
+        self.predefined_motion_choice = None
         self.loadPredefinedMotions()
+        self.predefined_motion_choice.SetSelection(0)
+        self.predefined_motion_fps_choice.SetSelection(0)
+        self.predefined_motion_range_choice.SetSelection(0)
 
         #USE PRE-DEFINED MOTION BUTTON
         self.use_predefined_motion_button = wx.Button(self.panel, label="Use predefined motion", pos=(int(screenWidth / 2) + 422, 88))
@@ -1761,9 +1845,33 @@ class Mywin(wx.Frame):
             self.bezier_points_input_box.SetValue("(.42, 0), (.58, 1)")
 
     def OnMotionChoice(self, event):
-        print("Selection index:" + str(self.predefined_motion_choice.GetSelection()))
+        #print("Selection index:" + str(self.predefined_motion_choice.GetSelection()))
         index = self.predefined_motion_choice.GetSelection()
-        print("Values:" + str(self.predefined_motions_line[index]))
+        #print("Values:" + str(self.predefined_motions_line[index]))
+    def OnFPSChoice(self, event):
+        #print("Selection index:" + str(self.predefined_motion_fps_choice.GetSelection()))
+        indexFPS = self.predefined_motion_fps_choice.GetSelection()
+        #print("Values:" + str(self.predefined_motions_fps_line[indexFPS]))
+
+        indexRange = self.predefined_motion_range_choice.GetSelection()
+
+        self.loadPredefinedMotions(filterFPS=self.predefined_motions_fps_line[indexFPS], filterRange=self.range_filters[indexRange])
+        self.predefined_motion_choice.SetSelection(0)
+        self.predefined_motion_fps_choice.SetSelection(indexFPS)
+        self.predefined_motion_range_choice.SetSelection(indexRange)
+
+    def OnRangeChoice(self, event):
+        #print("Selection index:" + str(self.predefined_motion_range_choice.GetSelection()))
+        indexRange = self.predefined_motion_range_choice.GetSelection()
+        #print("Values:" + str(self.range_filters[indexRange]))
+
+        indexFPS = self.predefined_motion_fps_choice.GetSelection()
+
+        self.loadPredefinedMotions(filterRange=self.range_filters[indexRange], filterFPS=self.predefined_motions_fps_line[indexFPS])
+        self.predefined_motion_choice.SetSelection(0)
+        self.predefined_motion_range_choice.SetSelection(indexRange)
+        self.predefined_motion_fps_choice.SetSelection(indexFPS)
+
     def OnComponentChoice(self, event):
         print("You choose:"+ self.component_chooser_choice.GetString(self.component_chooser_choice.GetSelection()))
         selectionString = self.component_chooser_choice.GetString(self.component_chooser_choice.GetSelection())
@@ -4690,14 +4798,17 @@ class Mywin(wx.Frame):
                             ]
                             outPath = ""
                             motionName = ""
+                            motionRange = "Not Applicable"
                             if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                                 motionName = ask(message = "What will the motion be called? (push cancel to abort):", caption = "FPS dependent... (this is going to be a " + str(replayFPS) + " FPS motion).")
                                 if motionName != "":
-                                    outPath = gif_animation_output_path + motionName.replace(' ', '_') + "_" + "(" + str(replayFPS) + " FPS).gif"
+                                    motionRange = askRange(message="What range defines the motion?")
+                                    outPath = gif_animation_output_path + motionName.replace(' ', '_') + "_" + "(" + str(replayFPS) + " FPS)" + "("+str(motionRange)+")" + ".gif"
                             else:
                                 motionName = ask(message = "What will the motion be called? (push cancel to abort):", caption = "This motion is FPS independent.")
                                 if motionName != "":
-                                    outPath = gif_animation_output_path + motionName.replace(' ', '_') + ".gif"
+                                    motionRange = askRange(message="What range defines the motion?")
+                                    outPath = gif_animation_output_path + motionName.replace(' ', '_') + "("+str(motionRange)+")" + ".gif"
 
                             if outPath != "":
                                 cmd.append(outPath)
@@ -4719,7 +4830,7 @@ class Mywin(wx.Frame):
                                         else:
                                             deforumFile = open(deforumationPredefinedMotionPathSettings, 'w')
 
-                                        motionLine = "\n" + motionName + " (" + str(replayFPS) + " FPS)" + ", "
+                                        motionLine = "\n" + motionName + " (" + str(replayFPS) + " FPS)" + "("+str(motionRange)+")" + ", "
                                         motionLine += outPath + " ," + str(replayFPS) + " ,"
                                         for index in range(replayFrom, replayTo):
                                             motionLine += "["
@@ -4738,13 +4849,17 @@ class Mywin(wx.Frame):
                                         #stdout, stderr = process.communicate()
                                         self.SetLabel(windowlabel + " -- Pre-defined motion created.")
                                         self.loadPredefinedMotions()
+                                        self.predefined_motion_choice.SetSelection(0)
+                                        self.predefined_motion_fps_choice.SetSelection(0)
+                                        self.predefined_motion_range_choice.SetSelection(0)
+
                                     else:
                                         if os.path.isfile(deforumationPredefinedMotionPathSettings):
                                             deforumFile = open(deforumationPredefinedMotionPathSettings, 'a')
                                         else:
                                             deforumFile = open(deforumationPredefinedMotionPathSettings, 'w')
 
-                                        motionLine = "\n"+motionName+", "
+                                        motionLine = "\n"+motionName + "("+str(motionRange)+")" +", "
                                         motionLine += outPath + " ," + "-1" + " ,"
                                         motionLine += "["
                                         motionLine += str('%.2f' % Translation_X) + ","
@@ -4761,6 +4876,9 @@ class Mywin(wx.Frame):
                                         print("Done creating GIF-animation (FPS Dependent)")
                                         self.SetLabel(windowlabel + " -- Pre-defined motion created.")
                                         self.loadPredefinedMotions()
+                                        self.predefined_motion_choice.SetSelection(0)
+                                        self.predefined_motion_fps_choice.SetSelection(0)
+                                        self.predefined_motion_range_choice.SetSelection(0)
                             else:
                                 print("Canceled creating GIF-animation")
                         else:
@@ -5703,9 +5821,9 @@ if __name__ == '__main__':
 
 
     if len(sys.argv) < 2:
-        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.7.1 using WebSockets)'
+        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.7.2 using WebSockets)'
         Mywin(None, windowlabel)
     else:
-        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.7.1 using named pipes)'
+        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.7.2 using named pipes)'
         Mywin(None, windowlabel)
     app.MainLoop()
