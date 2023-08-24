@@ -200,7 +200,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     #Deforumation has a chance to overwrite the keys values, if it is using parseq
     if usingDeforumation:
-        print("Made for Deforumation version: 0.7.1")
+        print("Made for Deforumation version: 0.7.3")
         print("------------------------------------")
         if int(mediator_getValue("use_parseq").strip().strip('\n')) == 1:
             #parseq_adapter.use_parseq = 1
@@ -358,7 +358,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             else:
                 start_frame = frame_idx
             mediator_setValue("total_recall_relive", frame_idx)
-            args.seed = int(mediator_getValue("seed").strip().strip('\n'))
+            args.seed = int(mediator_getValue("seed").strip().strip('\n'))            
             state.job_count = anim_args.max_frames
 
         else:        
@@ -373,8 +373,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 turbo_prev_image, turbo_prev_frame_idx = prev_img, prev_frame
                 turbo_next_image, turbo_next_frame_idx = next_img, next_frame
 
-        # advance start_frame to next frame
-        #start_frame = next_frame + 1
+            # advance start_frame to next frame
+            start_frame = next_frame + 1
+            frame_idx = start_frame
 
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to write the current resume frame properties?
         mediator_setValue("total_recall_relive", frame_idx)
@@ -550,6 +551,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     if args.seed == -1:
                         args.seed = random.randint(0, 2**32 - 1)
                         print("Using random seed:"+str(args.seed))
+                    elif args.seed_behavior == 'iter':
+                        args.seed = args.seed -1
+                    mediator_setValue("seed_changed", 0)
+
 
                     state.job_count = anim_args.max_frames
                     last_preview_frame = frame_idx                
@@ -738,6 +743,14 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
                 mediator_setValue("total_recall_relive", frame_idx)
                 args.seed = int(mediator_getValue("seed").strip().strip('\n'))
+
+                if args.seed == -1:
+                    args.seed = random.randint(0, 2**32 - 1)
+                    print("Using random seed:"+str(args.seed))
+                elif args.seed_behavior == 'iter':
+                    args.seed = args.seed -1
+                mediator_setValue("seed_changed", 0)
+
                 state.job_count = anim_args.max_frames
 
                 state.job_count = anim_args.max_frames
@@ -755,6 +768,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             #print("previous_turbo_steps:"+str(previous_turbo_steps))
 
 
+        didTween = False
         if turbo_steps > 1:
             tween_frame_start_idx = max(start_frame, frame_idx - turbo_steps) #Maybe need to fix .png image #usingDeforumation
             cadence_flow = None
@@ -781,13 +795,19 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                     redo_flow_factor = int(mediator_getValue("generation_flow_factor").strip().strip('\n'))
                     print("Enabling optical flow")
 
+            #print(".......................................")
+            #print("Just before tween loop:")
+            #print("tween_frame_start_idx:" +str(tween_frame_start_idx))
+            #print("frame_idx:" +str(frame_idx))
+            #print(".......................................")
             for tween_frame_idx in range(tween_frame_start_idx, frame_idx):
+                didTween = True
                 #If controlnet is being used, get the values from Deforumation
                 if usingDeforumation:
                     if int(mediator_getValue("should_use_total_recall").strip().strip('\n')):
-                        print("Total recall (inside tween_creation) at frame " + str(tween_frame_idx))
+                        print("Total recall (inside tween_creation) at frame " + str(tween_frame_idx-1))
                         #mediator_setValue("total_recall_relive", frame_idx)
-                    mediator_setValue("total_recall_relive", tween_frame_idx)
+                        mediator_setValue("total_recall_relive", tween_frame_idx-1)
 
                     if is_controlnet_enabled(controlnet_args):
                         for cnIndex in range(5):
@@ -1105,7 +1125,15 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         optical_flow_redo_generation = anim_args.optical_flow_redo_generation if not args.motion_preview_mode else 'None'
 
         if usingDeforumation:
-            mediator_setValue("total_recall_relive", frame_idx)
+            cnFrameValue_idx = frame_idx
+            if didTween:
+                cnFrameValue_idx = tween_frame_idx
+                print("Recalling tween_frame_idx for ControlNet (and setting the values):" + str(cnFrameValue_idx))
+                mediator_setValue("total_recall_relive", cnFrameValue_idx)
+            else:
+                print("Recalling frame_idx for ControlNet (and setting the values):" + str(cnFrameValue_idx))
+                mediator_setValue("total_recall_relive", cnFrameValue_idx)
+
             if is_controlnet_enabled(controlnet_args):
                 for cnIndex in range(5):
                     currCnIndex = cnIndex+1
@@ -1127,10 +1155,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                         setattr(controlnet_args, f'cn_{currCnIndex}_threshold_a', cnu[f'cn_{currCnIndex}_threshold_a'])
                         setattr(controlnet_args, f'cn_{currCnIndex}_threshold_b', cnu[f'cn_{currCnIndex}_threshold_b'])
                         #print("ControlNet " + str(currCnIndex) + " should use Deforum values.")
-                        #print("Got weight:" + str(getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[frame_idx]))
-                        mediator_setValue("cn_weight"+str(cnIndex+1), getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[frame_idx])
-                        mediator_setValue("cn_stepstart"+str(cnIndex+1),getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_start_schedule_series")[frame_idx])
-                        mediator_setValue("cn_stepend"+str(cnIndex+1), getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_end_schedule_series")[frame_idx])
+                        #print("Got weight:" + str(getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[cnFrameValue_idx]))
+                        mediator_setValue("cn_weight"+str(cnIndex+1), getattr(CnSchKeys, f"cn_{currCnIndex}_weight_schedule_series")[cnFrameValue_idx])
+                        mediator_setValue("cn_stepstart"+str(cnIndex+1),getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_start_schedule_series")[cnFrameValue_idx])
+                        mediator_setValue("cn_stepend"+str(cnIndex+1), getattr(CnSchKeys, f"cn_{currCnIndex}_guidance_end_schedule_series")[cnFrameValue_idx])
                         mediator_setValue("cn_lowt"+str(cnIndex+1), getattr(controlnet_args, f"cn_{currCnIndex}_threshold_a"))
                         mediator_setValue("cn_hight"+str(cnIndex+1), getattr(controlnet_args, f"cn_{currCnIndex}_threshold_b"))
 
@@ -1239,16 +1267,17 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
         state.current_image = image
         if usingDeforumation:
-            if not int(mediator_getValue("seed_changed").strip().strip('\n')):
-                mediator_setValue("seed", args.seed)
-
-            if int(mediator_getValue("should_use_total_recall").strip().strip('\n')):
-                mediator_setValue("total_recall_relive", frame_idx)
-                print("Total recall (last to get seed) at frame " + str(frame_idx))
-                args.seed = int(mediator_getValue("seed").strip().strip('\n'))
-                print("Using seed:" + str())
+            if int(mediator_getValue("is_inside_total_recall_range").strip().strip('\n')):
+                    print("Is inside range, using tween_frame_idx+1:" + str(tween_frame_idx+1))
+                    print("Reverting to seed at tween_frame_idx+1, frame:" + str(tween_frame_idx+1))
+                    mediator_setValue("total_recall_relive", tween_frame_idx+1)
+                    args.seed = int(mediator_getValue("seed").strip().strip('\n'))
             else:
                 args.seed = next_seed(args, root)
+                #print("Using seed (not using recall):" + str(args.seed))
+            
+                if not int(mediator_getValue("seed_changed").strip().strip('\n')):
+                    mediator_setValue("seed", args.seed)
         else:
             args.seed = next_seed(args, root)
 
