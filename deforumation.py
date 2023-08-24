@@ -106,6 +106,7 @@ Perlin_Persistence_Value = 0.5
 zero_pan_active = False
 zero_rotate_active = False
 zero_zoom_active = False
+zero_tilt_active = False
 stepit_pan = 0
 stepit_rotate = 0
 stepit_zoom = 0
@@ -116,6 +117,7 @@ replayFPS = 30
 armed_rotation = False
 armed_pan = False
 armed_zoom = False
+armed_tilt = False
 #pstb = False
 #pmob = False
 is_Parseq_Active = False
@@ -149,6 +151,7 @@ zero_frame_rotate_progress_string = "None"
 zero_pan_current_settings = "\"0-P: None\""
 zero_zoom_current_settings = "\"0-Z: None\""
 zero_rotation_current_settings = "\"0-R: None\""
+zero_tilt_current_settings = "\"0-T: None\""
 currently_active_motion = -1
 is_static_motion = True
 async def sendAsync_special(value):
@@ -1280,7 +1283,7 @@ class Mywin(wx.Frame):
         self.zero_pan_step_input_box_text = wx.StaticText(self.panel, label="0-Steps", pos=(trbX+74, tbrY+14))
         #ZERO PAN STEP INPUT BOX
         self.zero_pan_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX+70, tbrY+30))
-        self.zero_pan_step_input_box.SetToolTip("The number of frames that it will take a for a panning transition to go from the current panning value to the armed panning value.")
+        self.zero_pan_step_input_box.SetToolTip("The number of frames that it will take for a panning transition to go from the current panning value to the armed panning value.")
         self.zero_pan_step_input_box.SetLabel("0")
 
         #ZOOM SLIDER
@@ -1349,7 +1352,7 @@ class Mywin(wx.Frame):
         self.zero_zoom_step_input_box_text = wx.StaticText(self.panel, label="0-Steps", pos=(trbX+256, tbrY-15))
         #ZERO PAN STEP INPUT BOX
         self.zero_zoom_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(trbX+254, tbrY))
-        self.zero_zoom_step_input_box.SetToolTip("The number of frames that it will take a for a zooming transition to go from the current zoom value to the armed zoom value.")
+        self.zero_zoom_step_input_box.SetToolTip("The number of frames that it will take for a zooming transition to go from the current zoom value to the armed zoom value.")
         self.zero_zoom_step_input_box.SetLabel("0")
 
         #ZERO ZOOM BUTTTON
@@ -1404,7 +1407,7 @@ class Mywin(wx.Frame):
         self.should_use_deforumation_rotation_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
         #SHOULD USE DEFORUMATION TILT VALUES? CHECK-BOX
-        self.should_use_deforumation_tilt_checkbox = wx.CheckBox(self.panel, label="U.D.Ti", pos=(trbX+480, tbrY+12))
+        self.should_use_deforumation_tilt_checkbox = wx.CheckBox(self.panel, label="U.D.Ti", pos=(trbX+480, tbrY-2))
         self.should_use_deforumation_tilt_checkbox.SetToolTip("When activated, Deforumations Tilt values will be used.")
         self.should_use_deforumation_tilt_checkbox.Bind(wx.EVT_CHECKBOX, self.OnClicked)
 
@@ -1413,6 +1416,9 @@ class Mywin(wx.Frame):
         self.zero_pan_current_settings_Text = wx.StaticText(self.panel, label=zero_pan_current_settings, pos=(trbX - 40 , tbrY - 150))
         self.zero_zoom_current_settings_Text = wx.StaticText(self.panel, label=zero_zoom_current_settings, pos=(trbX +250 , tbrY - 150))
         self.zero_rotate_current_settings_Text = wx.StaticText(self.panel, label=zero_rotation_current_settings, pos=(trbX + 440 , tbrY - 150))
+        self.zero_tilt_current_settings_Text = wx.StaticText(self.panel, label=zero_tilt_current_settings, pos=(trbX + 650 , tbrY - 150))
+
+
 
         #SAMPLE STEP SLIDER
         self.sample_schedule_slider = wx.Slider(self.panel, id=wx.ID_ANY, value=25, minValue=1, maxValue=200, pos = (trbX-25, tbrY-50-70), size = (300, 40), style = wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS )
@@ -1474,7 +1480,7 @@ class Mywin(wx.Frame):
         self.zero_rotate_step_input_box_text = wx.StaticText(self.panel, label="0-Steps", pos=(240+trbX+43+100, 55+tbrY-40))
         #ZERO ROTATE STEP INPUT BOX
         self.zero_rotate_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(240+trbX+40+100, 55+tbrY-25))
-        self.zero_rotate_step_input_box.SetToolTip("The number of frames that it will take a for a rotation transition to go from the current rotation values to the armed panning values.")
+        self.zero_rotate_step_input_box.SetToolTip("The number of frames that it will take for a rotation transition to go from the current rotation values to the armed rotation values.")
         self.zero_rotate_step_input_box.SetLabel("0")
 
         #SET ROTATION VALUE Y
@@ -1549,9 +1555,24 @@ class Mywin(wx.Frame):
         self.tilt_zero_button.SetLabel("ZERO TILT")
 
         #TILT STEPS INPUT
-        self.tilt_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(360+trbX+38+80, 30+tbrY))
+        self.tilt_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(360+trbX+10+80, 30+tbrY))
         self.tilt_step_input_box.SetToolTip("Sets the granularity of how many degrees it should tilt, when using the Tilt buttons.")
         self.tilt_step_input_box.SetLabel("1.0")
+
+        #ZERO TILT STEP INPUT BOX
+        self.zero_tilt_step_input_box_text = wx.StaticText(self.panel, label="0-Steps", pos=(360+trbX+36+110, 14+tbrY))
+        self.zero_tilt_step_input_box = wx.TextCtrl(self.panel, size=(40,20), pos=(360+trbX+34+110, 30+tbrY))
+        self.zero_tilt_step_input_box.SetToolTip("The number of frames that it will take for a tilt transition to go from the current tilt values to the armed tilt values.")
+        self.zero_tilt_step_input_box.SetLabel("0")
+
+        #ARM TILT VALUE BUTTON
+        bmp = wx.Bitmap("./images/arm_off.bmp", wx.BITMAP_TYPE_BMP)
+        bmp = scale_bitmap(bmp, 10, 10)
+        self.arm_tilt_button = wx.BitmapButton(self.panel, id=wx.ID_ANY, bitmap=bmp, pos=(360+trbX+10+80, tbrY), size=(bmp.GetWidth() + 10, bmp.GetHeight() + 10))
+        self.arm_tilt_button.SetToolTip("When activated, you enter arming mode for tilt. In arming mode, these tilt values are separate from the actual tilt values. These values are the end point when doing a transitioning of the current panning values. Such a transition is started by pushing the \"0\"-button.")
+        self.arm_tilt_button.Bind(wx.EVT_BUTTON, self.OnClicked)
+        self.arm_tilt_button.SetLabel("ARM_TILT")
+
 
         #PAUSE VIDEO RENDERING
         if is_paused_rendering:
@@ -1725,7 +1746,7 @@ class Mywin(wx.Frame):
         self.deforum_zero_pan_value_info_text = wx.StaticText(self.panel, label="0-Pan:", pos=(trbX+720, tbrY+310))
         self.deforum_zero_zoom_value_info_text = wx.StaticText(self.panel, label="0-Zoom:", pos=(trbX+800, tbrY+310))
         self.deforum_zero_rotation_value_info_text = wx.StaticText(self.panel, label="0-Rotate:", pos=(trbX+890, tbrY+310))
-
+        self.deforum_zero_tilt_value_info_text = wx.StaticText(self.panel, label="0-Tilt:", pos=(trbX + 1000, tbrY + 310))
         #CADENCE RE-SCHEDULER
         self.cadence_rescheduler_text = wx.StaticText(self.panel, label="CADENCE RE-SCHEDULER", pos=(trbX-40, tbrY+340))
         font = wx.Font(14, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
@@ -2027,11 +2048,12 @@ class Mywin(wx.Frame):
         self.should_use_deforumation_panning_checkbox.SetPosition((trbX+40, tbrY-8))
         self.should_use_deforumation_zoomfov_checkbox.SetPosition((trbX + 172, tbrY - 8))
         self.should_use_deforumation_rotation_checkbox.SetPosition((trbX+354, tbrY-8))
-        self.should_use_deforumation_tilt_checkbox.SetPosition((trbX+480, tbrY+12))
+        self.should_use_deforumation_tilt_checkbox.SetPosition((trbX+480, tbrY-2))
 
         self.zero_pan_current_settings_Text.SetPosition((trbX - 40 , tbrY - 150))
         self.zero_zoom_current_settings_Text.SetPosition((trbX +250 , tbrY - 150))
         self.zero_rotate_current_settings_Text.SetPosition((trbX + 440 , tbrY - 150))
+        self.zero_tilt_current_settings_Text.SetPosition((trbX + 650, tbrY - 150))
 
         self.sample_schedule_slider.SetPosition((trbX - 25, tbrY - 50 - 70))
         self.strength_schedule_Text.SetPosition((trbX - 25, tbrY - 70 - 64))
@@ -2051,7 +2073,10 @@ class Mywin(wx.Frame):
         self.rotation_3d_z_right_button.SetPosition((380 + trbX + 57 + 80, 50 + tbrY))
         self.rotation_Z_Value_Text.SetPosition((360 + trbX + 46 + 80, 60 + tbrY))
         self.tilt_zero_button.SetPosition((360 + trbX + 36 + 80, 88 + tbrY))
-        self.tilt_step_input_box.SetPosition((360 + trbX + 38 + 80, 30 + tbrY))
+        self.tilt_step_input_box.SetPosition((360 + trbX + 10 + 80, 30 + tbrY))
+        self.zero_tilt_step_input_box.SetPosition((360 + trbX + 34 + 110, 30 + tbrY))
+        self.zero_tilt_step_input_box_text.SetPosition((360 + trbX + 36 + 110, 14 + tbrY))
+        self.arm_tilt_button.SetPosition((360 + trbX + 10 + 80, tbrY))
         self.cadence_slider.SetPosition((trbX + 1000-340, tbrY + 20))
         self.cadence_slider_Text.SetPosition((trbX + 1000-340, tbrY))
         self.cadence_schedule_input_box.SetPosition((trbX+1000-220, tbrY-22))
@@ -2099,7 +2124,7 @@ class Mywin(wx.Frame):
         self.deforum_zero_pan_value_info_text.SetPosition((trbX+720, tbrY+310))
         self.deforum_zero_zoom_value_info_text.SetPosition((trbX+800, tbrY+310))
         self.deforum_zero_rotation_value_info_text.SetPosition((trbX+890, tbrY+310))
-
+        self.deforum_zero_tilt_value_info_text.SetPosition((trbX + 980, tbrY + 310))
         self.component_chooser_choice.SetPosition((trbX+950-150, tbrY+70))
         self.Live_Values_Checkbox.SetPosition((trbX-40, tbrY + 130))
         self.noise_slider.SetPosition((trbX+950-340, tbrY+110))
@@ -2322,7 +2347,11 @@ class Mywin(wx.Frame):
                     self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z_ARMED)))
                     self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
 
-                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(parameter_container.rotation_z)))
+                if not armed_tilt:
+                    self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(parameter_container.rotation_z)))
+                else:
+                    self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Z_ARMED)))
+
 
                 #Cadence_Schedule = int(parameter_container.cadence)
                 self.cadence_slider.SetValue(int(parameter_container.cadence))
@@ -2570,6 +2599,9 @@ class Mywin(wx.Frame):
                 #self.audio_path_input_box.SetValue(deforumFile.readline().strip().strip('\n'))
                 self.audio_path2_input_box.SetPath(deforumFile.readline().strip().strip('\n'))
                 self.backend_chooser_choice.SetSelection(int(deforumFile.readline().strip('\n')))
+
+                zero_tilt_step_input_box_value = deforumFile.readline().strip().strip('\n')
+                self.zero_tilt_step_input_box.SetValue(zero_tilt_step_input_box_value)
 
 
             except Exception as e:
@@ -3156,8 +3188,8 @@ class Mywin(wx.Frame):
 
         deforumFile.write(str(self.ffmpeg_path_input_box.GetValue())+"\n")
         deforumFile.write(str(self.audio_path2_input_box.GetPath())+"\n")
-        deforumFile.write(str(self.backend_chooser_choice.GetSelection()))
-
+        deforumFile.write(str(self.backend_chooser_choice.GetSelection()) +"\n")
+        deforumFile.write(str(self.zero_tilt_step_input_box.GetValue().strip().replace('\n', '')))
 
         deforumFile.close()
 
@@ -3368,6 +3400,7 @@ class Mywin(wx.Frame):
         global zero_pan_active
         global zero_rotate_active
         global zero_zoom_active
+        global zero_tilt_active
         global zero_frame_pan_progress_string
         global zero_frame_zoom_progress_string
         global zero_frame_rotate_progress_string
@@ -3544,6 +3577,11 @@ class Mywin(wx.Frame):
                 self.writeValue(parameter_value, Rotation_3D_Y)
                 self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
                 print("Rotaion_Y:" + str(Rotation_3D_Y))
+            elif parameter_value == "rotation_z" and not armed_tilt:
+                self.writeValue(parameter_value, Rotation_3D_Z)
+                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
+                print("Rotaion_Z:" + str(Rotation_3D_Z))
+
             time.sleep(0.25)
 
 
@@ -3599,6 +3637,7 @@ class Mywin(wx.Frame):
                 if not showLiveValues:
                     self.pan_X_Value_Text.SetLabel(str('%.2f' % Translation_X))
                     self.pan_Y_Value_Text.SetLabel(str('%.2f' % Translation_Y))
+
             if armed_rotation:
                 self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y_ARMED))
                 self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X_ARMED))
@@ -3606,6 +3645,7 @@ class Mywin(wx.Frame):
                 if not showLiveValues:
                     self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
                     self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
+
             if armed_zoom:
                 self.zoom_value_text.SetLabel(str('%.2f' % Translation_Z_ARMED))
                 self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
@@ -3615,8 +3655,12 @@ class Mywin(wx.Frame):
                     self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
                     # self.fov_slider.SetValue(int(FOV_Scale))
 
-            if not showLiveValues:
-                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
+            if armed_tilt:
+                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z_ARMED))
+            else:
+                if not showLiveValues:
+                    self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
+
 
         # obj.SetToolTip(obj_tooltip)
         self.writeAllValues()
@@ -3651,6 +3695,7 @@ class Mywin(wx.Frame):
         global zero_pan_active
         global zero_rotate_active
         global zero_zoom_active
+        global zero_tilt_active
         global stepit_pan
         global stepit_rotate
         global stepit_zoom
@@ -3669,6 +3714,7 @@ class Mywin(wx.Frame):
         global armed_rotation
         global armed_pan
         global armed_zoom
+        global armed_tilt
         global Translation_X_ARMED
         global Translation_Y_ARMED
         global Translation_Z_ARMED
@@ -3702,6 +3748,7 @@ class Mywin(wx.Frame):
         global zero_pan_current_settings
         global zero_zoom_current_settings
         global zero_rotation_current_settings
+        global zero_tilt_current_settings
         global currently_active_motion
         global is_static_motion
         btn = event.GetEventObject().GetLabel()
@@ -4036,53 +4083,32 @@ class Mywin(wx.Frame):
                     self.writeValue("translation_y", Translation_Y_ARMED)
         elif btn == "ZERO PAN":
             if not zero_pan_active:
-                if event.GetId() == 2134234: #Never happening
-                    #Start a ZERO step thread.
-                    frame_steps = int(self.zero_pan_step_input_box.GetValue())
-                    if frame_steps == 0:
-                        Translation_X = 0
-                        Translation_Y = 0
-                        self.writeValue("translation_x", Translation_X)
-                        self.writeValue("translation_y", Translation_Y)
-                    elif (Translation_X == 0 and Translation_Y == 0 and Translation_X_ARMED == 0 and Translation_Y_ARMED == 0) or (Translation_X == Translation_X_ARMED and Translation_Y == Translation_Y_ARMED):
-                        zero_pan_active = False
-                    else:
-                        zero_pan_active = True
-                        if Translation_X != Translation_X_ARMED:
-                            self.zero_step_thread_x = threading.Thread(target=self.ZeroStepper, args=("translation_x", frame_steps, Translation_X_ARMED))
-                            self.zero_step_thread_x.daemon = True
-                            self.zero_step_thread_x.start()
-                        if Translation_Y != Translation_Y_ARMED:
-                            self.zero_step_thread_y = threading.Thread(target=self.ZeroStepper, args=("translation_y", frame_steps, Translation_Y_ARMED))
-                            self.zero_step_thread_y.daemon = True
-                        self.zero_step_thread_y.start()
-                else:
-                    bmp = wx.Bitmap("./images/zero_active.bmp", wx.BITMAP_TYPE_BMP)
-                    bmp = scale_bitmap(bmp, 22, 22)
-                    self.transform_zero_button.SetBitmap(bmp)
-                    zero_pan_active = True
-                    # Prepare the bezier curve that should be followed:
-                    frame_steps = int(self.zero_pan_step_input_box.GetValue())
-                    bezier_from_input_box_string = self.bezier_points_input_box.GetValue()
-                    bezier_from_input_box_string = "((0, 0)," + bezier_from_input_box_string + ",(1, 1))"
-                    bezier_from_input_box_array = bezier_from_input_box_string.replace('(', '').replace(')','').replace(' ','').split(',')
-                    bezierTupple = list(((0, 0), (0, 0), (0, 0), (0, 0)))
-                    bezierTupple[0] = (float(bezier_from_input_box_array[0]), float(bezier_from_input_box_array[1]))
-                    bezierTupple[1] = (float(bezier_from_input_box_array[2]), float(bezier_from_input_box_array[3]))
-                    bezierTupple[2] = (float(bezier_from_input_box_array[4]), float(bezier_from_input_box_array[5]))
-                    bezierTupple[3] = (float(bezier_from_input_box_array[6]), float(bezier_from_input_box_array[7]))
+                bmp = wx.Bitmap("./images/zero_active.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 22, 22)
+                self.transform_zero_button.SetBitmap(bmp)
+                zero_pan_active = True
+                # Prepare the bezier curve that should be followed:
+                frame_steps = int(self.zero_pan_step_input_box.GetValue())
+                bezier_from_input_box_string = self.bezier_points_input_box.GetValue()
+                bezier_from_input_box_string = "((0, 0)," + bezier_from_input_box_string + ",(1, 1))"
+                bezier_from_input_box_array = bezier_from_input_box_string.replace('(', '').replace(')','').replace(' ','').split(',')
+                bezierTupple = list(((0, 0), (0, 0), (0, 0), (0, 0)))
+                bezierTupple[0] = (float(bezier_from_input_box_array[0]), float(bezier_from_input_box_array[1]))
+                bezierTupple[1] = (float(bezier_from_input_box_array[2]), float(bezier_from_input_box_array[3]))
+                bezierTupple[2] = (float(bezier_from_input_box_array[4]), float(bezier_from_input_box_array[5]))
+                bezierTupple[3] = (float(bezier_from_input_box_array[6]), float(bezier_from_input_box_array[7]))
 
-                    bezierArray1 = pyeaze.Animator(current_value=Translation_X, target_value=Translation_X_ARMED, duration=1, fps=frame_steps, easing=bezierTupple, reverse=False)
-                    bezierArray2 = pyeaze.Animator(current_value=Translation_Y, target_value=Translation_Y_ARMED, duration=1, fps=frame_steps, easing=bezierTupple, reverse=False)
-                    bezierArray = [bezierArray1.values, bezierArray2.values]
-                    self.writeValue("prepare_zero_pan_motion", bezierArray)
-                    self.writeValue("start_zero_pan_motion", 1)
-                    zero_frame_start = int(self.readValue("start_frame"))
-                    print("-- ZERO PAN MOTION SET, FROM (X:" + str('%.2f' % Translation_X) + " -> X:" + str('%.2f' % Translation_X_ARMED) + ") & (Y:" + str('%.2f' % Translation_X) + " -> Y:" + str('%.2f' % Translation_Y_ARMED) + ") , in " + str(frame_steps) + " steps. Starting at frame:" + str(zero_frame_start))
-                    zero_pan_current_settings = "\"0-P: x:" + str('%.2f' % Translation_X) + "->x:" + str('%.2f' % Translation_X_ARMED) + " & y:" + str('%.2f' % Translation_Y) + "->y:" + str('%.2f' % Translation_Y_ARMED) + " (fr:"+str(zero_frame_start)+" to:"+str(zero_frame_start+frame_steps)+")\""
-                    print(zero_pan_current_settings)
-                    self.SetLabel(windowlabel + " -- ZERO PAN MOTION SET, FROM (X:" + str('%.2f' % Translation_X) + " -> X:" + str('%.2f' % Translation_X_ARMED) + ") & (Y:" + str('%.2f' % Translation_X) + " -> Y:" + str('%.2f' % Translation_Y_ARMED) + ") , in " + str(frame_steps) + " steps. Starting at frame:" + str(zero_frame_start))
-                    self.zero_pan_current_settings_Text.SetLabel(zero_pan_current_settings)
+                bezierArray1 = pyeaze.Animator(current_value=Translation_X, target_value=Translation_X_ARMED, duration=1, fps=frame_steps, easing=bezierTupple, reverse=False)
+                bezierArray2 = pyeaze.Animator(current_value=Translation_Y, target_value=Translation_Y_ARMED, duration=1, fps=frame_steps, easing=bezierTupple, reverse=False)
+                bezierArray = [bezierArray1.values, bezierArray2.values]
+                self.writeValue("prepare_zero_pan_motion", bezierArray)
+                self.writeValue("start_zero_pan_motion", 1)
+                zero_frame_start = int(self.readValue("start_frame"))
+                print("-- ZERO PAN MOTION SET, FROM (X:" + str('%.2f' % Translation_X) + " -> X:" + str('%.2f' % Translation_X_ARMED) + ") & (Y:" + str('%.2f' % Translation_X) + " -> Y:" + str('%.2f' % Translation_Y_ARMED) + ") , in " + str(frame_steps) + " steps. Starting at frame:" + str(zero_frame_start))
+                zero_pan_current_settings = "\"0-P: x:" + str('%.2f' % Translation_X) + "->x:" + str('%.2f' % Translation_X_ARMED) + " & y:" + str('%.2f' % Translation_Y) + "->y:" + str('%.2f' % Translation_Y_ARMED) + " (fr:"+str(zero_frame_start)+" to:"+str(zero_frame_start+frame_steps)+")\""
+                print(zero_pan_current_settings)
+                self.SetLabel(windowlabel + " -- ZERO PAN MOTION SET, FROM (X:" + str('%.2f' % Translation_X) + " -> X:" + str('%.2f' % Translation_X_ARMED) + ") & (Y:" + str('%.2f' % Translation_X) + " -> Y:" + str('%.2f' % Translation_Y_ARMED) + ") , in " + str(frame_steps) + " steps. Starting at frame:" + str(zero_frame_start))
+                self.zero_pan_current_settings_Text.SetLabel(zero_pan_current_settings)
             else:
                 stepit_pan = 0
                 bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
@@ -4341,25 +4367,79 @@ class Mywin(wx.Frame):
                 self.writeValue("start_zero_rotation_motion", 0)
                 self.zero_rotate_current_settings_Text.SetLabel("\"0-R: None\"")
 
+
         elif btn == "ROTATE_LEFT":
-            if not total_recall_movements_inside_range_and_active:
+            if not armed_tilt and not total_recall_movements_inside_range_and_active:
                 if not should_use_total_recall_in_deforumation:
                     if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                         Rotation_3D_Z = 0
                     else:
                         Rotation_3D_Z = Rotation_3D_Z + float(self.tilt_step_input_box.GetValue())
                     self.writeValue("rotation_z", Rotation_3D_Z)
+            elif armed_tilt:
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Rotation_3D_Z_ARMED = 0
+                else:
+                    Rotation_3D_Z_ARMED =  round(Rotation_3D_Z_ARMED + float(self.tilt_step_input_box.GetValue()),2)
+                if should_use_total_recall:
+                    self.writeValue("rotation_z", Rotation_3D_Z_ARMED)
+
         elif btn == "ROTATE_RIGHT":
-            if not total_recall_movements_inside_range_and_active:
+            if not armed_tilt and not total_recall_movements_inside_range_and_active:
                 if not should_use_total_recall_in_deforumation:
                     if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
                         Rotation_3D_Z = 0
                     else:
                         Rotation_3D_Z = Rotation_3D_Z - float(self.tilt_step_input_box.GetValue())
                     self.writeValue("rotation_z", Rotation_3D_Z)
+            elif armed_tilt:
+                if self.eventDict[event.GetEventType()] == "EVT_RIGHT_UP":
+                    Rotation_3D_Z_ARMED = 0
+                else:
+                    Rotation_3D_Z_ARMED = round(Rotation_3D_Z_ARMED - float(self.tilt_step_input_box.GetValue()), 2)
+                if should_use_total_recall:
+                    self.writeValue("rotation_z", Rotation_3D_Z_ARMED)
+
         elif btn == "ZERO TILT":
-            Rotation_3D_Z = 0
-            self.writeValue("rotation_z", Rotation_3D_Z)
+            if not zero_tilt_active:
+                bmp = wx.Bitmap("./images/zero_active.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 22, 22)
+                self.tilt_zero_button.SetBitmap(bmp)
+                zero_tilt_active = True
+                # Prepare the bezier curve that should be followed:
+                frame_steps = int(self.zero_tilt_step_input_box.GetValue())
+                bezier_from_input_box_string = self.bezier_points_input_box.GetValue()
+                bezier_from_input_box_string = "((0, 0)," + bezier_from_input_box_string + ",(1, 1))"
+                bezier_from_input_box_array = bezier_from_input_box_string.replace('(', '').replace(')','').replace(' ','').split(',')
+                bezierTupple = list(((0, 0), (0, 0), (0, 0), (0, 0)))
+                bezierTupple[0] = (float(bezier_from_input_box_array[0]), float(bezier_from_input_box_array[1]))
+                bezierTupple[1] = (float(bezier_from_input_box_array[2]), float(bezier_from_input_box_array[3]))
+                bezierTupple[2] = (float(bezier_from_input_box_array[4]), float(bezier_from_input_box_array[5]))
+                bezierTupple[3] = (float(bezier_from_input_box_array[6]), float(bezier_from_input_box_array[7]))
+
+                bezierArray = pyeaze.Animator(current_value=Rotation_3D_Z, target_value=Rotation_3D_Z_ARMED, duration=1,fps=frame_steps, easing=bezierTupple, reverse=False)
+
+                self.writeValue("prepare_zero_tilt_motion", bezierArray.values)
+                self.writeValue("start_zero_tilt_motion", 1)
+                zero_frame_start = int(self.readValue("start_frame"))
+                print("-- ZERO TILT MOTION SET, FROM (RZ:" + str('%.2f' % Rotation_3D_Z) + " -> RZ:" + str('%.2f' % Rotation_3D_Z_ARMED) + "), in " + str(frame_steps) + " steps. Starting at frame:" + str(zero_frame_start))
+                zero_tilt_current_settings = "\"0-T: " + str('%.2f' % Rotation_3D_Z) + "->" + str('%.2f' % Rotation_3D_Z_ARMED) + " (fr:" + str(zero_frame_start) + " to:" + str(zero_frame_start + frame_steps) + ")\""
+                print(zero_tilt_current_settings)
+                self.SetLabel(windowlabel + " -- ZERO ZOOM MOTION SET, FROM (Z:" + str('%.2f' % Rotation_3D_Z) + " -> Z:" + str('%.2f' % Rotation_3D_Z_ARMED) + "), in " + str(frame_steps) + " steps. Starting at frame:" + str(zero_frame_start))
+                self.zero_tilt_current_settings_Text.SetLabel(zero_tilt_current_settings)
+            else:
+                stepit_zoom = 0
+                bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 22, 22)
+                self.tilt_zero_button.SetBitmap(bmp)
+                zero_tilt_active = False
+                self.writeValue("start_zero_tilt_motion", 0)
+                self.zero_tilt_current_settings_Text.SetLabel("\"0-T: None\"")
+
+
+
+
+
         elif btn == "CFG SCALE":
             if not total_recall_others_inside_range_and_active:
                 CFG_Scale = float(self.cfg_schedule_slider.GetValue())
@@ -4403,6 +4483,19 @@ class Mywin(wx.Frame):
                 bmp = scale_bitmap(bmp, 10, 10)
                 self.arm_zoom_button.SetBitmap(bmp)
                 self.arm_zoom_button.SetSize(bmp.GetWidth()+10, bmp.GetHeight()+10)
+        elif btn == "ARM_TILT":
+            if armed_tilt:
+                armed_tilt = False
+                bmp = wx.Bitmap("./images/arm_off.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 10, 10)
+                self.arm_tilt_button.SetBitmap(bmp)
+                self.arm_tilt_button.SetSize(bmp.GetWidth()+10, bmp.GetHeight()+10)
+            else:
+                armed_tilt = True
+                bmp = wx.Bitmap("./images/arm_on.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 10, 10)
+                self.arm_tilt_button.SetBitmap(bmp)
+                self.arm_tilt_button.SetSize(bmp.GetWidth()+10, bmp.GetHeight()+10)
         elif btn == "FOV":
             if not total_recall_movements_inside_range_and_active:
                 if not should_use_total_recall_in_deforumation:
@@ -5257,9 +5350,14 @@ class Mywin(wx.Frame):
                     self.zoom_value_text.SetLabel(str('%.2f' %Translation_Z))
                     self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
                     #self.fov_slider.SetValue(int(FOV_Scale))
+            if armed_tilt:
+                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z_ARMED))
+            else:
+                if not showLiveValues:
+                    self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
 
-            if not showLiveValues:
-                self.rotation_Z_Value_Text.SetLabel(str('%.2f' %Rotation_3D_Z))
+            #if not showLiveValues:
+            #    self.rotation_Z_Value_Text.SetLabel(str('%.2f' %Rotation_3D_Z))
 
         #obj.SetToolTip(obj_tooltip)
         self.writeAllValues()
@@ -5273,12 +5371,13 @@ class Mywin(wx.Frame):
         global zero_pan_active
         global zero_zoom_active
         global zero_rotate_active
+        global zero_tilt_active
         global currently_active_motion
         frame_has_changed = True
         recalledFrame = -1
         current_frame_live = int(readValue("start_frame"))
         while showLiveValues:
-            manyValues = readValue(["deforum_translation_x", "deforum_translation_y", "deforum_translation_z", "deforum_rotation_x", "deforum_rotation_y", "deforum_rotation_z", "deforum_strength", "deforum_cfg", "deforum_fov", "deforum_steps", "deforum_cadence", "deforum_noise_multiplier", "deforum_perlin_octaves", "deforum_perlin_persistence", "get_number_of_recalled_frames", "deforum_pdmotion_status", "deforum_panmotion_status", "deforum_zoommotion_status", "deforum_rotationmotion_status", "start_motion", "start_zero_pan_motion", "start_zero_zoom_motion", "start_zero_rotation_motion"])
+            manyValues = readValue(["deforum_translation_x", "deforum_translation_y", "deforum_translation_z", "deforum_rotation_x", "deforum_rotation_y", "deforum_rotation_z", "deforum_strength", "deforum_cfg", "deforum_fov", "deforum_steps", "deforum_cadence", "deforum_noise_multiplier", "deforum_perlin_octaves", "deforum_perlin_persistence", "get_number_of_recalled_frames", "deforum_pdmotion_status", "deforum_panmotion_status", "deforum_zoommotion_status", "deforum_rotationmotion_status", "deforum_tiltmotion_status", "start_motion", "start_zero_pan_motion", "start_zero_zoom_motion", "start_zero_rotation_motion", "start_zero_tilt_motion"])
 
             deforum_translation_x = manyValues[0]
             deforum_translation_y = manyValues[1]
@@ -5299,10 +5398,12 @@ class Mywin(wx.Frame):
             deforum_pan_status = str(manyValues[16])
             deforum_zoom_status = str(manyValues[17])
             deforum_rotation_status = str(manyValues[18])
-            is_inside_a_motion = int(manyValues[19])
-            start_zero_pan_motion = int(manyValues[20])
-            start_zero_zoom_motion = int(manyValues[21])
-            start_zero_rotation_motion = int(manyValues[22])
+            deforum_tilt_status = str(manyValues[19])
+            is_inside_a_motion = int(manyValues[20])
+            start_zero_pan_motion = int(manyValues[21])
+            start_zero_zoom_motion = int(manyValues[22])
+            start_zero_rotation_motion = int(manyValues[23])
+            start_zero_tilt_motion = int(manyValues[24])
             if start_zero_pan_motion == -1:
                 bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
                 bmp = scale_bitmap(bmp, 22, 22)
@@ -5324,6 +5425,14 @@ class Mywin(wx.Frame):
                 zero_rotate_active = False
                 self.writeValue("start_zero_rotation_motion", 0)
                 self.zero_rotate_current_settings_Text.SetLabel("\"0-R: None\"")
+            if start_zero_tilt_motion == -1:
+                bmp = wx.Bitmap("./images/zero.bmp", wx.BITMAP_TYPE_BMP)
+                bmp = scale_bitmap(bmp, 22, 22)
+                self.tilt_zero_button.SetBitmap(bmp)
+                zero_tilt_active = False
+                self.writeValue("start_zero_tilt_motion", 0)
+                self.zero_tilt_current_settings_Text.SetLabel("\"0-T: None\"")
+
 
             self.total_current_recall_frames_text.SetLabel("Number of recall points: " + str(number_of_recalled_frames))
             if int(readValue("deforum_interrupted")):
@@ -5360,6 +5469,7 @@ class Mywin(wx.Frame):
                 self.deforum_zero_pan_value_info_text.SetLabel(str(deforum_pan_status))
                 self.deforum_zero_zoom_value_info_text.SetLabel(str(deforum_zoom_status))
                 self.deforum_zero_rotation_value_info_text.SetLabel(str(deforum_rotation_status))
+                self.deforum_zero_tilt_value_info_text.SetLabel(str(deforum_tilt_status))
 
                 time.sleep(0.25)
                 continue
@@ -5403,7 +5513,9 @@ class Mywin(wx.Frame):
                 self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_y)))
                 self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_x)))
 
-            if should_use_deforumation_tilt and not is_paused_rendering:
+            if armed_tilt:
+                self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Z_ARMED)))
+            elif should_use_deforumation_tilt and not is_paused_rendering:
                 self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Z)))
             else:
                 self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(deforum_rotation_z)))
@@ -5450,6 +5562,7 @@ class Mywin(wx.Frame):
             self.deforum_zero_pan_value_info_text.SetLabel(str(deforum_pan_status))
             self.deforum_zero_zoom_value_info_text.SetLabel(str(deforum_zoom_status))
             self.deforum_zero_rotation_value_info_text.SetLabel(str(deforum_rotation_status))
+            self.deforum_zero_tilt_value_info_text.SetLabel(str(deforum_tilt_status))
 
         total_recall_movements_inside_range_and_active = False
         total_recall_others_inside_range_and_active = False
@@ -5480,13 +5593,20 @@ class Mywin(wx.Frame):
                         self.rotation_3d_x_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Y))
                         self.rotation_3d_y_Value_Text.SetLabel(str('%.2f' % Rotation_3D_X))
 
-                    self.rotation_Z_Value_Text.SetLabel(str('%.2f' % float(Rotation_3D_Z)))
-                    self.fov_slider.SetValue(int(FOV_Scale))
+                    if armed_tilt:
+                        self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z_ARMED))
+                    else:
+                        self.rotation_Z_Value_Text.SetLabel(str('%.2f' % Rotation_3D_Z))
+
                     if armed_zoom:
                         self.zoom_slider.SetValue(int(float(Translation_Z_ARMED) * 100))
+                        self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z_ARMED)))
                     else:
                         self.zoom_slider.SetValue(int(float(Translation_Z) * 100))
-                    self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
+                        self.zoom_value_text.SetLabel(str('%.2f' % float(Translation_Z)))
+
+                    self.fov_slider.SetValue(int(FOV_Scale))
+
                 if should_use_total_recall and not total_recall_others_inside_range_and_active:
                     self.cfg_schedule_slider.SetValue(int(CFG_Scale))
                     self.strength_schedule_slider.SetValue(int(float(Strength_Scheduler)*100))
@@ -5821,9 +5941,9 @@ if __name__ == '__main__':
 
 
     if len(sys.argv) < 2:
-        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.7.2 using WebSockets)'
+        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.7.3 using WebSockets)'
         Mywin(None, windowlabel)
     else:
-        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.7.2 using named pipes)'
+        windowlabel = 'Deforumation_v2 @ Rakile & Lainol, 2023 (version 0.7.3 using named pipes)'
         Mywin(None, windowlabel)
     app.MainLoop()

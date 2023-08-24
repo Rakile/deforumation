@@ -123,21 +123,26 @@ start_motion = 0
 start_zero_pan_motion = 0
 start_zero_zoom_motion = 0
 start_zero_rotation_motion = 0
+start_zero_tilt_motion = 0
+
 prepared_motion = []
 prepared_zero_pan_motion = []
 prepared_zero_zoom_motion = []
 prepared_zero_rotation_motion = []
+prepared_zero_tilt_motion = []
 
 prepared_motion_start = -1
 prepared_zero_pan_motion_start = -1
 prepared_zero_zoom_motion_start = -1
 prepared_zero_rotation_motion_start = -1
+prepared_zero_tilt_motion_start = -1
 
 motion_current_status_string = "P-D Motion: None"
 
 motion_current_zero_pan_string = "0-Pan: None"
 motion_current_zero_zoom_string = "0-Zoom: None"
 motion_current_zero_rotate_string = "0-Rotation: None"
+motion_current_zero_tilt_string = "0-Tilt: None"
 
 deforum_interrupted = 0
 
@@ -467,6 +472,7 @@ class ParameterContainer():
         self.translation_x = translation_x
         self.translation_y = translation_y
         self.translation_z = translation_z
+        #print("Setting recall value translation_z:" + str(translation_z))
         self.Prompt_Positive = Prompt_Positive
         self.Prompt_Negative = Prompt_Negative
         self.seed_value = seed_value
@@ -601,14 +607,18 @@ async def main_websocket(websocket):
     global prepared_zero_zoom_motion
     global prepared_zero_rotation_motion
     global start_zero_pan_motion
+    global prepared_zero_tilt_motion
     global prepared_zero_pan_motion_start
     global start_zero_zoom_motion
     global prepared_zero_zoom_motion_start
     global start_zero_rotation_motion
     global prepared_zero_rotation_motion_start
+    global prepared_zero_tilt_motion_start
+    global start_zero_tilt_motion
     global motion_current_zero_pan_string
     global motion_current_zero_zoom_string
     global motion_current_zero_rotate_string
+    global motion_current_zero_tilt_string
 
     async for message in websocket:
         # print("Incomming message:"+str(message))
@@ -744,6 +754,23 @@ async def main_websocket(websocket):
                                 motion_current_zero_rotate_string = "0-Rotation: None"
                                 print("0-Rotation complete")
 
+                        # ZERO TILT - READ VALUES FROM PREPARED TILT ARRAY IN CORRECT ORDER
+                        if len(prepared_zero_tilt_motion) > 0:
+                            if start_zero_tilt_motion == 1 and (frame_idx < (prepared_zero_tilt_motion_start + len(prepared_zero_tilt_motion))):
+                                if (frame_idx >= prepared_zero_tilt_motion_start):
+                                    motionIndex = frame_idx - prepared_zero_tilt_motion_start
+                                    # print("Using Zero Tilt at frame " +str(frame_idx))
+                                    # print("Which is step " + str(motionIndex+1) + " in tilt motions out of " + str(len(prepared_zero_tilt_motion)))
+                                    # print("prepared_motion value is:" + str(prepared_zero_tilt_motion[motionIndex]))
+                                    rotation_z = float(prepared_zero_tilt_motion[motionIndex])
+                                    motion_current_zero_tilt_string = "0-Tilt:" + str(motionIndex + 1) + "/" + str(
+                                        len(prepared_zero_tilt_motion))
+                            elif start_zero_tilt_motion == 1:
+                                start_zero_tilt_motion = -1
+                                motion_current_zero_tilt_string = "0-Tilt: None"
+                                print("0-Tilt complete")
+
+
                 elif str(parameter) == "deforum_panmotion_status":
                     if not shouldWrite:
                         totalToSend.append((str(motion_current_zero_pan_string)))
@@ -753,6 +780,9 @@ async def main_websocket(websocket):
                 elif str(parameter) == "deforum_rotationmotion_status":
                     if not shouldWrite:
                         totalToSend.append((str(motion_current_zero_rotate_string)))
+                elif str(parameter) == "deforum_tiltmotion_status":
+                    if not shouldWrite:
+                        totalToSend.append((str(motion_current_zero_tilt_string)))
                 elif str(parameter) == "deforum_pdmotion_status":
                     if not shouldWrite:
                         totalToSend.append((str(motion_current_status_string)))
@@ -817,6 +847,15 @@ async def main_websocket(websocket):
                         if doVerbose:
                             print("should_use_total_recall:" + str(should_use_total_recall))
                         totalToSend.append((str(should_use_total_recall)))
+                elif str(parameter) == "is_inside_total_recall_range":
+                    if not shouldWrite:
+                        if should_use_total_recall and (
+                                (start_frame >= total_recall_from) and (start_frame <= total_recall_to)):
+                            #print("Returning that it is inside TOTAL RECALL RANGE, frame:" + str(start_frame))
+                            #print("total_recall_from and to:" + str(total_recall_from) + " -> " + str(total_recall_to))
+                            totalToSend.append((str("1")))
+                        else:
+                            totalToSend.append((str("0")))
                 elif str(parameter) == "total_recall_from":
                     if shouldWrite:
                         total_recall_from = int(value)
@@ -1294,6 +1333,12 @@ async def main_websocket(websocket):
                         # print(str(prepared_zero_rotation_motion))
                     else:
                         print("prepare_zero_rotation_motion")
+                elif str(parameter) == "prepare_zero_tilt_motion":
+                    if shouldWrite:
+                        prepared_zero_tilt_motion = value
+                        # print(str(prepared_zero_rotation_motion))
+                    else:
+                        print("prepare_zero_tilt_motion")
                 elif str(parameter) == "prepare_motion":
                     if shouldWrite:
                         prepared_motion = value
@@ -1328,6 +1373,15 @@ async def main_websocket(websocket):
 
                     else:
                         totalToSend.append((str(start_zero_rotation_motion)))
+                elif str(parameter) == "start_zero_tilt_motion":
+                    if shouldWrite:
+                        start_zero_tilt_motion = int(value)
+                        if start_zero_tilt_motion == 1:
+                            prepared_zero_tilt_motion_start = start_frame
+                            start_motion = 0
+                            print("Prepare tilt motion from frame: " + str(start_frame))
+                    else:
+                        totalToSend.append((str(start_zero_tilt_motion)))
                 elif str(parameter) == "start_motion":
                     if shouldWrite:
                         start_motion = int(value)
@@ -1335,6 +1389,7 @@ async def main_websocket(websocket):
                             prepared_zero_pan_motion_start = 0
                             start_zero_zoom_motion = 0
                             start_zero_rotation_motion = 0
+                            start_zero_tilt_motion = 0
                             prepared_motion_start = start_frame
                             print("Prepare motion from frame: " + str(start_frame))
                     else:
@@ -1618,15 +1673,19 @@ def main_named_pipe(pipeName):
     global prepared_zero_pan_motion
     global prepared_zero_zoom_motion
     global prepared_zero_rotation_motion
+    global prepared_zero_tilt_motion
     global start_zero_pan_motion
     global prepared_zero_pan_motion_start
     global start_zero_zoom_motion
     global prepared_zero_zoom_motion_start
     global start_zero_rotation_motion
     global prepared_zero_rotation_motion_start
+    global prepared_zero_tilt_motion_start
+    global start_zero_tilt_motion
     global motion_current_zero_pan_string
     global motion_current_zero_zoom_string
     global motion_current_zero_rotate_string
+    global motion_current_zero_tilt_string
 
     print("pipe server:" + str(pipeName))
     count = 0
@@ -1704,10 +1763,10 @@ def main_named_pipe(pipeName):
                             totalToSend.append((str(shouldPause)))
                     elif str(parameter) == "total_recall_relive":
                         frame_idx = int(value)
-                        if should_use_total_recall and (
-                                frame_idx >= total_recall_from and frame_idx <= total_recall_to):
-                            # print("total_recall_relive (frame number):" + str(frame_idx))
+                        if should_use_total_recall and (frame_idx >= total_recall_from and frame_idx <= total_recall_to):
+                            print("total_recall_relive at frame number:" + str(frame_idx))
                             RecallValues(frame_idx)
+                            print("This means we set translation_z to:" + str(translation_z))
                         else:
                             if start_motion and (frame_idx >= prepared_motion_start) and (
                                     frame_idx < (prepared_motion_start + len(prepared_motion))):
@@ -1783,12 +1842,27 @@ def main_named_pipe(pipeName):
                                             # print("prepared_motion value is Y-value:" + str(prepared_zero_rotation_motion[1][motionIndex]))
                                             rotation_x = float(prepared_zero_rotation_motion[0][motionIndex])
                                             rotation_y = float(prepared_zero_rotation_motion[1][motionIndex])
-                                            motion_current_zero_rotate_string = "0-Rotation:" + str(
-                                                motionIndex + 1) + "/" + str(len(prepared_zero_rotation_motion[0]))
+                                            motion_current_zero_rotate_string = "0-Rotation:" + str(motionIndex + 1) + "/" + str(len(prepared_zero_rotation_motion[0]))
                                     elif start_zero_rotation_motion == 1:
                                         start_zero_rotation_motion = -1
                                         motion_current_zero_rotate_string = "0-Rotation: None"
                                         print("0-Rotation complete")
+
+                                # ZERO TILT - READ VALUES FROM PREPARED TILT ARRAY IN CORRECT ORDER
+                                if len(prepared_zero_tilt_motion) > 0:
+                                    if start_zero_tilt_motion == 1 and (frame_idx < (prepared_zero_tilt_motion_start + len(prepared_zero_tilt_motion))):
+                                        if (frame_idx >= prepared_zero_tilt_motion_start):
+                                            motionIndex = frame_idx - prepared_zero_tilt_motion_start
+                                            # print("Using Zero Tilt at frame " +str(frame_idx))
+                                            # print("Which is step " + str(motionIndex+1) + " in tilt motions out of " + str(len(prepared_zero_tilt_motion)))
+                                            # print("prepared_motion value is:" + str(prepared_zero_tilt_motion[motionIndex]))
+                                            rotation_z = float(prepared_zero_tilt_motion[motionIndex])
+                                            motion_current_zero_tilt_string = "0-Tilt:" + str(motionIndex + 1) + "/" + str(len(prepared_zero_tilt_motion))
+                                    elif start_zero_tilt_motion == 1:
+                                        start_zero_tilt_motion = -1
+                                        motion_current_zero_tilt_string = "0-Tilt: None"
+                                        print("0-Tilt complete")
+
 
                     elif str(parameter) == "deforum_panmotion_status":
                         if not shouldWrite:
@@ -1799,6 +1873,9 @@ def main_named_pipe(pipeName):
                     elif str(parameter) == "deforum_rotationmotion_status":
                         if not shouldWrite:
                             totalToSend.append((str(motion_current_zero_rotate_string)))
+                    elif str(parameter) == "deforum_tiltmotion_status":
+                        if not shouldWrite:
+                            totalToSend.append((str(motion_current_zero_tilt_string)))
                     elif str(parameter) == "deforum_pdmotion_status":
                         if not shouldWrite:
                             totalToSend.append((str(motion_current_status_string)))
@@ -1863,6 +1940,14 @@ def main_named_pipe(pipeName):
                             if doVerbose:
                                 print("should_use_total_recall:" + str(should_use_total_recall))
                             totalToSend.append((str(should_use_total_recall)))
+                    elif str(parameter) == "is_inside_total_recall_range":
+                        if not shouldWrite:
+                            if should_use_total_recall and ((start_frame >= total_recall_from) and (start_frame <= total_recall_to)):
+                                #print("Returning that it is inside TOTAL RECALL RANGE, frame:"+str(start_frame))
+                                #print("total_recall_from and to:"+ str(total_recall_from) + " -> " + str(total_recall_to))
+                                totalToSend.append((str("1")))
+                            else:
+                                totalToSend.append((str("0")))
                     elif str(parameter) == "total_recall_from":
                         if shouldWrite:
                             total_recall_from = int(value)
@@ -2334,6 +2419,12 @@ def main_named_pipe(pipeName):
                             #print(str(prepared_zero_rotation_motion))
                         else:
                             print("prepare_zero_rotation_motion")
+                    elif str(parameter) == "prepare_zero_tilt_motion":
+                        if shouldWrite:
+                            prepared_zero_tilt_motion = value
+                            #print(str(prepared_zero_rotation_motion))
+                        else:
+                            print("prepare_zero_tilt_motion")
                     elif str(parameter) == "prepare_motion":
                         if shouldWrite:
                             prepared_motion = value
@@ -2367,6 +2458,15 @@ def main_named_pipe(pipeName):
                                 print("Prepare rotation motion from frame: " + str(start_frame))
                         else:
                             totalToSend.append((str(start_zero_rotation_motion)))
+                    elif str(parameter) == "start_zero_tilt_motion":
+                        if shouldWrite:
+                            start_zero_tilt_motion = int(value)
+                            if start_zero_tilt_motion == 1:
+                                prepared_zero_tilt_motion_start = start_frame
+                                start_motion = 0
+                                print("Prepare tilt motion from frame: " + str(start_frame))
+                        else:
+                            totalToSend.append((str(start_zero_tilt_motion)))
                     elif str(parameter) == "start_motion":
                         if shouldWrite:
                             start_motion = int(value)
@@ -2374,6 +2474,7 @@ def main_named_pipe(pipeName):
                                 prepared_zero_pan_motion_start = 0
                                 start_zero_zoom_motion = 0
                                 start_zero_rotation_motion = 0
+                                start_zero_tilt_motion = 0
                                 prepared_motion_start = start_frame
                                 print("Prepare motion from frame: " + str(start_frame))
                         else:
@@ -2384,10 +2485,12 @@ def main_named_pipe(pipeName):
                                 if not int(value) in parameter_container:
                                     #print("Setting values for frame:"+str(value))
                                     parameter_container[int(value)] = ParameterContainer()
+                                #print("Mediator asked to work at frame:>>" + str(value))
                                 parameter_container[int(value)].SetValues()
                             elif (int(value) < total_recall_from) or (int(value) > total_recall_to):
                                 if not int(value) in parameter_container:
                                     parameter_container[int(value)] = ParameterContainer()
+                                #print("Mediator asked to work at frame:>>>" + str(value))
                                 parameter_container[int(value)].SetValues()
                         else:
                             if doVerbose2:
@@ -2605,10 +2708,10 @@ async def main_websockets():
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Starting Mediator with WebSocket communication, version 0.7.1")
+        print("Starting Mediator with WebSocket communication, version 0.7.3")
         shouldUseNamedPipes = False
     else:
-        print("Starting Mediator with Named Pipes communication, version 0.7.1")
+        print("Starting Mediator with Named Pipes communication, version 0.7.3")
         shouldUseNamedPipes = True
 
     try:
