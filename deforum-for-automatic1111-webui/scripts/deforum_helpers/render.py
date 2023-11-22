@@ -73,7 +73,36 @@ def get_now_cadence(now_frame):
             cadence_now = cadence_value
         else:
             return cadence_now
+def fix_prompt_state(args, prompt_series, frame_idx):
+    # grab prompt for current frame
+    if (int(mediator_getValue("should_use_deforumation_prompt_scheduling").strip().strip('\n')) == 1):
+        deforumation_positive_prompt = str(mediator_getValue("positive_prompt"))
+        deforumation_negative_prompt = str(mediator_getValue("negative_prompt"))
+        args.prompt = deforumation_positive_prompt + "--neg "+ deforumation_negative_prompt
+    else:
+        args.prompt = prompt_series[frame_idx]
+        pos_prompt, neg_prompt = args.prompt.strip().split("--neg")
+        should_use_deforumation_string_before = int(mediator_getValue("should_use_before_deforum_prompt").strip().strip('\n'))
+        should_use_deforumation_string_after = int(mediator_getValue("should_use_after_deforum_prompt").strip().strip('\n'))
+        print("orginal_deforum:<" + str(args.prompt) + ">")
+        if should_use_deforumation_string_before:
+            deforumation_positive_prompt = str(mediator_getValue("positive_prompt").strip().strip('\n'))
+            print("<:" + str(deforumation_positive_prompt) + ">")
+            pos_prompt = deforumation_positive_prompt + "," + pos_prompt.strip()
+            args.prompt = deforumation_positive_prompt + "," + prompt_series[frame_idx]
 
+        if should_use_deforumation_string_after:
+            deforumation_positive_prompt = str(mediator_getValue("positive_prompt").strip().strip('\n'))
+            pos_prompt, neg_prompt = args.prompt.strip().split("--neg")
+            pos_prompt = pos_prompt.strip() + ", " + deforumation_positive_prompt
+            args.prompt = pos_prompt + " --neg " + neg_prompt
+        
+        if should_use_deforumation_string_before == 0 and should_use_deforumation_string_after == 0:
+            mediator_setValue("positive_prompt", pos_prompt)
+            print("Setting normal, deforum prompt on frame:" + str(frame_idx) + " --:" + str(pos_prompt))
+        else:
+            mediator_setValue("positive_prompt_mixed", pos_prompt)                                        
+        mediator_setValue("negative_prompt", neg_prompt)
 #Planted a "copy" for Deforumation convenience
 def get_resume_vars_d(folder, timestring, cadence,startframe=-1):
     DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
@@ -148,6 +177,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     original_optical_flow_cadence = anim_args.optical_flow_cadence
     original_optical_flow_redo_generation = anim_args.optical_flow_redo_generation
     #End settings
+
+    # initialise Parseq adapter
+    parseq_adapter = ParseqAdapter(parseq_args, anim_args, video_args, controlnet_args, loop_args)
+    
     if not cadence_was_one:
         print("Cadence was not one")
     if opts.data.get("deforum_save_gen_info_as_srt", False):  # create .srt file and set timeframe mechanism using FPS
@@ -200,7 +233,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     #Deforumation has a chance to overwrite the keys values, if it is using parseq
     if usingDeforumation:
-        print("Made for Deforumation version: 0.7.3")
+        print("Made for Deforumation version: 0.7.6")
         print("------------------------------------")
         if int(mediator_getValue("use_parseq").strip().strip('\n')) == 1:
             #parseq_adapter.use_parseq = 1
@@ -221,11 +254,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 mediator_setValue("total_recall_relive", frame_idx)
             args.seed = int(mediator_getValue("seed").strip().strip('\n'))
             if args.seed == -1:
-
                 args.seed = random.randint(0, 2**32 - 1)
 
     # initialise Parseq adapter                
-    parseq_adapter = ParseqAdapter(parseq_args, anim_args, video_args, controlnet_args, loop_args)
+    #parseq_adapter = ParseqAdapter(parseq_args, anim_args, video_args, controlnet_args, loop_args)
 
     # expand key frame strings to values
     keys = DeformAnimKeys(anim_args, args.seed) if not parseq_adapter.use_parseq else parseq_adapter.anim_keys
@@ -376,6 +408,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             # advance start_frame to next frame
             start_frame = next_frame + 1
             frame_idx = start_frame
+    else:
+        mediator_setValue("start_frame", 0)
+        print("Setting start_frame to 0")
 
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to write the current resume frame properties?
         mediator_setValue("total_recall_relive", frame_idx)
@@ -459,6 +494,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 start_frame = int(mediator_getValue("start_frame").strip().strip('\n'))
                 if int(mediator_getValue("should_use_total_recall").strip().strip('\n')):
                     mediator_setValue("total_recall_relive", start_frame)
+                print("Resuming and got start_frame="+str(start_frame))
 
 
             if int(mediator_getValue("should_use_deforumation_cadence").strip().strip('\n')) == 1:
@@ -572,6 +608,13 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
             #else:
             #    donothing = 0
+
+        #############################################
+        # grab prompt for current frame
+        if usingDeforumation:
+            fix_prompt_state(args, prompt_series, frame_idx)
+
+
 
         print(f"\033[36mAnimation frame: \033[0m{frame_idx}/{anim_args.max_frames}  ")
 
@@ -808,6 +851,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                         print("Total recall (inside tween_creation) at frame " + str(tween_frame_idx-1))
                         #mediator_setValue("total_recall_relive", frame_idx)
                         mediator_setValue("total_recall_relive", tween_frame_idx-1)
+                    else:
+                        #Fuck it run total recall anyways
+                        #print("Fuck it, run total reacall anyways!")
+                        mediator_setValue("total_recall_relive", tween_frame_idx-1)                        
 
                     if is_controlnet_enabled(controlnet_args):
                         for cnIndex in range(5):
@@ -1045,15 +1092,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
         # grab prompt for current frame
         if usingDeforumation: #Should we Connect to the Deforumation websocket server to get CFG values?
-            if (int(mediator_getValue("should_use_deforumation_prompt_scheduling").strip().strip('\n')) == 1): #Should we use manual or deforum's strength scheduling?
-                deforumation_positive_prompt = str(mediator_getValue("positive_prompt"))
-                deforumation_negative_prompt = str(mediator_getValue("negative_prompt"))
-                args.prompt = deforumation_positive_prompt + "--neg "+ deforumation_negative_prompt
-            else:
-                args.prompt = prompt_series[frame_idx]
-                pos_prompt, neg_prompt = args.prompt.strip().split("--neg")
-                mediator_setValue("positive_prompt", pos_prompt)
-                mediator_setValue("negative_prompt", neg_prompt)
+            fix_prompt_state(args, prompt_series, frame_idx)
 
         else: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             args.prompt = prompt_series[frame_idx]
@@ -1165,10 +1204,11 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
         # optical flow redo before generation
         if optical_flow_redo_generation != 'None' and prev_img is not None and strength > 0:
-            print(f"Optical flow redo is diffusing and warping using {optical_flow_redo_generation} optical flow before generation.")
+            #print(f"Optical flow redo is diffusing and warping using {optical_flow_redo_generation} optical flow before generation.")
             stored_seed = args.seed
             args.seed = random.randint(0, 2 ** 32 - 1)
-            #disposable_image = generate(args, keys, anim_args, loop_args, controlnet_args, root, frame_idx, sampler_name=scheduled_sampler_name)
+            print(f"Optical flow redo is diffusing and warping using {optical_flow_redo_generation} and seed {args.seed} optical flow before generation.")
+            
             disposable_image = generate(args, keys, anim_args, loop_args, controlnet_args, root, parseq_adapter, frame_idx, sampler_name=scheduled_sampler_name)
             if disposable_image != None:
                 disposable_image = cv2.cvtColor(np.array(disposable_image), cv2.COLOR_RGB2BGR)

@@ -223,16 +223,27 @@ def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
     TRANSLATION_SCALE = 1.0/200.0 # matches Disco
     use_parseq_through_deforumator = int(mediator_getValue("use_parseq").strip().strip('\n'))  
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to get translation values?
-            if int(mediator_getValue("should_use_deforumation_panning")) == 1:
+            if use_parseq_through_deforumator and int(mediator_getValue("should_use_deforumation_panning")) == 1:
                 deforumation_translation_x = float(mediator_getValue("translation_x").strip().strip('\n'))
                 deforumation_translation_y = float(mediator_getValue("translation_y").strip().strip('\n'))
-                deforumation_translation_z = float(mediator_getValue("translation_z").strip().strip('\n'))
+                txs = deforumation_translation_x
+                tys = deforumation_translation_y
+            elif int(mediator_getValue("should_use_deforumation_panning")) == 1:
+                deforumation_translation_x = float(mediator_getValue("translation_x").strip().strip('\n'))
+                deforumation_translation_y = float(mediator_getValue("translation_y").strip().strip('\n'))
                 txs = keys.translation_x_series[frame_idx] + deforumation_translation_x
                 tys = keys.translation_y_series[frame_idx] + deforumation_translation_y
-                tzs = keys.translation_z_series[frame_idx] + deforumation_translation_z
             else:
                 txs = keys.translation_x_series[frame_idx]
                 tys = keys.translation_y_series[frame_idx]
+
+            if use_parseq_through_deforumator and int(mediator_getValue("should_use_deforumation_zoomfov")) == 1:
+                deforumation_translation_z = float(mediator_getValue("translation_z").strip().strip('\n'))
+                tzs = deforumation_translation_z                
+            elif int(mediator_getValue("should_use_deforumation_zoomfov")) == 1:
+                deforumation_translation_z = float(mediator_getValue("translation_z").strip().strip('\n'))
+                tzs = keys.translation_z_series[frame_idx] + deforumation_translation_z
+            else:
                 tzs = keys.translation_z_series[frame_idx]
 
             translate_xyz = [
@@ -256,7 +267,12 @@ def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
 
 
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to get rotation values?
-            if int(mediator_getValue("should_use_deforumation_rotation")) == 1:
+            if use_parseq_through_deforumator and int(mediator_getValue("should_use_deforumation_rotation")) == 1:
+                deforumation_rotation_x = float(mediator_getValue("rotation_x").strip().strip('\n'))
+                deforumation_rotation_y = float(mediator_getValue("rotation_y").strip().strip('\n'))
+                rxs = deforumation_rotation_x
+                rys = deforumation_rotation_y
+            elif int(mediator_getValue("should_use_deforumation_rotation")) == 1:
                 deforumation_rotation_x = float(mediator_getValue("rotation_x").strip().strip('\n'))
                 deforumation_rotation_y = float(mediator_getValue("rotation_y").strip().strip('\n'))
                 rxs = keys.rotation_3d_x_series[frame_idx] + deforumation_rotation_x
@@ -264,7 +280,11 @@ def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
             else:
                 rxs = keys.rotation_3d_x_series[frame_idx]
                 rys = keys.rotation_3d_y_series[frame_idx]
-            if int(mediator_getValue("should_use_deforumation_tilt")) == 1:
+
+            if use_parseq_through_deforumator and int(mediator_getValue("should_use_deforumation_tilt")) == 1:
+                deforumation_rotation_z = float(mediator_getValue("rotation_z").strip().strip('\n'))
+                rzs = deforumation_rotation_z
+            elif int(mediator_getValue("should_use_deforumation_tilt")) == 1:
                 deforumation_rotation_z = float(mediator_getValue("rotation_z").strip().strip('\n'))
                 rzs = keys.rotation_3d_z_series[frame_idx] + deforumation_rotation_z
             else:
