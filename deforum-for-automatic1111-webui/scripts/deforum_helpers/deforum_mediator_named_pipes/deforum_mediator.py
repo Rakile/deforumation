@@ -24,8 +24,7 @@ exception_in_a_row = 0
 
 async def sendAsync(value):
     bufSize = 64 * 1024
-    handle = win32file.CreateFile('\\\\.\\pipe\\Deforumation', win32file.GENERIC_READ | win32file.GENERIC_WRITE, 0, None,
-                                  win32file.OPEN_EXISTING, 0, None)
+    handle = win32file.CreateFile('\\\\.\\pipe\\Deforum', win32file.GENERIC_READ | win32file.GENERIC_WRITE, 0, None,win32file.OPEN_EXISTING, 0, None)
     res = win32pipe.SetNamedPipeHandleState(handle, win32pipe.PIPE_READMODE_MESSAGE, None, None)
     bytesToSend = pickle.dumps(value)
     win32file.WriteFile(handle, bytesToSend)
@@ -82,11 +81,12 @@ def mediator_getValue(param):
             return return_value
         except Exception as e:
             exception_in_a_row += 1
-            if exception_in_a_row > 3:
+            if exception_in_a_row > 20:
                 print("Deforum Mediator Error:" + str(e))
                 print("...while trying to send parameter ("+str(param)+")")
-                print("The Deforumation Mediator, is probably not connected (waiting 0.2 seconds, before trying to reconnect...)")
+                print("The Deforumation Mediator, is probably not connected (waiting 1.0 seconds, before trying to reconnect...)")
                 needToUpdateMediator = True
+                exception_in_a_row = 0
             time.sleep(0.05)
 
 def mediator_setValue(param, value):
@@ -104,9 +104,10 @@ def mediator_setValue(param, value):
             return return_value
         except Exception as e:
             exception_in_a_row += 1
-            if exception_in_a_row > 3:
+            if exception_in_a_row > 20:
                 print("Deforum Mediator Error:" + str(e))
                 print("...while trying to send parameter ("+str(param)+") with value("+str(value)+")")
-                print("The Deforumation Mediator, is probably not connected (waiting 0.2 seconds, before trying to reconnect...)")
+                print("The Deforumation Mediator, is probably not connected (waiting 1.0 seconds, before trying to reconnect...)")
                 needToUpdateMediator = True
+                exception_in_a_row = 0
             time.sleep(0.05)
