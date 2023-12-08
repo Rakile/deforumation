@@ -1,26 +1,37 @@
 `Deforumation 0.7.6: The Swan Song of Our Clunky UI!`
 ===============================================
-Ahoy, Deforumation enthusiasts! Buckle up for the final update of Deforumation featuring our charmingly antiquated UI.
-That's right, we're ditching the old look for a snazzier, 'somewhat improved' UI to dazzle your user experience.
-
-Version 0.7.6, a special treat previously exclusive to our twenty-three gallant Patreon backers (whose actual usage we're blissfully unaware of),
-is now gracing the wider world. Yes, I know of at least five people actively using it, and I'm not just counting my reflection in the mirror!
-
-But wait, there's more! We're excited to announce that this version is now available for your downloading pleasure on GitHub.
-Meanwhile, QTDeforumation is peeking around the corner, eagerly awaiting our graphics wizard to sprinkle his magic on the design and layout.
-Let's cut the guy some slack, though; juggling regular work and a social life is no joke!
-
-Find us here:
 
 
-LAInol: https://www.youtube.com/@lainolkar
+Wave farewell to our old, not-so-jolly UI and prepare for the arrival of a snazzier, user-friendlier version! We're working tirelessly to make your Deforumation experience a joyous one.
 
-Installation's a breeze! Just follow the instructions below, and don't forget to check out the 'ReadMe_Installation_and_running_Deforumation.txt' tucked away in the zip file at 'deforumation\Version_0.7.6'.
+This version, previously exclusive to our twenty-three heroic Patreon backers, is now stepping into the limelight. I'm one of at least five known users - and proud of it!
 
-Run into a snag? Don't be shy, drop us a line!
+We're now launching this version on GitHub and here. Stay tuned, as the first update of QTDeforumation is just around the corner, pending our overworked graphic designer's touch on the design and layout.
 
-Discord: https://discord.gg/UZvrg7ph9k
+GitHub: Deforumation Repository
 
+LAInol: YouTube Channel
+
+Installation instructions are below, and there's also a 'how-to' file in the zip: loc deforumation\Version_0.7.6\ReadMe_Installation_and_running_Deforumation.txt
+
+Stuck or puzzled? Reach out to us!
+
+Join our Discord
+
+New Feature Alert: Voice Commands in Deforumation!
+
+Deforumation now listens to your voice! Here's how you can command it:
+
+Push to record. Then, use these magic words to control Deforumation:
+<Any sentence>: Speaks your sentence into the second prompt window.
+add + <Any sentence>: Adds your spoken words to the current sentence.
+cancel: Utter this to halt the prompt output entirely.
+Pan left, pan right, pan up, pan down: Pans around using preset values.
+Zoom in, zoom out: Zooms in or out. Say, "Zoom in 20" to zoom in by 0.20.
+Rotate left, rotate right, rotate up, rotate down: Controls rotation with preset values.
+Tilt left, Tilt right: Adjusts the tilt.
+Reset panning/zoom/rotation/tilt: Resets the respective values to default.
+Embrace the power of your voice with Deforumation!"
 Ralika / LAInol
 
 Here's to making Deforumation even more delightful (and less 'old school')!"
