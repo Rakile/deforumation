@@ -6,7 +6,7 @@ That's right, we're ditching the old look for a snazzier, 'somewhat improved' UI
 Version 0.7.6, a special treat previously exclusive to our twenty-three gallant Patreon backers (whose actual usage we're blissfully unaware of),
 is now gracing the wider world. Yes, I know of at least five people actively using it, and I'm not just counting my reflection in the mirror!
 
-But wait, there's more! We're excited to announce that this version is now available for your downloading pleasure on GitHub and here.
+But wait, there's more! We're excited to announce that this version is now available for your downloading pleasure on GitHub.
 Meanwhile, QTDeforumation is peeking around the corner, eagerly awaiting our graphics wizard to sprinkle his magic on the design and layout.
 Let's cut the guy some slack, though; juggling regular work and a social life is no joke!
 
