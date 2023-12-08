@@ -8,14 +8,15 @@ This version, previously exclusive to our twenty-three heroic Patreon backers, i
 
 We're now launching this version on GitHub and here. Stay tuned, as the first update of QTDeforumation is just around the corner, pending our overworked graphic designer's touch on the design and layout.
 
-LAInol: [YouTube Channel](https://www.youtube.com/@lainolkar)
-===============================================
+
 Installation instructions are below, and there's also a 'how-to' file in the zip: loc deforumation\Version_0.7.6\ReadMe_Installation_and_running_Deforumation.txt
 
 Stuck or puzzled? Reach out to us!
 
 Join our Discord https://discord.gg/UZvrg7ph9k
 ===============================================
+LAInol: [YouTube Channel](https://www.youtube.com/@lainolkar)
+-------------
 New Feature Alert: Voice Commands in Deforumation!
 
 Deforumation now listens to your voice! Here's how you can command it:
