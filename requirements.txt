@@ -1,7 +1,0 @@
-websockets == 10.4
-wxPython >= 4.2.0
-keyboard >= 0.13.5
-requests
-pyeaze
-pytest-shutil
-pywin32
