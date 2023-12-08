@@ -1,6 +1,0 @@
-pan_left_key = 65
-pan_right_key = 68
-pan_up_key = 87
-pan_down_key = 83
-zoom_up_key = 315
-zoom_down_key = 317
