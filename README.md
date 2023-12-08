@@ -1,4 +1,5 @@
 `Deforumation 0.7.6: The Swan Song of Our Clunky UI!`
+===============================================
 Ahoy, Deforumation enthusiasts! Buckle up for the final update of Deforumation featuring our charmingly antiquated UI.
 That's right, we're ditching the old look for a snazzier, 'somewhat improved' UI to dazzle your user experience.
 
