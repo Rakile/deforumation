@@ -4,11 +4,12 @@
 ![img](github_images/DM.png)
 
 
-`DeforumationQT 0.1.2: Patreon version!`
+`DeforumationQT 0.1.2: Patreon version! will be available on github end of January -24`
 ===============================================
 
 ![img](github_images/DMQT.png)
-[DeforumationQT Patreon](https://www.patreon.com/Deforumation)
+
+<a href="[https://stackoverflow.com/](https://www.patreon.com/Deforumation)"><img src=github_images/patreon.png></img></a>
 
 
 Installation instructions for Deforumation 0.7.6 are below, and there's also a 'how-to' file in the zip: loc deforumation\Version_0.7.6\ReadMe_Installation_and_running_Deforumation.txt
