@@ -1,12 +1,5 @@
-`Deforumation 0.7.6: The Swan Song of Our Clunky UI!`
+`Deforumation 0.7.6: Github version!`
 ===============================================
-
-
-Wave farewell to our old, not-so-jolly UI and prepare for the arrival of a snazzier, user-friendlier version! We're working tirelessly to make your Deforumation experience a joyous one.
-
-This version, previously exclusive to our twenty-three heroic Patreon backers, is now stepping into the limelight. I'm one of at least five known users - and proud of it!
-
-We're now launching this version on GitHub and here. Stay tuned, as the first update of QTDeforumation is just around the corner, pending our overworked graphic designer's touch on the design and layout.
 
 
 Installation instructions are below, and there's also a 'how-to' file in the zip: loc deforumation\Version_0.7.6\ReadMe_Installation_and_running_Deforumation.txt
