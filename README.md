@@ -153,22 +153,6 @@ Discord Channel<a name="Discord-Channel"></a>
 [Welcome To Deforumation] (https://discord.gg/rbKFVh9v87) 
 
 
-Ongoing Work<a name="Ongoing-Work"></a>
-----------
-
-Below you se the draft for the new Deforumation UI.  Many new features like the ability to customize the layout
-and choose what values you work with during the animation rendering process. There will also be support to control
-the movements using a joystick or game-pad. The paus, rewind and redo function will be the "animation player".
-
-The prompting can be done in traditional way by having the complete prompt in one prompt-input box. 
-But as shown in the UI you will also have the ability to make separate prompting input boxes(and adjust the prio) for easier prompting.
-
-And to the left there will be a drop down list for automated macros, like facial expression styles, automated blinking.
-Or whatever your imagination can come up with.
-
-![img](github_images/deforumation_design_01.jpg)
-
-
 
 
 Latest version<a name="Latest-version"></a>
