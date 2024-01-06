@@ -12,6 +12,11 @@
 <a href="[https://stackoverflow.com/](https://www.patreon.com/Deforumation)"><img src=github_images/patreon.png></img></a>
 
 
+[<img src="github_images/DMQTyou.png" width="50%">](https://youtu.be/1VGWA-sWiEk "DeforumationQT v.0.1.0  Quickrun, installation and functions video.")
+
+
+
+
 Installation instructions for Deforumation 0.7.6 are below, and there's also a 'how-to' file in the zip: loc deforumation\Version_0.7.6\ReadMe_Installation_and_running_Deforumation.txt
 
 Stuck or puzzled? Reach out to us!
