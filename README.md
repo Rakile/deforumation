@@ -1,8 +1,17 @@
 `Deforumation 0.7.6: Github version!`
 ===============================================
 
+![img](github_images/DM.png)
 
-Installation instructions are below, and there's also a 'how-to' file in the zip: loc deforumation\Version_0.7.6\ReadMe_Installation_and_running_Deforumation.txt
+
+`DeforumationQT 0.1.2: Patreon version!`
+===============================================
+
+![img](github_images/DMQT.png)
+[DeforumationQT Patreon](https://www.patreon.com/Deforumation)
+
+
+Installation instructions for Deforumation 0.7.6 are below, and there's also a 'how-to' file in the zip: loc deforumation\Version_0.7.6\ReadMe_Installation_and_running_Deforumation.txt
 
 Stuck or puzzled? Reach out to us!
 
