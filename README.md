@@ -3,16 +3,9 @@
 
 ![img](github_images/DM.png)
 
-
-`DeforumationQT 0.1.2: Patreon version! will be available on github end of January -24`
 ===============================================
 
-![img](github_images/DMQT.png)
 
-<a href="https://www.patreon.com/Deforumation"><img src=github_images/patreon.png></img></a>
-
-
-[<img src="github_images/DMQTyou.png" width="50%">](https://youtu.be/1VGWA-sWiEk "DeforumationQT v.0.1.0  Quickrun, installation and functions video.")
 
 
 
