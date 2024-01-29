@@ -1,4 +1,5 @@
-`Deforumation 0.7.6: Github version!`
+`Deforumation 0.7.6 No more updates will be dome to this repo. Se new repo below!
+https://github.com/Rakile/DeforumationQT
 ===============================================
 
 ![img](github_images/DM.png)
