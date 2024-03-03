@@ -1,4 +1,4 @@
-`Deforumation 0.7.6 No more updates will be dome to this repo. Se new repo 
+`Deforumation 0.7.6 No more updates will be dome to this repo. Se new repo for DeforumationQT Version 0.1.5
 https://github.com/Rakile/DeforumationQT
 ===============================================
 
